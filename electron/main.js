@@ -46,7 +46,7 @@ function waitForBackend(retries = 30, intervalMs = 500) {
   })
 }
 
-// ── 백엔드 서버 시작 ────────────────────────────────────
+// ── 백엔드 서버 시작 (Electron 내장 Node.js로 인-프로세스 실행) ──
 function startBackend() {
   if (isDev) return // 개발 모드: 별도로 실행
 
@@ -54,18 +54,17 @@ function startBackend() {
     ? path.join(process.resourcesPath, 'backend')
     : path.join(__dirname, '..', 'backend')
 
-  backendProcess = spawn('node', [path.join(backendPath, 'dist', 'index.js')], {
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      PORT: '3001',
-    },
-    cwd: backendPath,
-  })
+  // 환경변수 설정
+  process.env.NODE_ENV = 'production'
+  process.env.PORT = '3001'
 
-  backendProcess.stdout?.on('data', (d) => console.log('[Backend]', d.toString()))
-  backendProcess.stderr?.on('data', (d) => console.error('[Backend]', d.toString()))
-  backendProcess.on('exit', (code) => console.log('[Backend] 종료 code=', code))
+  // Electron에 내장된 Node.js로 직접 실행 (별도 node 설치 불필요)
+  try {
+    require(path.join(backendPath, 'dist', 'index.js'))
+    console.log('[Backend] 인-프로세스 시작 완료')
+  } catch (err) {
+    console.error('[Backend] 시작 실패:', err)
+  }
 }
 
 function createWindow() {
@@ -126,12 +125,11 @@ app.whenReady().then(async () => {
 })
 
 app.on('window-all-closed', () => {
-  if (backendProcess) backendProcess.kill()
   if (process.platform !== 'darwin') app.quit()
 })
 
 app.on('before-quit', () => {
-  if (backendProcess) backendProcess.kill('SIGTERM')
+  // 인-프로세스 백엔드는 앱 종료 시 자동 정리됨
 })
 
 // ── IPC 핸들러 ───────────────────────────────────────────
