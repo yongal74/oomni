@@ -27,7 +27,14 @@
     ],
     "win": { "target": "nsis", "icon": "assets/icon.ico" },
     "mac": { "target": "dmg", "icon": "assets/icon.icns" },
-    "nsis": { "oneClick": true, "perMachine": false, "allowToChangeInstallationDirectory": false }
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
+    }
   },
   "devDependencies": {
     "concurrently": "^9.0.0",
