@@ -1,0 +1,140 @@
+import axios from 'axios'
+
+const API_KEY = (window as any).electronAPI?.getInternalApiKey?.() ?? 'dev-key'
+const BASE_URL = 'http://localhost:3001'
+
+export const api = axios.create({
+  baseURL: BASE_URL,
+  headers: { Authorization: `Bearer ${API_KEY}` },
+  timeout: 30000,
+})
+
+// 인증용 axios (Bearer 인증 없음)
+const authAxios = axios.create({ baseURL: BASE_URL, timeout: 10000 })
+
+// 타입 헬퍼
+export interface ApiResponse<T> { data: T }
+
+// 미션
+export const missionsApi = {
+  list: () => api.get<ApiResponse<Mission[]>>('/api/missions').then(r => r.data.data),
+  create: (data: { name: string; description: string }) =>
+    api.post<ApiResponse<Mission>>('/api/missions', data).then(r => r.data.data),
+  get: (id: string) => api.get<ApiResponse<Mission>>(`/api/missions/${id}`).then(r => r.data.data),
+}
+
+// 에이전트
+export const agentsApi = {
+  list: (missionId?: string) =>
+    api.get<ApiResponse<Agent[]>>('/api/agents', { params: { mission_id: missionId } }).then(r => r.data.data),
+  create: (data: Partial<Agent>) =>
+    api.post<ApiResponse<Agent>>('/api/agents', data).then(r => r.data.data),
+  update: (id: string, data: Partial<Agent>) =>
+    api.patch<ApiResponse<Agent>>(`/api/agents/${id}`, data).then(r => r.data.data),
+  trigger: (id: string) =>
+    api.post(`/api/agents/${id}/trigger`).then(r => r.data),
+  delete: (id: string) => api.delete(`/api/agents/${id}`),
+}
+
+// 피드
+export const feedApi = {
+  list: (params?: { mission_id?: string; approval_only?: boolean; limit?: number }) =>
+    api.get<ApiResponse<FeedItem[]>>('/api/feed', { params }).then(r => r.data.data),
+  approve: (id: string) => api.post(`/api/feed/${id}/approve`).then(r => r.data.data),
+  reject: (id: string) => api.post(`/api/feed/${id}/reject`).then(r => r.data.data),
+}
+
+// 비용
+export const costApi = {
+  summary: (missionId?: string, period?: string) =>
+    api.get('/api/cost/summary', { params: { mission_id: missionId, period } }).then(r => r.data),
+}
+
+// 연동
+export const integrationsApi = {
+  list: (missionId: string) =>
+    api.get('/api/integrations', { params: { mission_id: missionId } }).then(r => r.data.data),
+  providers: () => api.get('/api/integrations/providers').then(r => r.data.data),
+  save: (data: { mission_id: string; provider: string; credentials: Record<string, string>; label?: string }) =>
+    api.post('/api/integrations', data).then(r => r.data),
+  delete: (id: string) => api.delete(`/api/integrations/${id}`),
+}
+
+// n8n
+export const n8nApi = {
+  templates: () => api.get('/api/n8n/templates').then(r => r.data.data),
+  workflows: (missionId: string) =>
+    api.get('/api/n8n/workflows', { params: { mission_id: missionId } }).then(r => r.data.data),
+  deploy: (data: { mission_id: string; template_id: string; params?: Record<string,unknown>; activate?: boolean }) =>
+    api.post('/api/n8n/deploy', data).then(r => r.data),
+  test: (missionId: string) => api.post('/api/n8n/test', { mission_id: missionId }).then(r => r.data),
+}
+
+// 이슈/티켓
+export const issuesApi = {
+  list: (params?: { mission_id?: string; status?: string; priority?: string }) =>
+    api.get<ApiResponse<Issue[]>>('/api/issues', { params }).then(r => r.data.data),
+  create: (data: { mission_id: string; title: string; description?: string; priority?: string; agent_id?: string }) =>
+    api.post<ApiResponse<Issue>>('/api/issues', data).then(r => r.data.data),
+  update: (id: string, data: Partial<Issue>) =>
+    api.patch<ApiResponse<Issue>>(`/api/issues/${id}`, data).then(r => r.data.data),
+  delete: (id: string) => api.delete(`/api/issues/${id}`),
+}
+
+// 스케줄
+export const schedulesApi = {
+  list: (params?: { mission_id?: string; agent_id?: string }) =>
+    api.get<ApiResponse<Schedule[]>>('/api/schedules', { params }).then(r => r.data.data),
+  create: (data: { agent_id: string; mission_id: string; name: string; trigger_type: string; trigger_value: string }) =>
+    api.post<ApiResponse<Schedule>>('/api/schedules', data).then(r => r.data.data),
+  update: (id: string, data: Partial<Schedule>) =>
+    api.patch<ApiResponse<Schedule>>(`/api/schedules/${id}`, data).then(r => r.data.data),
+  delete: (id: string) => api.delete(`/api/schedules/${id}`),
+}
+
+// 리포트
+export const reportsApi = {
+  get: (missionId: string, period: 'daily' | 'weekly' | 'monthly') =>
+    api.get('/api/reports', { params: { mission_id: missionId, period } }).then(r => r.data),
+}
+
+// 인증 (Bearer 없이 직접 호출)
+export const authApi = {
+  status: (): Promise<{ pin_set: boolean }> =>
+    authAxios.get('/api/auth/status').then(r => r.data),
+  setPin: (pin: string): Promise<{ success: boolean; message: string }> =>
+    authAxios.post('/api/auth/pin/set', { pin }).then(r => r.data),
+  verifyPin: (pin: string): Promise<{ success: boolean; session_token: string }> =>
+    authAxios.post('/api/auth/pin/verify', { pin }).then(r => r.data),
+}
+
+// 타입들
+export interface Mission { id: string; name: string; description: string; created_at: string }
+export interface Agent {
+  id: string; mission_id: string; name: string;
+  role: 'research'|'build'|'design'|'content'|'growth'|'ops'|'integration'|'n8n'|'ceo';
+  schedule: 'manual'|'hourly'|'daily'|'weekly';
+  system_prompt: string; budget_cents: number;
+  is_active: boolean; reports_to: string|null; created_at: string;
+}
+export interface FeedItem {
+  id: string; agent_id: string; run_id: string|null;
+  type: 'info'|'result'|'approval'|'error';
+  content: string; action_label: string|null; action_data: Record<string,unknown>|null;
+  requires_approval: boolean; approved_at: string|null; rejected_at: string|null;
+  created_at: string; agent_name?: string; agent_role?: string;
+}
+export interface Issue {
+  id: string; mission_id: string; agent_id: string | null;
+  title: string; description: string | null;
+  status: 'open' | 'in_progress' | 'done' | 'cancelled';
+  priority: 'low' | 'medium' | 'high';
+  parent_id: string | null; created_at: string;
+}
+export interface Schedule {
+  id: string; agent_id: string; mission_id: string;
+  name: string;
+  trigger_type: 'interval' | 'cron' | 'webhook' | 'bot_complete';
+  trigger_value: string;
+  is_active: boolean; last_run_at: string | null; created_at: string;
+}

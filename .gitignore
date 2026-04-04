@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dist-app/
+frontend/dist/
+backend/dist/
+*.env
+!.env.example
+pgdata/
+*.log
+.DS_Store
+coverage/
