@@ -3,171 +3,216 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OOMNI — 딸깍 하나로 AI 팀이 일한다</title>
+  <title>OOMNI — 딸깍 하나로 AI 회사가 운영된다</title>
   <meta name="description" content="9종의 AI 봇이 리서치부터 코딩, 콘텐츠, 운영까지 자동으로 처리. 1인 창업자를 위한 AI 팀 자동화 데스크탑 앱." />
-  <meta property="og:title" content="OOMNI — 딸깍 하나로 AI 팀이 일한다" />
+  <meta property="og:title" content="OOMNI — 딸깍 하나로 AI 회사가 운영된다" />
   <meta property="og:description" content="9종의 AI 봇이 리서치부터 코딩, 콘텐츠, 운영까지 자동으로 처리합니다." />
-  <meta property="og:image" content="https://yongal74.github.io/oomni/og.png" />
-  <meta name="twitter:card" content="summary_large_image" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          fontFamily: {
+            sans:  ['"Pretendard"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            serif: ['"Instrument Serif"', 'Georgia', 'serif'],
+          },
           colors: {
-            bg:      '#080810',
-            surface: '#0e0e1a',
-            card:    '#12121f',
-            border:  '#1e1e30',
-            primary: '#6c63ff',
-            accent:  '#a78bfa',
-            muted:   '#64648a',
-            dim:     '#9191b0',
-            text:    '#e8e8f0',
+            /* Claude warm-dark palette */
+            bg:       '#1C1812',
+            surface:  '#242018',
+            card:     '#2C271E',
+            border:   '#3D3828',
+            warm:     '#4A4232',
+            primary:  '#D4763B',   /* Claude orange */
+            'primary-light': '#E8935C',
+            muted:    '#8A7E6E',
+            dim:      '#BDB09E',
+            text:     '#F2EAD8',
+            cream:    '#F8F2E4',
           },
-          animation: {
-            'float':      'float 6s ease-in-out infinite',
-            'float-slow': 'float 9s ease-in-out infinite',
-            'pulse-soft': 'pulse-soft 3s ease-in-out infinite',
-            'slide-up':   'slide-up 0.6s ease forwards',
-            'ticker':     'ticker 20s linear infinite',
-          },
-          keyframes: {
-            float:        { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-12px)' } },
-            'pulse-soft': { '0%,100%': { opacity: '0.5' }, '50%': { opacity: '1' } },
-            'slide-up':   { from: { opacity: '0', transform: 'translateY(20px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
-            ticker:       { '0%': { transform: 'translateX(0)' }, '100%': { transform: 'translateX(-50%)' } },
-          }
         }
       }
     }
   </script>
   <style>
-    * { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
-    body { background: #080810; color: #e8e8f0; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+    body {
+      background: #1C1812;
+      color: #F2EAD8;
+      font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── Typography ── */
+    .hero-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: clamp(3.5rem, 8vw, 7rem);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      color: #F8F2E4;
+    }
+    .section-title {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.1;
+    }
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      color: #F2EAD8;
+    }
 
     /* ── Gradient text ── */
-    .g-text {
-      background: linear-gradient(135deg, #a78bfa 0%, #6c63ff 50%, #38bdf8 100%);
+    .g-orange {
+      background: linear-gradient(135deg, #E8935C 0%, #D4763B 60%, #C05A22 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
-    .g-text-warm {
-      background: linear-gradient(135deg, #f0abfc, #a78bfa, #6c63ff);
+    .g-warm {
+      background: linear-gradient(135deg, #F8F2E4, #D4763B);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
-
-    /* ── Glow effects ── */
-    .glow-primary { box-shadow: 0 0 60px rgba(108,99,255,0.25), 0 0 120px rgba(108,99,255,0.1); }
-    .glow-card    { box-shadow: 0 4px 32px rgba(0,0,0,0.4); }
 
     /* ── Buttons ── */
-    .btn-cta {
-      background: linear-gradient(135deg, #7c6fff, #6c63ff, #5b52e0);
-      transition: all 0.25s ease;
-      box-shadow: 0 4px 20px rgba(108,99,255,0.35);
+    .btn-primary {
+      background: linear-gradient(135deg, #E0844A, #D4763B, #C46828);
+      color: #fff;
+      font-weight: 700;
+      border-radius: 14px;
+      transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      box-shadow: 0 4px 24px rgba(212,118,59,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
     }
-    .btn-cta:hover {
-      background: linear-gradient(135deg, #8f82ff, #7c6fff, #6c63ff);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 32px rgba(108,99,255,0.5);
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 36px rgba(212,118,59,0.55), inset 0 1px 0 rgba(255,255,255,0.2);
     }
-    .btn-ghost {
-      border: 1px solid #1e1e30;
+    .btn-outline {
+      border: 1.5px solid #3D3828;
+      background: rgba(255,255,255,0.03);
+      color: #BDB09E;
+      font-weight: 600;
+      border-radius: 14px;
       transition: all 0.2s ease;
-      background: rgba(255,255,255,0.02);
     }
-    .btn-ghost:hover { border-color: #6c63ff; background: rgba(108,99,255,0.08); }
-
-    /* ── Card hover ── */
-    .card-hover { transition: all 0.25s ease; }
-    .card-hover:hover { border-color: rgba(108,99,255,0.5); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(108,99,255,0.15); }
-
-    /* ── Animated border ── */
-    .border-animated {
-      background: linear-gradient(#12121f, #12121f) padding-box,
-                  linear-gradient(135deg, #6c63ff, #a78bfa, #38bdf8) border-box;
-      border: 1px solid transparent;
+    .btn-outline:hover {
+      border-color: #D4763B;
+      color: #F2EAD8;
+      background: rgba(212,118,59,0.08);
     }
 
-    /* ── Noise overlay ── */
-    .noise::before {
+    /* ── Cards ── */
+    .card {
+      background: #2C271E;
+      border: 1px solid #3D3828;
+      border-radius: 20px;
+      transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .card:hover {
+      border-color: rgba(212,118,59,0.5);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(212,118,59,0.15);
+    }
+    .card-featured {
+      background: linear-gradient(145deg, #2C271E, #352E22);
+      border: 1.5px solid #D4763B;
+      border-radius: 20px;
+      box-shadow: 0 0 0 1px rgba(212,118,59,0.3), 0 24px 64px rgba(212,118,59,0.15);
+    }
+
+    /* ── Nav ── */
+    nav {
+      background: rgba(28,24,18,0.85);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid rgba(61,56,40,0.8);
+    }
+
+    /* ── Noise texture ── */
+    .noise-overlay::after {
       content: '';
-      position: absolute; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-      pointer-events: none; border-radius: inherit;
+      position: absolute; inset: 0; border-radius: inherit;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+
+    /* ── Blobs ── */
+    .blob {
+      border-radius: 50%;
+      filter: blur(100px);
+      pointer-events: none;
+      position: absolute;
     }
 
     /* ── Dot grid ── */
     .dot-grid {
-      background-image: radial-gradient(circle, #1e1e30 1px, transparent 1px);
-      background-size: 28px 28px;
+      background-image: radial-gradient(circle, rgba(212,118,59,0.12) 1px, transparent 1px);
+      background-size: 32px 32px;
     }
 
-    /* ── Feed ticker ── */
-    .ticker-wrap { overflow: hidden; mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); }
-    .ticker-inner { display: flex; width: max-content; }
-    .ticker-inner.animate { animation: ticker 28s linear infinite; }
+    /* ── Line divider ── */
+    .divider { border-top: 1px solid #3D3828; }
 
-    /* ── Divider ── */
-    .divider { border-top: 1px solid #1e1e30; }
+    /* ── Status ── */
+    .dot-on  { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+    .dot-run { width: 8px; height: 8px; border-radius: 50%; background: #fbbf24; animation: blink 1.4s ease infinite; }
+    .dot-off { width: 8px; height: 8px; border-radius: 50%; background: #3D3828; }
 
-    /* ── Blob ── */
-    .blob {
-      border-radius: 50%;
-      filter: blur(80px);
-      pointer-events: none;
-    }
+    /* ── Ticker ── */
+    .ticker-mask { mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent); overflow: hidden; }
+    @keyframes ticker { 0% { transform: translateX(0) } 100% { transform: translateX(-50%) } }
+    .ticker-run { display: flex; width: max-content; animation: ticker 30s linear infinite; }
 
-    /* ── Appear on scroll ── */
-    .appear { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
-    .appear.visible { opacity: 1; transform: translateY(0); }
+    /* ── Animations ── */
+    @keyframes float-y { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-14px) } }
+    @keyframes blink   { 0%,100% { opacity: 1 } 50% { opacity: 0.3 } }
+    @keyframes appear  { from { opacity: 0; transform: translateY(28px) } to { opacity: 1; transform: translateY(0) } }
+    @keyframes bar-fill { from { width: 0 } to { width: var(--w) } }
+    .float    { animation: float-y 7s ease-in-out infinite; }
+    .appear   { opacity: 0; }
+    .appeared { animation: appear 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
 
-    /* ── Nav ── */
-    nav { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+    /* Window */
+    .win-chrome { border-radius: 16px; overflow: hidden; border: 1px solid #3D3828; box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,118,59,0.15); }
+    .win-bar    { background: #242018; padding: 12px 16px; display: flex; align-items: center; gap: 7px; border-bottom: 1px solid #3D3828; }
+    .win-dot    { width: 13px; height: 13px; border-radius: 50%; }
 
-    /* ── Window chrome ── */
-    .window-chrome { border-radius: 12px; overflow: hidden; border: 1px solid #1e1e30; }
-    .window-titlebar { background: #0e0e1a; padding: 10px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #1a1a28; }
-    .dot-red    { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
-    .dot-yellow { width: 12px; height: 12px; border-radius: 50%; background: #ffbd2e; }
-    .dot-green  { width: 12px; height: 12px; border-radius: 50%; background: #28ca41; }
+    /* Pricing toggle */
+    .plan-tab { cursor: pointer; font-weight: 600; font-size: 0.875rem; padding: 6px 20px; border-radius: 9px; transition: all 0.2s ease; }
+    .plan-tab.active { background: #D4763B; color: #fff; }
+    .plan-tab:not(.active) { color: #8A7E6E; }
+    .plan-tab:not(.active):hover { color: #BDB09E; }
 
-    /* ── Status dot ── */
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
-    .status-on  { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
-    .status-off { background: #374151; }
-    .status-run { background: #facc15; box-shadow: 0 0 6px #facc15; animation: pulse-soft 1.5s ease-in-out infinite; }
+    .price-monthly, .price-annual, .price-lifetime { display: none; }
 
-    /* ── Progress bar ── */
-    @keyframes progress { from { width: 0% } to { width: var(--w) } }
-    .progress-bar { animation: progress 1.8s ease forwards; }
+    /* Progress bar */
+    .pbar { height: 6px; background: #3D3828; border-radius: 999px; overflow: hidden; }
+    .pbar-fill { height: 100%; border-radius: 999px; animation: bar-fill 1.8s ease forwards; }
   </style>
 </head>
-<body class="overflow-x-hidden">
+<body>
 
 <!-- ══════════════════════════════════════════
   NAV
 ═══════════════════════════════════════════ -->
-<nav class="fixed top-0 left-0 right-0 z-50 border-b border-[#131325] bg-[#080810]/80">
-  <div class="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
-    <a href="#" class="flex items-center gap-2.5 select-none">
-      <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white font-black text-[13px]">O</div>
-      <span class="text-[15px] font-bold tracking-tight text-white">OOMNI</span>
+<nav class="fixed top-0 left-0 right-0 z-50">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="#" class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#E8935C] to-[#C46828] flex items-center justify-center font-black text-white text-[14px] shadow-lg">O</div>
+      <span class="text-[16px] font-bold text-cream tracking-tight">OOMNI</span>
     </a>
-    <div class="hidden md:flex items-center gap-7 text-[13px] text-muted">
+    <div class="hidden md:flex items-center gap-8 text-[14px] text-muted">
       <a href="#features" class="hover:text-text transition-colors">기능</a>
       <a href="#bots"     class="hover:text-text transition-colors">AI 팀원</a>
-      <a href="#how"      class="hover:text-text transition-colors">사용법</a>
       <a href="#pricing"  class="hover:text-text transition-colors">가격</a>
+      <a href="#download" class="hover:text-text transition-colors">다운로드</a>
     </div>
-    <a href="#download" class="btn-cta text-white text-[13px] px-4 py-2 rounded-lg font-semibold">
-      무료 다운로드
-    </a>
+    <a href="#download" class="btn-primary text-[14px] px-5 py-2.5">무료 다운로드</a>
   </div>
 </nav>
 
@@ -175,148 +220,133 @@
 <!-- ══════════════════════════════════════════
   HERO
 ═══════════════════════════════════════════ -->
-<section class="relative min-h-screen flex items-center pt-14 overflow-hidden dot-grid">
+<section class="relative min-h-screen flex items-center pt-16 overflow-hidden dot-grid">
+  <div class="blob w-[700px] h-[700px] bg-[#D4763B]/8 top-0 left-[-10%]"></div>
+  <div class="blob w-[500px] h-[500px] bg-[#8B5CF6]/6 bottom-0 right-[-5%]"></div>
 
-  <!-- Blobs -->
-  <div class="absolute top-1/4 left-1/4 w-[500px] h-[500px] blob bg-violet-600/10 animate-float"></div>
-  <div class="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] blob bg-indigo-500/10 animate-float-slow"></div>
+  <div class="relative max-w-6xl mx-auto px-6 py-28 w-full">
+    <div class="grid lg:grid-cols-2 gap-20 items-center">
 
-  <div class="relative max-w-6xl mx-auto px-5 py-24 w-full">
-    <div class="grid lg:grid-cols-2 gap-16 items-center">
-
-      <!-- Left: Copy -->
-      <div>
-        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-400 text-[12px] font-medium mb-7">
-          <span class="status-dot status-on"></span>
-          v1.0 출시 — Windows / macOS 지원
+      <!-- Copy -->
+      <div class="appear">
+        <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-[#D4763B]/30 bg-[#D4763B]/10 text-[#E8935C] text-[13px] font-semibold mb-8">
+          <span class="dot-on"></span>
+          v1.0 출시 · Windows / macOS
         </div>
 
-        <h1 class="text-5xl lg:text-6xl font-black leading-[1.1] mb-6 tracking-tight">
+        <h1 class="hero-title mb-7">
           딸깍 하나로<br />
-          <span class="g-text">AI 팀이</span><br />
-          일한다
+          <span class="g-orange">AI 회사가</span><br />
+          운영된다
         </h1>
 
-        <p class="text-[17px] text-dim leading-relaxed mb-3 max-w-md">
-          9종의 AI 봇이 리서치, 코딩, 콘텐츠, 운영까지 24시간 자동 처리.
+        <p class="text-[19px] text-dim leading-relaxed mb-3 max-w-lg font-medium">
+          9종의 AI 봇이 리서치, 코딩, 콘텐츠, 운영을 24시간 자동 처리합니다.
         </p>
-        <p class="text-[15px] text-muted mb-10 max-w-md">
-          월정액 없음 · 서버비 없음 · 100% 내 PC에서 실행.
+        <p class="text-[15px] text-muted mb-12 max-w-lg">
+          월정액 없음 · 서버비 없음 · 100% 내 PC에서 실행
         </p>
 
-        <div class="flex flex-col sm:flex-row gap-3 mb-10">
-          <a href="#download" class="btn-cta text-white px-7 py-3.5 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2.5">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <div class="flex flex-col sm:flex-row gap-4 mb-12">
+          <a href="#download" class="btn-primary text-[16px] px-9 py-4 flex items-center justify-center gap-3">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             무료로 시작하기
           </a>
           <a href="https://github.com/yongal74/oomni" target="_blank" rel="noopener"
-             class="btn-ghost text-dim px-7 py-3.5 rounded-xl font-medium text-[15px] flex items-center justify-center gap-2.5">
-            <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-            GitHub 보기
+             class="btn-outline text-[16px] px-9 py-4 flex items-center justify-center gap-3">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            GitHub
           </a>
         </div>
 
-        <!-- Trust badges -->
-        <div class="flex flex-wrap items-center gap-5 text-[12px] text-muted">
-          <span class="flex items-center gap-1.5"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>오픈소스</span>
-          <span class="flex items-center gap-1.5"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>로컬 전용</span>
-          <span class="flex items-center gap-1.5"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Claude Code 기반</span>
-          <span class="flex items-center gap-1.5"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>MIT 라이선스</span>
+        <div class="flex flex-wrap gap-6 text-[13px] text-muted">
+          <span class="flex items-center gap-2"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>오픈소스</span>
+          <span class="flex items-center gap-2"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>로컬 전용</span>
+          <span class="flex items-center gap-2"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Claude Code 기반</span>
         </div>
       </div>
 
-      <!-- Right: App mockup -->
-      <div class="animate-float hidden lg:block">
-        <div class="window-chrome glow-primary relative">
-          <div class="window-titlebar">
-            <div class="dot-red"></div><div class="dot-yellow"></div><div class="dot-green"></div>
-            <span class="ml-3 text-[11px] text-muted">OOMNI · AI 팀 대시보드</span>
+      <!-- App mockup -->
+      <div class="float hidden lg:block appear" style="animation-delay:0.2s">
+        <div class="win-chrome">
+          <div class="win-bar">
+            <div class="win-dot" style="background:#ff5f57"></div>
+            <div class="win-dot" style="background:#ffbd2e"></div>
+            <div class="win-dot" style="background:#28ca41"></div>
+            <span class="ml-3 text-[12px] text-muted font-medium">OOMNI — AI 팀 대시보드</span>
           </div>
 
-          <div class="bg-[#0b0b16] p-4 space-y-3">
-            <!-- Stats row -->
-            <div class="grid grid-cols-4 gap-2">
-              <div class="bg-card rounded-lg p-3 border border-border">
-                <div class="text-[10px] text-muted mb-1">활성 봇</div>
-                <div class="text-[20px] font-bold text-green-400">3</div>
+          <div class="bg-[#1C1812] p-5 space-y-4">
+            <!-- Stats -->
+            <div class="grid grid-cols-4 gap-3">
+              <div class="bg-surface rounded-xl p-3.5 border border-border">
+                <div class="text-[11px] text-muted mb-1 font-medium">활성 봇</div>
+                <div class="text-[22px] font-bold text-green-400">3</div>
               </div>
-              <div class="bg-card rounded-lg p-3 border border-border">
-                <div class="text-[10px] text-muted mb-1">오늘 완료</div>
-                <div class="text-[20px] font-bold text-sky-400">14</div>
+              <div class="bg-surface rounded-xl p-3.5 border border-border">
+                <div class="text-[11px] text-muted mb-1 font-medium">오늘 완료</div>
+                <div class="text-[22px] font-bold text-sky-400">14</div>
               </div>
-              <div class="bg-card rounded-lg p-3 border border-border">
-                <div class="text-[10px] text-muted mb-1">승인 대기</div>
-                <div class="text-[20px] font-bold text-yellow-400">2</div>
+              <div class="bg-surface rounded-xl p-3.5 border border-border">
+                <div class="text-[11px] text-muted mb-1 font-medium">승인 대기</div>
+                <div class="text-[22px] font-bold text-yellow-400">2</div>
               </div>
-              <div class="bg-card rounded-lg p-3 border border-border">
-                <div class="text-[10px] text-muted mb-1">이번 달</div>
-                <div class="text-[20px] font-bold text-violet-400">$3.8</div>
+              <div class="bg-surface rounded-xl p-3.5 border border-border">
+                <div class="text-[11px] text-muted mb-1 font-medium">이번 달</div>
+                <div class="text-[22px] font-bold text-[#E8935C]">$3.8</div>
               </div>
             </div>
 
-            <div class="grid grid-cols-5 gap-2">
-              <!-- Bot list -->
-              <div class="col-span-2 bg-card rounded-lg p-3 border border-border">
-                <div class="text-[10px] text-muted mb-2.5">봇 현황</div>
-                <div class="space-y-2">
-                  <div class="flex items-center gap-1.5 text-[11px]"><span>🔬</span><span class="text-text">Research</span><div class="ml-auto status-dot status-on"></div></div>
-                  <div class="flex items-center gap-1.5 text-[11px]"><span>🔨</span><span class="text-text">Build</span><div class="ml-auto status-dot status-run"></div></div>
-                  <div class="flex items-center gap-1.5 text-[11px]"><span>✍️</span><span class="text-text">Content</span><div class="ml-auto status-dot status-on"></div></div>
-                  <div class="flex items-center gap-1.5 text-[11px]"><span>📈</span><span class="text-muted">Growth</span><div class="ml-auto status-dot status-off"></div></div>
-                  <div class="flex items-center gap-1.5 text-[11px]"><span>👔</span><span class="text-muted">CEO</span><div class="ml-auto status-dot status-off"></div></div>
+            <div class="grid grid-cols-5 gap-3">
+              <div class="col-span-2 bg-surface rounded-xl p-3.5 border border-border">
+                <div class="text-[11px] text-muted mb-3 font-medium">봇 현황</div>
+                <div class="space-y-2.5">
+                  <div class="flex items-center gap-2 text-[12px]"><span class="text-[13px]">Research</span><div class="ml-auto dot-on"></div></div>
+                  <div class="flex items-center gap-2 text-[12px]"><span class="text-[13px]">Build</span><div class="ml-auto dot-run"></div></div>
+                  <div class="flex items-center gap-2 text-[12px]"><span class="text-[13px]">Content</span><div class="ml-auto dot-on"></div></div>
+                  <div class="flex items-center gap-2 text-[12px] text-muted"><span class="text-[13px]">Growth</span><div class="ml-auto dot-off"></div></div>
+                  <div class="flex items-center gap-2 text-[12px] text-muted"><span class="text-[13px]">CEO</span><div class="ml-auto dot-off"></div></div>
                 </div>
               </div>
-
-              <!-- Feed -->
-              <div class="col-span-3 bg-card rounded-lg p-3 border border-border">
-                <div class="text-[10px] text-muted mb-2.5">실시간 피드</div>
+              <div class="col-span-3 bg-surface rounded-xl p-3.5 border border-border">
+                <div class="text-[11px] text-muted mb-3 font-medium">실시간 피드</div>
                 <div class="space-y-2">
-                  <div class="rounded p-2 border border-sky-900/40 bg-sky-900/5">
-                    <div class="flex items-center gap-1 mb-0.5"><span class="text-[10px]">🔨</span><span class="text-[10px] font-medium text-text">Build Bot</span><span class="text-muted text-[9px] ml-auto">방금</span></div>
-                    <div class="text-[10px] text-muted">PR #42 생성 완료 — 리뷰 요청</div>
+                  <div class="rounded-lg p-2.5 bg-sky-900/10 border border-sky-800/20">
+                    <div class="flex items-center gap-1 mb-1"><span class="text-[11px] font-semibold text-text">Build Bot</span><span class="text-muted text-[10px] ml-auto">방금</span></div>
+                    <div class="text-[11px] text-muted">PR #42 생성 완료 — 리뷰 요청</div>
                   </div>
-                  <div class="rounded p-2 border border-yellow-900/40 bg-yellow-900/5">
-                    <div class="flex items-center gap-1 mb-0.5"><span class="text-[10px]">✍️</span><span class="text-[10px] font-medium text-text">Content Bot</span><span class="text-muted text-[9px] ml-auto">3분 전</span></div>
-                    <div class="text-[10px] text-muted">블로그 초안 작성 — 승인 요청</div>
-                    <div class="flex gap-1 mt-1.5">
-                      <button class="px-2 py-0.5 bg-green-900/30 text-green-400 rounded text-[9px] border border-green-800/30">✓ 승인</button>
-                      <button class="px-2 py-0.5 bg-red-900/30 text-red-400 rounded text-[9px] border border-red-800/30">✗ 거절</button>
+                  <div class="rounded-lg p-2.5 bg-yellow-900/10 border border-yellow-800/20">
+                    <div class="flex items-center gap-1 mb-1"><span class="text-[11px] font-semibold text-text">Content Bot</span><span class="text-muted text-[10px] ml-auto">3분 전</span></div>
+                    <div class="text-[11px] text-muted">블로그 초안 작성 — 승인 요청</div>
+                    <div class="flex gap-1.5 mt-1.5">
+                      <button class="px-2 py-0.5 bg-green-900/30 text-green-400 rounded text-[10px] border border-green-800/30">승인</button>
+                      <button class="px-2 py-0.5 bg-red-900/30 text-red-400 rounded text-[10px] border border-red-800/30">거절</button>
                     </div>
                   </div>
-                  <div class="rounded p-2 border border-violet-900/40 bg-violet-900/5">
-                    <div class="flex items-center gap-1 mb-0.5"><span class="text-[10px]">🔬</span><span class="text-[10px] font-medium text-text">Research Bot</span><span class="text-muted text-[9px] ml-auto">5분 전</span></div>
-                    <div class="text-[10px] text-muted">경쟁사 분석 리포트 생성 완료</div>
-                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Cost chart mini -->
-            <div class="bg-card rounded-lg p-3 border border-border">
-              <div class="flex items-center justify-between mb-2">
-                <div class="text-[10px] text-muted">봇별 비용 이번 달</div>
-                <div class="text-[10px] text-violet-400">총 $3.8</div>
+            <!-- Cost bars -->
+            <div class="bg-surface rounded-xl p-3.5 border border-border">
+              <div class="flex items-center justify-between mb-3">
+                <div class="text-[11px] text-muted font-medium">봇별 비용</div>
+                <div class="text-[11px] text-[#E8935C] font-semibold">총 $3.8 / 월</div>
               </div>
-              <div class="space-y-1.5">
-                <div class="flex items-center gap-2 text-[10px]">
-                  <span class="w-14 text-muted text-right">Build</span>
-                  <div class="flex-1 h-2 bg-[#1a1a2e] rounded-full overflow-hidden">
-                    <div class="h-full bg-sky-500 rounded-full progress-bar" style="--w:65%"></div>
-                  </div>
+              <div class="space-y-2">
+                <div class="flex items-center gap-3 text-[11px]">
+                  <span class="w-16 text-muted text-right">Build</span>
+                  <div class="flex-1 pbar"><div class="pbar-fill bg-sky-500" style="--w:65%"></div></div>
                   <span class="text-dim w-8">$1.8</span>
                 </div>
-                <div class="flex items-center gap-2 text-[10px]">
-                  <span class="w-14 text-muted text-right">Research</span>
-                  <div class="flex-1 h-2 bg-[#1a1a2e] rounded-full overflow-hidden">
-                    <div class="h-full bg-violet-500 rounded-full progress-bar" style="--w:40%"></div>
-                  </div>
+                <div class="flex items-center gap-3 text-[11px]">
+                  <span class="w-16 text-muted text-right">Research</span>
+                  <div class="flex-1 pbar"><div class="pbar-fill bg-[#D4763B]" style="--w:40%"></div></div>
                   <span class="text-dim w-8">$1.1</span>
                 </div>
-                <div class="flex items-center gap-2 text-[10px]">
-                  <span class="w-14 text-muted text-right">Content</span>
-                  <div class="flex-1 h-2 bg-[#1a1a2e] rounded-full overflow-hidden">
-                    <div class="h-full bg-pink-500 rounded-full progress-bar" style="--w:25%"></div>
-                  </div>
+                <div class="flex items-center gap-3 text-[11px]">
+                  <span class="w-16 text-muted text-right">Content</span>
+                  <div class="flex-1 pbar"><div class="pbar-fill bg-pink-500" style="--w:25%"></div></div>
                   <span class="text-dim w-8">$0.9</span>
                 </div>
               </div>
@@ -324,75 +354,71 @@
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </section>
 
 
 <!-- ══════════════════════════════════════════
-  LIVE TICKER
+  TICKER
 ═══════════════════════════════════════════ -->
-<div class="divider py-4 bg-[#080810]">
-  <div class="ticker-wrap py-2">
-    <div class="ticker-inner animate">
-      <span class="mx-8 text-[13px] text-muted whitespace-nowrap">🔬 <span class="text-dim">Research Bot</span> — 경쟁사 가격 분석 완료</span>
-      <span class="mx-8 text-[13px] text-muted whitespace-nowrap">🔨 <span class="text-dim">Build Bot</span> — PR #47 머지 완료, 다음 태스크 시작</span>
-      <span class="mx-8 text-[13px] text-muted whitespace-nowrap">✍️ <span class="text-dim">Content Bot</span> — 뉴스레터 초안 작성 완료 · 승인 요청</span>
-      <span class="mx-8 text-[13px] text-muted whitespace-nowrap">📈 <span class="text-dim">Growth Bot</span> — 광고 카피 A/B 5종 생성</span>
-      <span class="mx-8 text-[13px] text-muted whitespace-nowrap">👔 <span class="text-dim">CEO Bot</span> — 주간 리포트 생성 완료</span>
-      <span class="mx-8 text-[13px] text-muted whitespace-nowrap">⚙️ <span class="text-dim">Ops Bot</span> — 서버 이상 없음, 월간 비용 $4.2</span>
-      <!-- duplicate for seamless loop -->
-      <span class="mx-8 text-[13px] text-muted whitespace-nowrap">🔬 <span class="text-dim">Research Bot</span> — 경쟁사 가격 분석 완료</span>
-      <span class="mx-8 text-[13px] text-muted whitespace-nowrap">🔨 <span class="text-dim">Build Bot</span> — PR #47 머지 완료, 다음 태스크 시작</span>
-      <span class="mx-8 text-[13px] text-muted whitespace-nowrap">✍️ <span class="text-dim">Content Bot</span> — 뉴스레터 초안 작성 완료 · 승인 요청</span>
-      <span class="mx-8 text-[13px] text-muted whitespace-nowrap">📈 <span class="text-dim">Growth Bot</span> — 광고 카피 A/B 5종 생성</span>
-      <span class="mx-8 text-[13px] text-muted whitespace-nowrap">👔 <span class="text-dim">CEO Bot</span> — 주간 리포트 생성 완료</span>
-      <span class="mx-8 text-[13px] text-muted whitespace-nowrap">⚙️ <span class="text-dim">Ops Bot</span> — 서버 이상 없음, 월간 비용 $4.2</span>
+<div class="divider bg-[#1C1812] py-5">
+  <div class="ticker-mask">
+    <div class="ticker-run">
+      <span class="mx-10 text-[14px] text-muted whitespace-nowrap font-medium">Research Bot <span class="text-dim">— 경쟁사 가격 분석 완료</span></span>
+      <span class="mx-10 text-[14px] text-muted whitespace-nowrap font-medium">Build Bot <span class="text-dim">— PR #47 머지 완료, 다음 태스크 시작</span></span>
+      <span class="mx-10 text-[14px] text-muted whitespace-nowrap font-medium">Content Bot <span class="text-dim">— 뉴스레터 초안 작성 완료 · 승인 요청</span></span>
+      <span class="mx-10 text-[14px] text-muted whitespace-nowrap font-medium">Growth Bot <span class="text-dim">— 광고 카피 A/B 5종 생성</span></span>
+      <span class="mx-10 text-[14px] text-muted whitespace-nowrap font-medium">CEO Bot <span class="text-dim">— 주간 리포트 생성 완료</span></span>
+      <span class="mx-10 text-[14px] text-muted whitespace-nowrap font-medium">Ops Bot <span class="text-dim">— 서버 이상 없음, 월간 비용 $4.2</span></span>
+      <span class="mx-10 text-[14px] text-muted whitespace-nowrap font-medium">Research Bot <span class="text-dim">— 경쟁사 가격 분석 완료</span></span>
+      <span class="mx-10 text-[14px] text-muted whitespace-nowrap font-medium">Build Bot <span class="text-dim">— PR #47 머지 완료, 다음 태스크 시작</span></span>
+      <span class="mx-10 text-[14px] text-muted whitespace-nowrap font-medium">Content Bot <span class="text-dim">— 뉴스레터 초안 작성 완료 · 승인 요청</span></span>
+      <span class="mx-10 text-[14px] text-muted whitespace-nowrap font-medium">Growth Bot <span class="text-dim">— 광고 카피 A/B 5종 생성</span></span>
+      <span class="mx-10 text-[14px] text-muted whitespace-nowrap font-medium">CEO Bot <span class="text-dim">— 주간 리포트 생성 완료</span></span>
+      <span class="mx-10 text-[14px] text-muted whitespace-nowrap font-medium">Ops Bot <span class="text-dim">— 서버 이상 없음, 월간 비용 $4.2</span></span>
     </div>
   </div>
 </div>
 
 
 <!-- ══════════════════════════════════════════
-  PROBLEM → SOLUTION
+  BEFORE / AFTER
 ═══════════════════════════════════════════ -->
-<section class="py-28 px-5 divider">
+<section class="py-32 px-6 divider">
   <div class="max-w-5xl mx-auto">
-    <div class="text-center mb-16 appear">
-      <div class="text-[13px] text-violet-400 font-semibold mb-3 tracking-widest uppercase">왜 OOMNI인가</div>
-      <h2 class="text-4xl md:text-5xl font-black mb-5 leading-tight">혼자서도 팀처럼</h2>
-      <p class="text-dim text-[16px] max-w-xl mx-auto">n8n 세팅에 3시간을 써본 적 있나요? OOMNI는 클릭 한 번으로 봇이 알아서 일합니다.</p>
+    <div class="text-center mb-20 appear">
+      <div class="text-[13px] text-[#D4763B] font-bold mb-4 tracking-widest uppercase">왜 OOMNI인가</div>
+      <h2 class="section-title text-cream mb-6">혼자서도 팀처럼</h2>
+      <p class="text-[18px] text-dim max-w-xl mx-auto">n8n 세팅에 3시간을 써본 적 있나요?<br />OOMNI는 클릭 한 번으로 봇이 알아서 일합니다.</p>
     </div>
 
-    <div class="grid md:grid-cols-2 gap-5 appear">
-      <!-- Before -->
-      <div class="rounded-2xl border border-red-900/30 bg-red-900/5 p-7">
-        <div class="text-[13px] text-red-400 font-semibold mb-5 flex items-center gap-2">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+    <div class="grid md:grid-cols-2 gap-6 appear">
+      <div class="rounded-2xl border border-red-900/25 bg-red-900/5 p-8">
+        <div class="text-[14px] text-red-400 font-bold mb-6 flex items-center gap-2">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
           기존 방식
         </div>
-        <ul class="space-y-3 text-[14px] text-dim">
-          <li class="flex items-start gap-2.5"><span class="text-red-500 mt-0.5">×</span>Zapier/n8n 자동화 세팅에 하루 소모</li>
-          <li class="flex items-start gap-2.5"><span class="text-red-500 mt-0.5">×</span>프리랜서 고용 · 커뮤니케이션 비용</li>
-          <li class="flex items-start gap-2.5"><span class="text-red-500 mt-0.5">×</span>ChatGPT에 맥락을 매번 설명</li>
-          <li class="flex items-start gap-2.5"><span class="text-red-500 mt-0.5">×</span>각 SaaS별 월정액 누적</li>
-          <li class="flex items-start gap-2.5"><span class="text-red-500 mt-0.5">×</span>데이터 클라우드 업로드 불안감</li>
+        <ul class="space-y-4">
+          <li class="flex items-start gap-3 text-[16px] text-dim"><span class="text-red-400 font-bold mt-0.5 flex-shrink-0">×</span>Zapier/n8n 자동화 세팅에 하루 소모</li>
+          <li class="flex items-start gap-3 text-[16px] text-dim"><span class="text-red-400 font-bold mt-0.5 flex-shrink-0">×</span>프리랜서 고용 · 커뮤니케이션 비용</li>
+          <li class="flex items-start gap-3 text-[16px] text-dim"><span class="text-red-400 font-bold mt-0.5 flex-shrink-0">×</span>ChatGPT에 맥락을 매번 설명</li>
+          <li class="flex items-start gap-3 text-[16px] text-dim"><span class="text-red-400 font-bold mt-0.5 flex-shrink-0">×</span>각 SaaS별 월정액 누적</li>
+          <li class="flex items-start gap-3 text-[16px] text-dim"><span class="text-red-400 font-bold mt-0.5 flex-shrink-0">×</span>데이터 클라우드 업로드 불안감</li>
         </ul>
       </div>
 
-      <!-- After -->
-      <div class="border-animated rounded-2xl p-7 noise relative">
-        <div class="text-[13px] text-green-400 font-semibold mb-5 flex items-center gap-2">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>
+      <div class="card-featured p-8 noise-overlay relative">
+        <div class="text-[14px] text-green-400 font-bold mb-6 flex items-center gap-2">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>
           OOMNI 방식
         </div>
-        <ul class="space-y-3 text-[14px] text-dim">
-          <li class="flex items-start gap-2.5"><span class="text-green-400 mt-0.5">✓</span>API 키 하나로 5분 내 첫 봇 실행</li>
-          <li class="flex items-start gap-2.5"><span class="text-green-400 mt-0.5">✓</span>봇이 자율적으로 협업 · 체인 트리거</li>
-          <li class="flex items-start gap-2.5"><span class="text-green-400 mt-0.5">✓</span>미션 기억 · 컨텍스트 자동 유지</li>
-          <li class="flex items-start gap-2.5"><span class="text-green-400 mt-0.5">✓</span>월정액 0원, 쓴 만큼만 API 비용</li>
-          <li class="flex items-start gap-2.5"><span class="text-green-400 mt-0.5">✓</span>100% 로컬 실행, 데이터 내 PC만</li>
+        <ul class="space-y-4">
+          <li class="flex items-start gap-3 text-[16px] text-dim"><span class="text-green-400 font-bold mt-0.5 flex-shrink-0">✓</span>API 키 하나로 5분 내 첫 봇 실행</li>
+          <li class="flex items-start gap-3 text-[16px] text-dim"><span class="text-green-400 font-bold mt-0.5 flex-shrink-0">✓</span>봇이 자율적으로 협업 · 체인 트리거</li>
+          <li class="flex items-start gap-3 text-[16px] text-dim"><span class="text-green-400 font-bold mt-0.5 flex-shrink-0">✓</span>미션 기억 · 컨텍스트 자동 유지</li>
+          <li class="flex items-start gap-3 text-[16px] text-dim"><span class="text-green-400 font-bold mt-0.5 flex-shrink-0">✓</span>월정액 0원, 쓴 만큼만 API 비용</li>
+          <li class="flex items-start gap-3 text-[16px] text-dim"><span class="text-green-400 font-bold mt-0.5 flex-shrink-0">✓</span>100% 로컬 실행, 데이터 내 PC만</li>
         </ul>
       </div>
     </div>
@@ -403,52 +429,62 @@
 <!-- ══════════════════════════════════════════
   FEATURES
 ═══════════════════════════════════════════ -->
-<section id="features" class="py-28 px-5 divider">
+<section id="features" class="py-32 px-6 divider">
   <div class="max-w-5xl mx-auto">
-    <div class="text-center mb-16 appear">
-      <div class="text-[13px] text-violet-400 font-semibold mb-3 tracking-widest uppercase">핵심 기능</div>
-      <h2 class="text-4xl md:text-5xl font-black mb-5">AI 팀을 경영하다</h2>
-      <p class="text-dim text-[16px]">실제 팀원처럼 일하는 AI 봇, 당신은 방향만 잡으세요.</p>
+    <div class="text-center mb-20 appear">
+      <div class="text-[13px] text-[#D4763B] font-bold mb-4 tracking-widest uppercase">핵심 기능</div>
+      <h2 class="section-title text-cream mb-6">AI 회사를 경영하다</h2>
+      <p class="text-[18px] text-dim">실제 팀원처럼 일하는 AI 봇, 당신은 방향만 잡으세요.</p>
     </div>
 
     <div class="grid md:grid-cols-3 gap-5">
-
-      <div class="card-hover bg-card border border-border rounded-2xl p-6 appear">
-        <div class="w-10 h-10 rounded-xl bg-violet-500/15 border border-violet-500/20 flex items-center justify-center text-[20px] mb-5">⛓️</div>
-        <h3 class="text-[15px] font-bold text-text mb-2">봇-to-봇 체인 자동화</h3>
-        <p class="text-[13px] text-muted leading-relaxed">Research Bot 완료 → Content Bot 자동 시작. 봇이 서로 결과를 넘기며 파이프라인을 만들어냅니다.</p>
+      <div class="card p-8 appear">
+        <div class="w-12 h-12 rounded-2xl bg-[#D4763B]/15 border border-[#D4763B]/20 flex items-center justify-center mb-6">
+          <svg width="22" height="22" fill="none" stroke="#D4763B" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </div>
+        <h3 class="card-title mb-3">봇-to-봇 체인 자동화</h3>
+        <p class="text-[15px] text-muted leading-relaxed">Research Bot 완료 → Content Bot 자동 시작. 봇이 서로 결과를 넘기며 파이프라인을 만들어냅니다.</p>
       </div>
 
-      <div class="card-hover bg-card border border-border rounded-2xl p-6 appear">
-        <div class="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/20 flex items-center justify-center text-[20px] mb-5">✅</div>
-        <h3 class="text-[15px] font-bold text-text mb-2">승인 인박스</h3>
-        <p class="text-[13px] text-muted leading-relaxed">봇이 결정 못하는 것만 모아서 보여줍니다. 클릭 하나로 처리. 중요한 결정은 항상 당신이.</p>
+      <div class="card p-8 appear">
+        <div class="w-12 h-12 rounded-2xl bg-sky-500/15 border border-sky-500/20 flex items-center justify-center mb-6">
+          <svg width="22" height="22" fill="none" stroke="#38bdf8" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <h3 class="card-title mb-3">승인 인박스</h3>
+        <p class="text-[15px] text-muted leading-relaxed">봇이 결정 못하는 것만 모아서 보여줍니다. 클릭 하나로 처리. 중요한 결정은 항상 당신이.</p>
       </div>
 
-      <div class="card-hover bg-card border border-border rounded-2xl p-6 appear">
-        <div class="w-10 h-10 rounded-xl bg-green-500/15 border border-green-500/20 flex items-center justify-center text-[20px] mb-5">💰</div>
-        <h3 class="text-[15px] font-bold text-text mb-2">비용 추적 & 예산</h3>
-        <p class="text-[13px] text-muted leading-relaxed">봇별 토큰 사용량과 비용을 실시간 추적. 예산 한도 초과 시 자동 일시정지.</p>
+      <div class="card p-8 appear">
+        <div class="w-12 h-12 rounded-2xl bg-green-500/15 border border-green-500/20 flex items-center justify-center mb-6">
+          <svg width="22" height="22" fill="none" stroke="#4ade80" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <h3 class="card-title mb-3">비용 추적 & 예산</h3>
+        <p class="text-[15px] text-muted leading-relaxed">봇별 토큰 사용량과 비용을 실시간 추적. 예산 한도 초과 시 자동 일시정지.</p>
       </div>
 
-      <div class="card-hover bg-card border border-border rounded-2xl p-6 appear">
-        <div class="w-10 h-10 rounded-xl bg-yellow-500/15 border border-yellow-500/20 flex items-center justify-center text-[20px] mb-5">🔒</div>
-        <h3 class="text-[15px] font-bold text-text mb-2">PIN 잠금 · 로컬 보안</h3>
-        <p class="text-[13px] text-muted leading-relaxed">앱 PIN 잠금, AES-256 자격증명 암호화, 데이터는 내 PC에만. 클라우드 없음.</p>
+      <div class="card p-8 appear">
+        <div class="w-12 h-12 rounded-2xl bg-yellow-500/15 border border-yellow-500/20 flex items-center justify-center mb-6">
+          <svg width="22" height="22" fill="none" stroke="#fbbf24" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <h3 class="card-title mb-3">PIN 잠금 · 로컬 보안</h3>
+        <p class="text-[15px] text-muted leading-relaxed">앱 PIN 잠금, AES-256 자격증명 암호화, 데이터는 내 PC에만. 클라우드 없음.</p>
       </div>
 
-      <div class="card-hover bg-card border border-border rounded-2xl p-6 appear">
-        <div class="w-10 h-10 rounded-xl bg-pink-500/15 border border-pink-500/20 flex items-center justify-center text-[20px] mb-5">🔗</div>
-        <h3 class="text-[15px] font-bold text-text mb-2">외부 서비스 연동</h3>
-        <p class="text-[13px] text-muted leading-relaxed">Slack, Notion, Gmail, Stripe, GitHub, Linear 등 10종 연동. 웹훅으로 외부 트리거도 가능.</p>
+      <div class="card p-8 appear">
+        <div class="w-12 h-12 rounded-2xl bg-pink-500/15 border border-pink-500/20 flex items-center justify-center mb-6">
+          <svg width="22" height="22" fill="none" stroke="#f472b6" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </div>
+        <h3 class="card-title mb-3">외부 서비스 연동</h3>
+        <p class="text-[15px] text-muted leading-relaxed">Slack, Notion, Gmail, Stripe, GitHub, Linear 등 10종 연동. 웹훅으로 외부 트리거도 가능.</p>
       </div>
 
-      <div class="card-hover bg-card border border-border rounded-2xl p-6 appear">
-        <div class="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/20 flex items-center justify-center text-[20px] mb-5">📊</div>
-        <h3 class="text-[15px] font-bold text-text mb-2">자동 리포트</h3>
-        <p class="text-[13px] text-muted leading-relaxed">일간/주간/월간 운영 리포트 자동 생성. CEO Bot이 전체 봇 활동을 종합해 보고합니다.</p>
+      <div class="card p-8 appear">
+        <div class="w-12 h-12 rounded-2xl bg-violet-500/15 border border-violet-500/20 flex items-center justify-center mb-6">
+          <svg width="22" height="22" fill="none" stroke="#a78bfa" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <h3 class="card-title mb-3">자동 리포트</h3>
+        <p class="text-[15px] text-muted leading-relaxed">일간/주간/월간 운영 리포트 자동 생성. CEO Bot이 전체 봇 활동을 종합해 보고합니다.</p>
       </div>
-
     </div>
   </div>
 </section>
@@ -457,116 +493,70 @@
 <!-- ══════════════════════════════════════════
   BOT LINEUP
 ═══════════════════════════════════════════ -->
-<section id="bots" class="py-28 px-5 divider relative overflow-hidden">
-  <div class="absolute inset-0 blob bg-violet-600/5" style="top:20%;left:50%;width:600px;height:600px;transform:translateX(-50%)"></div>
+<section id="bots" class="py-32 px-6 divider relative overflow-hidden">
+  <div class="blob w-[600px] h-[400px] bg-[#D4763B]/6" style="top:20%;left:50%;transform:translateX(-50%)"></div>
 
   <div class="relative max-w-5xl mx-auto">
-    <div class="text-center mb-16 appear">
-      <div class="text-[13px] text-violet-400 font-semibold mb-3 tracking-widest uppercase">AI 팀원</div>
-      <h2 class="text-4xl md:text-5xl font-black mb-5">9종의 전문 봇</h2>
-      <p class="text-dim text-[16px]">필요한 봇만 켜고, 나머지는 꺼두세요.</p>
+    <div class="text-center mb-20 appear">
+      <div class="text-[13px] text-[#D4763B] font-bold mb-4 tracking-widest uppercase">AI 팀원</div>
+      <h2 class="section-title text-cream mb-6">9종의 전문 봇</h2>
+      <p class="text-[18px] text-dim">필요한 봇만 켜고, 나머지는 꺼두세요.</p>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 appear">
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-5 appear">
 
-      <div class="card-hover bg-card border border-border rounded-2xl p-5">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="text-[24px]">🔬</div>
-          <div>
-            <div class="text-[14px] font-bold text-text">Research Bot</div>
-            <div class="text-[11px] text-violet-400">research</div>
-          </div>
-        </div>
-        <p class="text-[12px] text-muted">웹 크롤링, 경쟁사 분석, 시장 조사, 트렌드 리포트</p>
+      <div class="card p-7">
+        <div class="text-[13px] text-[#D4763B] font-bold mb-1">Research</div>
+        <div class="card-title mb-3">Research Bot</div>
+        <p class="text-[14px] text-muted leading-relaxed">웹 크롤링, 경쟁사 분석, 시장 조사, 트렌드 리포트</p>
       </div>
 
-      <div class="card-hover bg-card border border-border rounded-2xl p-5">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="text-[24px]">🔨</div>
-          <div>
-            <div class="text-[14px] font-bold text-text">Build Bot</div>
-            <div class="text-[11px] text-sky-400">build</div>
-          </div>
-        </div>
-        <p class="text-[12px] text-muted">코드 작성, PR 생성, 버그 수정, 테스트 실행</p>
+      <div class="card p-7">
+        <div class="text-[13px] text-sky-400 font-bold mb-1">Build</div>
+        <div class="card-title mb-3">Build Bot</div>
+        <p class="text-[14px] text-muted leading-relaxed">코드 작성, PR 생성, 버그 수정, 테스트 실행</p>
       </div>
 
-      <div class="card-hover bg-card border border-border rounded-2xl p-5">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="text-[24px]">🎨</div>
-          <div>
-            <div class="text-[14px] font-bold text-text">Design Bot</div>
-            <div class="text-[11px] text-pink-400">design</div>
-          </div>
-        </div>
-        <p class="text-[12px] text-muted">UI/UX 기획, 컴포넌트 제안, 스타일 가이드</p>
+      <div class="card p-7">
+        <div class="text-[13px] text-pink-400 font-bold mb-1">Design</div>
+        <div class="card-title mb-3">Design Bot</div>
+        <p class="text-[14px] text-muted leading-relaxed">UI/UX 기획, 컴포넌트 제안, 스타일 가이드</p>
       </div>
 
-      <div class="card-hover bg-card border border-border rounded-2xl p-5">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="text-[24px]">✍️</div>
-          <div>
-            <div class="text-[14px] font-bold text-text">Content Bot</div>
-            <div class="text-[11px] text-amber-400">content</div>
-          </div>
-        </div>
-        <p class="text-[12px] text-muted">블로그, 뉴스레터, SNS 콘텐츠, 카피라이팅</p>
+      <div class="card p-7">
+        <div class="text-[13px] text-amber-400 font-bold mb-1">Content</div>
+        <div class="card-title mb-3">Content Bot</div>
+        <p class="text-[14px] text-muted leading-relaxed">블로그, 뉴스레터, SNS 콘텐츠, 카피라이팅</p>
       </div>
 
-      <div class="card-hover bg-card border border-border rounded-2xl p-5">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="text-[24px]">📈</div>
-          <div>
-            <div class="text-[14px] font-bold text-text">Growth Bot</div>
-            <div class="text-[11px] text-green-400">growth</div>
-          </div>
-        </div>
-        <p class="text-[12px] text-muted">SEO 최적화, 광고 카피, A/B 테스트, 유입 분석</p>
+      <div class="card p-7">
+        <div class="text-[13px] text-green-400 font-bold mb-1">Growth</div>
+        <div class="card-title mb-3">Growth Bot</div>
+        <p class="text-[14px] text-muted leading-relaxed">SEO 최적화, 광고 카피, A/B 테스트, 유입 분석</p>
       </div>
 
-      <div class="card-hover bg-card border border-border rounded-2xl p-5">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="text-[24px]">⚙️</div>
-          <div>
-            <div class="text-[14px] font-bold text-text">Ops Bot</div>
-            <div class="text-[11px] text-cyan-400">ops</div>
-          </div>
-        </div>
-        <p class="text-[12px] text-muted">운영 모니터링, 세무/재무 리포트, 인시던트 대응</p>
+      <div class="card p-7">
+        <div class="text-[13px] text-cyan-400 font-bold mb-1">Ops</div>
+        <div class="card-title mb-3">Ops Bot</div>
+        <p class="text-[14px] text-muted leading-relaxed">운영 모니터링, 세무/재무 리포트, 인시던트 대응</p>
       </div>
 
-      <div class="card-hover bg-card border border-border rounded-2xl p-5">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="text-[24px]">🔗</div>
-          <div>
-            <div class="text-[14px] font-bold text-text">Integration Bot</div>
-            <div class="text-[11px] text-blue-400">integration</div>
-          </div>
-        </div>
-        <p class="text-[12px] text-muted">Slack, Notion, Gmail, Stripe, GitHub 등 연동 자동화</p>
+      <div class="card p-7">
+        <div class="text-[13px] text-blue-400 font-bold mb-1">Integration</div>
+        <div class="card-title mb-3">Integration Bot</div>
+        <p class="text-[14px] text-muted leading-relaxed">Slack, Notion, Gmail, Stripe, GitHub 등 연동 자동화</p>
       </div>
 
-      <div class="card-hover bg-card border border-border rounded-2xl p-5">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="text-[24px]">⚡</div>
-          <div>
-            <div class="text-[14px] font-bold text-text">n8n Bot</div>
-            <div class="text-[11px] text-orange-400">n8n</div>
-          </div>
-        </div>
-        <p class="text-[12px] text-muted">n8n 워크플로우 자동 생성 및 관리</p>
+      <div class="card p-7">
+        <div class="text-[13px] text-orange-400 font-bold mb-1">n8n</div>
+        <div class="card-title mb-3">n8n Bot</div>
+        <p class="text-[14px] text-muted leading-relaxed">n8n 워크플로우 자동 생성 및 관리</p>
       </div>
 
-      <!-- CEO Bot highlighted -->
-      <div class="card-hover border-animated rounded-2xl p-5 noise relative">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="text-[24px]">👔</div>
-          <div>
-            <div class="text-[14px] font-bold g-text-warm">CEO Bot</div>
-            <div class="text-[11px] text-violet-400">ceo · 총괄</div>
-          </div>
-        </div>
-        <p class="text-[12px] text-muted">전체 봇 결과 종합, 일일 경영 보고서 자동 생성</p>
+      <div class="card-featured p-7">
+        <div class="text-[13px] text-[#E8935C] font-bold mb-1">CEO · 총괄</div>
+        <div class="card-title mb-3 g-orange">CEO Bot</div>
+        <p class="text-[14px] text-muted leading-relaxed">전체 봇 결과 종합, 일일 경영 보고서 자동 생성</p>
       </div>
 
     </div>
@@ -577,53 +567,50 @@
 <!-- ══════════════════════════════════════════
   HOW IT WORKS
 ═══════════════════════════════════════════ -->
-<section id="how" class="py-28 px-5 divider">
+<section id="how" class="py-32 px-6 divider">
   <div class="max-w-4xl mx-auto">
-    <div class="text-center mb-16 appear">
-      <div class="text-[13px] text-violet-400 font-semibold mb-3 tracking-widest uppercase">사용법</div>
-      <h2 class="text-4xl md:text-5xl font-black mb-5">5분이면 충분합니다</h2>
-      <p class="text-dim text-[16px]">설치부터 첫 봇 실행까지.</p>
+    <div class="text-center mb-20 appear">
+      <div class="text-[13px] text-[#D4763B] font-bold mb-4 tracking-widest uppercase">사용법</div>
+      <h2 class="section-title text-cream mb-6">5분이면 시작됩니다</h2>
+      <p class="text-[18px] text-dim">설치부터 첫 봇 실행까지.</p>
     </div>
 
-    <div class="relative">
-      <!-- Vertical line -->
-      <div class="absolute left-6 top-8 bottom-8 w-px bg-gradient-to-b from-violet-600 via-violet-600/30 to-transparent hidden md:block"></div>
+    <div class="space-y-5 appear">
 
-      <div class="space-y-8 appear">
-
-        <div class="flex gap-6 items-start">
-          <div class="flex-shrink-0 w-12 h-12 rounded-full bg-violet-600 flex items-center justify-center text-white font-black text-[15px] z-10">1</div>
-          <div class="bg-card border border-border rounded-2xl p-6 flex-1">
-            <h3 class="text-[16px] font-bold text-text mb-2">OOMNI 설치</h3>
-            <p class="text-[13px] text-muted leading-relaxed">아래 다운로드 버튼을 눌러 <code class="bg-[#1a1a2e] px-1.5 py-0.5 rounded text-violet-300 text-[12px]">OOMNI Setup.exe</code>를 받고 더블클릭으로 설치. macOS는 DMG 파일을 Applications로 드래그.</p>
-          </div>
+      <div class="flex gap-7 items-start">
+        <div class="flex-shrink-0 w-14 h-14 rounded-2xl bg-[#D4763B] flex items-center justify-center text-white font-black text-[18px] shadow-lg shadow-[#D4763B]/30">1</div>
+        <div class="card p-7 flex-1">
+          <h3 class="text-[18px] font-bold text-text mb-2">OOMNI 설치</h3>
+          <p class="text-[15px] text-muted leading-relaxed">아래 다운로드 버튼을 눌러 <code class="bg-[#2C271E] px-2 py-0.5 rounded text-[#E8935C] text-[13px] font-mono">OOMNI Setup.exe</code>를 받고 더블클릭으로 설치. macOS는 DMG 파일을 Applications로 드래그.</p>
         </div>
-
-        <div class="flex gap-6 items-start">
-          <div class="flex-shrink-0 w-12 h-12 rounded-full bg-violet-600 flex items-center justify-center text-white font-black text-[15px] z-10">2</div>
-          <div class="bg-card border border-border rounded-2xl p-6 flex-1">
-            <h3 class="text-[16px] font-bold text-text mb-2">미션 입력 + API 키 등록</h3>
-            <p class="text-[13px] text-muted leading-relaxed">지금 만드는 서비스를 한 줄로 입력하고, Anthropic API 키를 붙여넣으세요. <a href="https://console.anthropic.com" target="_blank" class="text-violet-400 hover:underline">console.anthropic.com</a>에서 무료 발급.</p>
-          </div>
-        </div>
-
-        <div class="flex gap-6 items-start">
-          <div class="flex-shrink-0 w-12 h-12 rounded-full bg-violet-600 flex items-center justify-center text-white font-black text-[15px] z-10">3</div>
-          <div class="bg-card border border-border rounded-2xl p-6 flex-1">
-            <h3 class="text-[16px] font-bold text-text mb-2">봇 추가 후 ▶ 실행</h3>
-            <p class="text-[13px] text-muted leading-relaxed">원하는 봇을 추가하고 실행 버튼을 누르세요. 봇이 알아서 일하고 실시간 피드에 결과를 보고합니다.</p>
-          </div>
-        </div>
-
-        <div class="flex gap-6 items-start">
-          <div class="flex-shrink-0 w-12 h-12 rounded-full bg-green-600 flex items-center justify-center text-white font-black text-[15px] z-10">✓</div>
-          <div class="bg-card border border-green-900/30 bg-green-900/5 rounded-2xl p-6 flex-1">
-            <h3 class="text-[16px] font-bold text-green-400 mb-2">승인만 하면 끝</h3>
-            <p class="text-[13px] text-muted leading-relaxed">봇이 확인을 요청할 때만 알림. 승인/거절 클릭 하나로 처리. 나머지는 AI가 이어서 자동 진행.</p>
-          </div>
-        </div>
-
       </div>
+
+      <div class="flex gap-7 items-start">
+        <div class="flex-shrink-0 w-14 h-14 rounded-2xl bg-[#D4763B] flex items-center justify-center text-white font-black text-[18px] shadow-lg shadow-[#D4763B]/30">2</div>
+        <div class="card p-7 flex-1">
+          <h3 class="text-[18px] font-bold text-text mb-2">미션 입력 + API 키 등록</h3>
+          <p class="text-[15px] text-muted leading-relaxed">지금 만드는 서비스를 한 줄로 입력하고 Anthropic API 키를 붙여넣으세요. <a href="https://console.anthropic.com" target="_blank" class="text-[#D4763B] hover:underline">console.anthropic.com</a>에서 무료 발급 가능.</p>
+        </div>
+      </div>
+
+      <div class="flex gap-7 items-start">
+        <div class="flex-shrink-0 w-14 h-14 rounded-2xl bg-[#D4763B] flex items-center justify-center text-white font-black text-[18px] shadow-lg shadow-[#D4763B]/30">3</div>
+        <div class="card p-7 flex-1">
+          <h3 class="text-[18px] font-bold text-text mb-2">봇 추가 후 실행</h3>
+          <p class="text-[15px] text-muted leading-relaxed">원하는 봇을 추가하고 실행 버튼을 누르세요. 봇이 알아서 일하고 실시간 피드에 결과를 보고합니다.</p>
+        </div>
+      </div>
+
+      <div class="flex gap-7 items-start">
+        <div class="flex-shrink-0 w-14 h-14 rounded-2xl bg-green-600 flex items-center justify-center text-white font-black text-[18px] shadow-lg shadow-green-700/30">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="p-7 flex-1 rounded-2xl border border-green-800/30 bg-green-900/5">
+          <h3 class="text-[18px] font-bold text-green-400 mb-2">승인만 하면 끝</h3>
+          <p class="text-[15px] text-muted leading-relaxed">봇이 확인을 요청할 때만 알림. 승인/거절 클릭 하나로 처리. 나머지는 AI가 이어서 자동 진행.</p>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
@@ -632,45 +619,143 @@
 <!-- ══════════════════════════════════════════
   PRICING
 ═══════════════════════════════════════════ -->
-<section id="pricing" class="py-28 px-5 divider">
-  <div class="max-w-4xl mx-auto">
+<section id="pricing" class="py-32 px-6 divider relative overflow-hidden">
+  <div class="blob w-[800px] h-[500px] bg-[#D4763B]/5" style="top:0;left:50%;transform:translateX(-50%)"></div>
+
+  <div class="relative max-w-6xl mx-auto">
     <div class="text-center mb-16 appear">
-      <div class="text-[13px] text-violet-400 font-semibold mb-3 tracking-widest uppercase">가격</div>
-      <h2 class="text-4xl md:text-5xl font-black mb-5">심플하게, 무료</h2>
-      <p class="text-dim text-[16px]">OOMNI 앱은 무료. AI 비용만 실사용량대로.</p>
+      <div class="text-[13px] text-[#D4763B] font-bold mb-4 tracking-widest uppercase">가격</div>
+      <h2 class="section-title text-cream mb-5">투명한 구독 요금</h2>
+      <p class="text-[18px] text-dim mb-3">AI 사용료 별도 · 본인 API 키 사용</p>
+      <p class="text-[14px] text-muted">OOMNI를 통해 실행되는 Claude API 비용은 본인의 API 키로 직접 청구됩니다.</p>
     </div>
 
-    <div class="grid md:grid-cols-2 gap-6 appear">
-      <!-- Free -->
-      <div class="bg-card border border-border rounded-2xl p-8">
-        <div class="text-[13px] text-muted font-semibold mb-2">OOMNI 앱</div>
-        <div class="text-5xl font-black text-text mb-1">$0</div>
-        <div class="text-[13px] text-muted mb-7">영구 무료 · 오픈소스</div>
-        <ul class="space-y-3 text-[14px] text-dim mb-8">
-          <li class="flex items-center gap-2.5"><span class="text-green-400">✓</span>9종 AI 봇 무제한 사용</li>
-          <li class="flex items-center gap-2.5"><span class="text-green-400">✓</span>로컬 실행, 데이터 내 PC</li>
-          <li class="flex items-center gap-2.5"><span class="text-green-400">✓</span>봇 체인 자동화</li>
-          <li class="flex items-center gap-2.5"><span class="text-green-400">✓</span>이슈 트래커, 리포트</li>
-          <li class="flex items-center gap-2.5"><span class="text-green-400">✓</span>업데이트 무료</li>
+    <!-- Toggle -->
+    <div class="flex justify-center mb-14 appear">
+      <div class="inline-flex items-center bg-surface border border-border rounded-xl p-1.5 gap-1">
+        <button class="plan-tab active" onclick="switchPlan('monthly', this)">월간</button>
+        <button class="plan-tab" onclick="switchPlan('annual', this)">
+          연간
+          <span class="ml-1.5 text-[11px] bg-green-900/40 text-green-400 border border-green-800/30 px-1.5 py-0.5 rounded-md font-semibold">–20%</span>
+        </button>
+        <button class="plan-tab" onclick="switchPlan('lifetime', this)">Lifetime</button>
+      </div>
+    </div>
+
+    <!-- Cards -->
+    <div class="grid md:grid-cols-4 gap-5 appear">
+
+      <!-- Solo Web -->
+      <div class="card p-7 flex flex-col">
+        <div class="text-[13px] text-muted font-bold mb-2 tracking-wide uppercase">Solo Web</div>
+
+        <div class="price-monthly block">
+          <div class="text-[40px] font-black text-cream leading-none mb-1">₩49,000</div>
+          <div class="text-[14px] text-muted mb-6">/월</div>
+        </div>
+        <div class="price-annual">
+          <div class="text-[40px] font-black text-cream leading-none mb-1">₩39,200</div>
+          <div class="text-[14px] text-muted mb-1">/월 · 연 ₩470,400</div>
+          <div class="text-[12px] text-green-400 font-semibold mb-6">연 ₩117,600 절약</div>
+        </div>
+        <div class="price-lifetime">
+          <div class="text-[40px] font-black text-cream leading-none mb-1">₩980,000</div>
+          <div class="text-[14px] text-muted mb-1">1회 결제</div>
+          <div class="text-[12px] text-[#D4763B] font-semibold mb-6">약 2년치 · 업데이트 포함</div>
+        </div>
+
+        <ul class="space-y-3 mb-8 flex-1">
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>브라우저에서 Research·Growth·Ops</li>
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>Claude API 채팅 연동</li>
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>승인 인박스</li>
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>비용 추적 대시보드</li>
+          <li class="flex items-start gap-2.5 text-[14px] text-muted"><span class="text-border font-bold mt-0.5 flex-shrink-0">–</span><span class="text-muted">Claude Code 터미널 제외</span></li>
         </ul>
-        <a href="#download" class="btn-cta block text-center text-white py-3 rounded-xl font-semibold text-[15px]">지금 다운로드</a>
+        <a href="#download" class="btn-outline text-[15px] py-3.5 text-center font-semibold rounded-xl">시작하기</a>
       </div>
 
-      <!-- API cost -->
-      <div class="bg-card border border-border rounded-2xl p-8">
-        <div class="text-[13px] text-muted font-semibold mb-2">Anthropic API 비용 (예시)</div>
-        <div class="text-5xl font-black g-text mb-1">~$5</div>
-        <div class="text-[13px] text-muted mb-7">월 평균 · 실사용량에 따라 달라짐</div>
-        <ul class="space-y-3 text-[14px] text-dim mb-8">
-          <li class="flex items-center gap-2.5"><span class="text-violet-400">·</span>Claude API는 사용한 토큰만큼 과금</li>
-          <li class="flex items-center gap-2.5"><span class="text-violet-400">·</span>봇별 예산 한도로 과금 제어</li>
-          <li class="flex items-center gap-2.5"><span class="text-violet-400">·</span>API 무료 크레딧으로 시작 가능</li>
-          <li class="flex items-center gap-2.5"><span class="text-violet-400">·</span>비용 대시보드에서 실시간 확인</li>
-          <li class="flex items-center gap-2.5"><span class="text-violet-400">·</span>월정액 SaaS보다 훨씬 저렴</li>
+      <!-- Solo Desktop (featured) -->
+      <div class="card-featured p-7 flex flex-col relative overflow-hidden noise-overlay">
+        <div class="absolute top-4 right-4 text-[11px] bg-[#D4763B] text-white px-2.5 py-1 rounded-full font-bold tracking-wide">추천</div>
+        <div class="text-[13px] text-[#D4763B] font-bold mb-2 tracking-wide uppercase">Solo Desktop</div>
+
+        <div class="price-monthly block">
+          <div class="text-[40px] font-black text-cream leading-none mb-1">₩59,000</div>
+          <div class="text-[14px] text-muted mb-6">/월</div>
+        </div>
+        <div class="price-annual">
+          <div class="text-[40px] font-black text-cream leading-none mb-1">₩47,200</div>
+          <div class="text-[14px] text-muted mb-1">/월 · 연 ₩566,400</div>
+          <div class="text-[12px] text-green-400 font-semibold mb-6">연 ₩141,600 절약</div>
+        </div>
+        <div class="price-lifetime">
+          <div class="text-[40px] font-black text-cream leading-none mb-1">₩1,180,000</div>
+          <div class="text-[14px] text-muted mb-1">1회 결제</div>
+          <div class="text-[12px] text-[#D4763B] font-semibold mb-6">약 2년치 · 업데이트 포함</div>
+        </div>
+
+        <ul class="space-y-3 mb-8 flex-1">
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>Web 전체 기능 포함</li>
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>Claude Code 터미널</li>
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>로컬 파일 접근</li>
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>Build · Design 스튜디오</li>
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>CEO Bot 종합 리포트</li>
         </ul>
-        <a href="https://console.anthropic.com" target="_blank" rel="noopener"
-           class="btn-ghost block text-center text-dim py-3 rounded-xl font-semibold text-[15px]">API 키 발급 →</a>
+        <a href="#download" class="btn-primary text-[15px] py-3.5 text-center font-bold rounded-xl">다운로드 후 시작</a>
       </div>
+
+      <!-- Team -->
+      <div class="card p-7 flex flex-col">
+        <div class="text-[13px] text-muted font-bold mb-2 tracking-wide uppercase">Team</div>
+
+        <div class="price-monthly block">
+          <div class="text-[40px] font-black text-cream leading-none mb-1">₩149,000</div>
+          <div class="text-[14px] text-muted mb-6">/월</div>
+        </div>
+        <div class="price-annual">
+          <div class="text-[40px] font-black text-cream leading-none mb-1">₩119,200</div>
+          <div class="text-[14px] text-muted mb-1">/월 · 연 ₩1,430,400</div>
+          <div class="text-[12px] text-green-400 font-semibold mb-6">연 ₩357,600 절약</div>
+        </div>
+        <div class="price-lifetime">
+          <div class="text-[40px] font-black text-cream leading-none mb-1">₩2,980,000</div>
+          <div class="text-[14px] text-muted mb-1">1회 결제</div>
+          <div class="text-[12px] text-[#D4763B] font-semibold mb-6">약 2년치 · 업데이트 포함</div>
+        </div>
+
+        <ul class="space-y-3 mb-8 flex-1">
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>5인 공유 워크스페이스</li>
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>공동 프로젝트·역할 권한</li>
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>Desktop 전체 기능</li>
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>팀 비용 통합 관리</li>
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>우선 지원</li>
+        </ul>
+        <a href="mailto:hello@oomni.app" class="btn-outline text-[15px] py-3.5 text-center font-semibold rounded-xl">시작하기</a>
+      </div>
+
+      <!-- Enterprise -->
+      <div class="card p-7 flex flex-col">
+        <div class="text-[13px] text-muted font-bold mb-2 tracking-wide uppercase">Enterprise</div>
+        <div class="text-[40px] font-black text-cream leading-none mb-1">문의</div>
+        <div class="text-[14px] text-muted mb-6">맞춤 견적</div>
+
+        <ul class="space-y-3 mb-8 flex-1">
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>팀 무제한</li>
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>White-label 제공</li>
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>전담 온보딩</li>
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>SLA 보장</li>
+          <li class="flex items-start gap-2.5 text-[14px] text-dim"><span class="text-[#D4763B] font-bold mt-0.5 flex-shrink-0">✓</span>전용 API 설정</li>
+        </ul>
+        <a href="mailto:hello@oomni.app" class="btn-outline text-[15px] py-3.5 text-center font-semibold rounded-xl">문의하기</a>
+      </div>
+
+    </div>
+
+    <!-- Footnotes -->
+    <div class="mt-10 space-y-2 appear">
+      <p class="text-[13px] text-muted text-center">* Lifetime = 약 2년치 · 업데이트 포함</p>
+      <p class="text-[13px] text-muted text-center">* 결제: 카카오페이 · 토스페이먼츠 · 계좌이체 (자동결제 준비 중)</p>
+      <p class="text-[13px] text-muted text-center">* Claude API 비용은 별도 · 본인 API 키 사용 · 쓴 만큼만 청구</p>
     </div>
   </div>
 </section>
@@ -679,50 +764,38 @@
 <!-- ══════════════════════════════════════════
   DOWNLOAD CTA
 ═══════════════════════════════════════════ -->
-<section id="download" class="py-28 px-5 divider relative overflow-hidden">
-  <div class="absolute inset-0 blob bg-violet-600/10" style="top:0;left:50%;width:800px;height:500px;transform:translateX(-50%)"></div>
+<section id="download" class="py-32 px-6 divider relative overflow-hidden">
+  <div class="blob w-[900px] h-[500px] bg-[#D4763B]/8" style="top:-10%;left:50%;transform:translateX(-50%)"></div>
 
-  <div class="relative max-w-2xl mx-auto text-center appear">
-    <div class="text-[13px] text-violet-400 font-semibold mb-5 tracking-widest uppercase">다운로드</div>
-    <h2 class="text-4xl md:text-5xl font-black mb-5 leading-tight">지금 AI 팀을<br />고용하세요</h2>
-    <p class="text-dim text-[16px] mb-12">무료 · 월정액 없음 · 내 PC에서만 실행</p>
+  <div class="relative max-w-3xl mx-auto text-center appear">
+    <div class="text-[13px] text-[#D4763B] font-bold mb-5 tracking-widest uppercase">다운로드</div>
+    <h2 class="section-title text-cream mb-6 leading-tight">지금 AI 회사를<br />시작하세요</h2>
+    <p class="text-[18px] text-dim mb-4">데스크탑 앱 무료 체험 · 월정액 없음 · 내 PC에서만 실행</p>
+    <p class="text-[14px] text-muted mb-14">Anthropic API 키만 있으면 바로 시작. <a href="https://console.anthropic.com" target="_blank" class="text-[#D4763B] hover:underline">console.anthropic.com</a>에서 무료 발급.</p>
 
-    <div class="flex flex-col sm:flex-row gap-4 justify-center mb-10">
-      <!-- Windows -->
+    <div class="flex flex-col sm:flex-row gap-5 justify-center mb-12">
       <a href="https://github.com/yongal74/oomni/releases/latest/download/OOMNI%20Setup%201.0.0.exe"
-         class="btn-cta text-white px-8 py-4 rounded-xl font-bold text-[16px] flex items-center justify-center gap-3">
+         class="btn-primary text-[17px] px-10 py-5 flex items-center justify-center gap-3 rounded-2xl">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
         Windows 다운로드
-        <span class="text-[12px] font-normal opacity-70">.exe</span>
+        <span class="text-[13px] font-normal opacity-70">.exe</span>
       </a>
-      <!-- macOS -->
       <a href="https://github.com/yongal74/oomni/releases/latest/download/OOMNI.dmg"
-         class="btn-ghost text-dim px-8 py-4 rounded-xl font-bold text-[16px] flex items-center justify-center gap-3">
+         class="btn-outline text-[17px] px-10 py-5 flex items-center justify-center gap-3 rounded-2xl">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09z"/><path d="M15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701z"/></svg>
         macOS 다운로드
-        <span class="text-[12px] font-normal opacity-70">.dmg</span>
+        <span class="text-[13px] font-normal opacity-70">.dmg</span>
       </a>
     </div>
 
-    <div class="flex items-center justify-center gap-3 mb-6">
-      <div class="h-px flex-1 bg-border max-w-[80px]"></div>
-      <span class="text-[12px] text-muted">또는</span>
-      <div class="h-px flex-1 bg-border max-w-[80px]"></div>
-    </div>
-
-    <a href="https://github.com/yongal74/oomni/releases" target="_blank" rel="noopener"
-       class="text-[13px] text-muted hover:text-violet-400 transition-colors">
-      모든 버전 릴리즈 노트 보기 →
-    </a>
-
-    <div class="mt-10 inline-flex flex-wrap items-center justify-center gap-5 text-[12px] text-muted">
-      <span>현재 버전: <span class="text-dim">v1.0.0</span></span>
-      <span class="text-border">|</span>
+    <div class="inline-flex flex-wrap items-center justify-center gap-4 text-[13px] text-muted bg-surface border border-border rounded-2xl px-8 py-5">
+      <span class="font-semibold text-dim">v1.0.0</span>
+      <span class="text-border">·</span>
       <span>Windows 10/11 x64</span>
-      <span class="text-border">|</span>
+      <span class="text-border">·</span>
       <span>macOS 12+</span>
-      <span class="text-border">|</span>
-      <span>MIT 라이선스</span>
+      <span class="text-border">·</span>
+      <a href="https://github.com/yongal74/oomni/releases" target="_blank" class="text-[#D4763B] hover:underline font-semibold">전체 릴리즈 →</a>
     </div>
   </div>
 </section>
@@ -731,43 +804,58 @@
 <!-- ══════════════════════════════════════════
   FOOTER
 ═══════════════════════════════════════════ -->
-<footer class="divider py-12 px-5">
+<footer class="divider py-14 px-6">
   <div class="max-w-5xl mx-auto">
-    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 mb-8">
+    <div class="flex flex-col md:flex-row items-start justify-between gap-10 mb-10">
       <div>
-        <div class="flex items-center gap-2.5 mb-2">
-          <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white font-black text-[13px]">O</div>
-          <span class="text-[16px] font-bold text-text">OOMNI</span>
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#E8935C] to-[#C46828] flex items-center justify-center font-black text-white text-[15px]">O</div>
+          <span class="text-[18px] font-bold text-cream">OOMNI</span>
         </div>
-        <p class="text-[12px] text-muted max-w-xs">One-click Orchestration for Multi-agent Network Intelligence</p>
+        <p class="text-[14px] text-muted max-w-xs leading-relaxed">One-click Orchestration for<br />Multi-agent Network Intelligence</p>
       </div>
-
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-x-12 gap-y-3 text-[13px]">
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-x-16 gap-y-4 text-[14px]">
         <a href="https://github.com/yongal74/oomni" target="_blank" class="text-muted hover:text-text transition-colors">GitHub</a>
         <a href="https://github.com/yongal74/oomni/releases" target="_blank" class="text-muted hover:text-text transition-colors">릴리즈 노트</a>
         <a href="https://github.com/yongal74/oomni/issues" target="_blank" class="text-muted hover:text-text transition-colors">버그 제보</a>
         <a href="https://github.com/yongal74/oomni/issues" target="_blank" class="text-muted hover:text-text transition-colors">피드백</a>
         <a href="https://console.anthropic.com" target="_blank" class="text-muted hover:text-text transition-colors">API 키 발급</a>
-        <a href="#download" class="text-muted hover:text-text transition-colors">다운로드</a>
+        <a href="mailto:hello@oomni.app" class="text-muted hover:text-text transition-colors">문의</a>
       </div>
     </div>
-
-    <div class="border-t border-border pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-[12px] text-muted/60">
+    <div class="border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between gap-3 text-[13px] text-muted/60">
       <span>© 2026 OOMNI. MIT License.</span>
-      <span>Built with ❤️ for solo founders · Powered by Claude Code</span>
+      <span>Built for solo founders · Powered by Claude Code</span>
     </div>
   </div>
 </footer>
 
 
-<!-- ══════════════════════════════════════════
-  SCROLL ANIMATION JS
-═══════════════════════════════════════════ -->
 <script>
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
-  }, { threshold: 0.1 });
-  document.querySelectorAll('.appear').forEach(el => observer.observe(el));
+  /* ── Pricing toggle ── */
+  function switchPlan(type, el) {
+    document.querySelectorAll('.plan-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.price-monthly, .price-annual, .price-lifetime').forEach(el => {
+      el.style.display = 'none';
+    });
+    document.querySelectorAll('.price-' + type).forEach(el => {
+      el.style.display = 'block';
+    });
+  }
+  // Init: show monthly
+  document.querySelectorAll('.price-monthly').forEach(el => el.style.display = 'block');
+
+  /* ── Scroll reveal ── */
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('appeared'), i * 80);
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.appear').forEach(el => io.observe(el));
 </script>
 </body>
 </html>
