@@ -1,11 +1,12 @@
 const { app, BrowserWindow, ipcMain, shell, session } = require('electron')
 const path = require('path')
-const { spawn } = require('child_process')
 const http = require('http')
-const isDev = process.env.NODE_ENV !== 'production'
+
+// app.isPackaged: 패키징된 프로덕션 앱이면 true, 개발 모드면 false
+// process.env.NODE_ENV 는 electron-builder가 자동 설정 안 함 → 사용하지 않음
+const isDev = !app.isPackaged
 
 let mainWindow = null
-let backendProcess = null
 
 // ── 보안: CSP 헤더 ──────────────────────────────────────
 function setupCSP() {
