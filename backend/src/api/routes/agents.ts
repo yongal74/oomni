@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { ClaudeCodeExecutor } from '../../services/claudeCodeExecutor';
+import { ParallelExecutor, type ParallelResult } from '../../services/parallelExecutor';
 
 const VALID_ROLES = ['research','build','design','content','growth','ops','integration','n8n','ceo'] as const;
 const VALID_SCHEDULES = ['manual','hourly','daily','weekly'] as const;
@@ -313,6 +314,133 @@ export function agentsRouter(db: DbClient): Router {
   router.delete('/:id', async (req: Request, res: Response) => {
     await db.query('DELETE FROM agents WHERE id = $1', [req.params.id]);
     res.status(204).send();
+  });
+
+  // POST /api/agents/batch-trigger — 여러 봇 동시 실행
+  router.post('/batch-trigger', async (req: Request, res: Response) => {
+    const { agent_ids, task, mission_id } = req.body as {
+      agent_ids?: unknown;
+      task?: unknown;
+      mission_id?: unknown;
+    };
+
+    if (!Array.isArray(agent_ids) || agent_ids.length === 0) {
+      res.status(400).json({ error: 'agent_ids 배열이 필요합니다' });
+      return;
+    }
+
+    const ids = agent_ids as string[];
+    const taskStr: string = typeof task === 'string' && task.length > 0 ? task : '정기 작업 실행';
+
+    // Fetch agents from DB
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
+    const agentResult = await db.query(
+      `SELECT id, name, is_active FROM agents WHERE id IN (${placeholders})`,
+      ids,
+    );
+    const agentRows = agentResult.rows as Array<{ id: string; name: string; is_active: boolean }>;
+
+    const foundIds = new Set(agentRows.map((a) => a.id));
+    const missingIds = ids.filter((id) => !foundIds.has(id));
+    if (missingIds.length > 0) {
+      res.status(404).json({ error: `봇을 찾을 수 없습니다: ${missingIds.join(', ')}` });
+      return;
+    }
+
+    const activeAgents = agentRows.filter((a) => a.is_active);
+    if (activeAgents.length === 0) {
+      res.status(409).json({ error: '실행 가능한 활성 봇이 없습니다' });
+      return;
+    }
+
+    const jobs = activeAgents.map((a) => ({
+      agentId: a.id,
+      agentName: a.name,
+      task: taskStr,
+    }));
+
+    const onProgress = async (result: ParallelResult): Promise<void> => {
+      const feedType = result.success ? 'result' : 'error';
+      const feedContent = result.success
+        ? result.output
+        : `병렬 실행 실패 (${result.error ?? 'unknown'}): ${result.output}`;
+
+      const feedId = uuidv4();
+      await db.query(
+        `INSERT INTO feed_items (id, agent_id, run_id, type, content, action_label, action_data, requires_approval)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [feedId, result.agentId, mission_id ?? null, feedType, feedContent, null, null, false],
+      );
+    };
+
+    const allResults = await ParallelExecutor.run(jobs, 3, (result) => {
+      onProgress(result).catch(() => {/* best-effort feed save */});
+    });
+
+    const successCount = allResults.filter((r) => r.success).length;
+    const failedCount = allResults.length - successCount;
+
+    res.status(200).json({
+      data: {
+        results: allResults,
+        total: allResults.length,
+        success: successCount,
+        failed: failedCount,
+      },
+    });
+  });
+
+  // POST /api/missions/:id/run-all — 미션의 모든 활성 봇 병렬 실행
+  router.post('/missions/:id/run-all', async (req: Request, res: Response) => {
+    const missionId = req.params.id;
+
+    const agentResult = await db.query(
+      'SELECT id, name FROM agents WHERE mission_id = $1 AND is_active = true',
+      [missionId],
+    );
+    const agentRows = agentResult.rows as Array<{ id: string; name: string }>;
+
+    if (agentRows.length === 0) {
+      res.status(404).json({ error: '해당 미션에 활성 봇이 없습니다' });
+      return;
+    }
+
+    const defaultTask = '정기 작업 실행';
+    const jobs = agentRows.map((a) => ({
+      agentId: a.id,
+      agentName: a.name,
+      task: defaultTask,
+    }));
+
+    const onProgress = async (result: ParallelResult): Promise<void> => {
+      const feedType = result.success ? 'result' : 'error';
+      const feedContent = result.success
+        ? result.output
+        : `병렬 실행 실패 (${result.error ?? 'unknown'}): ${result.output}`;
+
+      const feedId = uuidv4();
+      await db.query(
+        `INSERT INTO feed_items (id, agent_id, run_id, type, content, action_label, action_data, requires_approval)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [feedId, result.agentId, missionId, feedType, feedContent, null, null, false],
+      );
+    };
+
+    const allResults = await ParallelExecutor.run(jobs, 3, (result) => {
+      onProgress(result).catch(() => {/* best-effort feed save */});
+    });
+
+    const successCount = allResults.filter((r) => r.success).length;
+    const failedCount = allResults.length - successCount;
+
+    res.status(200).json({
+      data: {
+        results: allResults,
+        total: allResults.length,
+        success: successCount,
+        failed: failedCount,
+      },
+    });
   });
 
   return router;
