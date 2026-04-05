@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { createBrowserRouter, Navigate, useNavigate } from 'react-router-dom'
+import { createHashRouter, Navigate, useNavigate } from 'react-router-dom'
 import { AppLayout } from './components/layout/AppLayout'
 import { authApi } from './lib/api'
 
@@ -59,7 +59,7 @@ function AuthGuard() {
   return null
 }
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     path: '/',
     element: <AuthGuard />,
