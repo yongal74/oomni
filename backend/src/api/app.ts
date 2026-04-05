@@ -18,6 +18,7 @@ import { issuesRouter } from './routes/issues';
 import { schedulesRouter } from './routes/schedules';
 import { webhooksRouter } from './routes/webhooks';
 import { reportsRouter } from './routes/reports';
+import { researchRouter } from './routes/research';
 import { authRouter } from './routes/auth';
 import { settingsRouter } from './routes/settings';
 import { logger } from '../logger';
@@ -129,6 +130,7 @@ export function createApp(options: AppOptions): Application {
   app.use('/api/issues', issuesRouter(options.db));
   app.use('/api/schedules', schedulesRouter(options.db));
   app.use('/api/reports', reportsRouter(options.db));
+  app.use('/api/research', researchRouter(options.db));
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });

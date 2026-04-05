@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   agentsApi, feedApi, costApi, issuesApi, schedulesApi, reportsApi,
   type FeedItem, type Agent, type Issue, type Schedule,
@@ -11,6 +11,7 @@ import {
   Play, Plus, X, Check, XCircle, Loader2,
   ArrowRight,
 } from 'lucide-react'
+import { BotRunModal } from '../components/BotRunModal'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
@@ -79,10 +80,12 @@ const DASH_TABS: { key: DashTab; label: string }[] = [
 export default function DashboardPage() {
   const qc = useQueryClient()
   const { currentMission, agents, setAgents, setPendingApprovals } = useAppStore()
-  const [showAddBot, setShowAddBot] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [showAddBot, setShowAddBot] = useState(() => searchParams.get('addBot') === 'true')
   const [feedItems, setFeedItems] = useState<FeedItem[]>([])
   const [creatingRole, setCreatingRole] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<DashTab>('feed')
+  const [runModalAgent, setRunModalAgent] = useState<Agent | null>(null)
 
   const missionId = currentMission?.id
 
@@ -169,12 +172,9 @@ export default function DashboardPage() {
     onSuccess: () => {
       setCreatingRole(null)
       setShowAddBot(false)
+      setSearchParams({})
       qc.invalidateQueries({ queryKey: ['agents'] })
     },
-  })
-
-  const triggerBot = useMutation({
-    mutationFn: (id: string) => agentsApi.trigger(id),
   })
 
   const approve = useMutation({
@@ -245,12 +245,11 @@ export default function DashboardPage() {
                   <div className="text-[11px] text-muted">{agent.schedule}</div>
                 </div>
                 <button
-                  onClick={() => triggerBot.mutate(agent.id)}
-                  disabled={triggerBot.isPending}
+                  onClick={() => setRunModalAgent(agent)}
                   className="p-1 text-muted hover:text-primary rounded"
                   title="즉시 실행"
                 >
-                  {triggerBot.isPending ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
+                  <Play size={12} />
                 </button>
                 <div className={`w-2 h-2 rounded-full ${agent.is_active ? 'bg-green-500' : 'bg-[#444]'}`} />
               </div>
@@ -449,13 +448,18 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* 봇 실행 모달 */}
+      {runModalAgent && (
+        <BotRunModal agent={runModalAgent} onClose={() => setRunModalAgent(null)} />
+      )}
+
       {/* 봇 추가 모달 */}
       {showAddBot && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-surface border border-border rounded-xl w-full max-w-2xl">
             <div className="flex items-center justify-between p-4 border-b border-border">
               <h2 className="text-base font-semibold text-text">봇 추가</h2>
-              <button onClick={() => setShowAddBot(false)} className="text-muted hover:text-text"><X size={18} /></button>
+              <button onClick={() => { setShowAddBot(false); setSearchParams({}) }} className="text-muted hover:text-text"><X size={18} /></button>
             </div>
             <div className="p-4 grid grid-cols-2 gap-3">
               {BOT_TEMPLATES.map(tmpl => (

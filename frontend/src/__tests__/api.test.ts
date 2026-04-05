@@ -42,6 +42,16 @@ describe('API 클라이언트', () => {
     expect(typeof reportsApi.get).toBe('function')
   })
 
+  test('researchApi 함수들이 정의되어 있다', async () => {
+    const { researchApi } = await import('../lib/api')
+    expect(typeof researchApi.list).toBe('function')
+    expect(typeof researchApi.collect).toBe('function')
+    expect(typeof researchApi.create).toBe('function')
+    expect(typeof researchApi.filter).toBe('function')
+    expect(typeof researchApi.convert).toBe('function')
+    expect(typeof researchApi.delete).toBe('function')
+  })
+
   test('feedApi 함수들이 정의되어 있다', async () => {
     const { feedApi } = await import('../lib/api')
     expect(typeof feedApi.list).toBe('function')

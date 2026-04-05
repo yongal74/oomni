@@ -7,6 +7,7 @@ export const TABLES = [
   'cost_events',
   'integrations',
   'schedules',
+  'research_items',
 ] as const;
 
 // SQLite 스키마 (PostgreSQL 호환 제거: TIMESTAMPTZ→TEXT, BOOLEAN→INTEGER, JSONB→TEXT, NUMERIC→REAL)
@@ -123,4 +124,23 @@ CREATE TABLE IF NOT EXISTS schedules (
   created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_schedules_agent_id ON schedules(agent_id);
+
+-- 리서치 스튜디오 아이템
+CREATE TABLE IF NOT EXISTS research_items (
+  id TEXT PRIMARY KEY,
+  mission_id TEXT NOT NULL,
+  source_type TEXT NOT NULL DEFAULT 'url',
+  source_url TEXT,
+  title TEXT NOT NULL,
+  summary TEXT,
+  content TEXT,
+  tags TEXT DEFAULT '[]',
+  signal_score INTEGER DEFAULT 0,
+  filter_decision TEXT DEFAULT 'pending',
+  next_action TEXT,
+  converted_output TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_research_items_mission_id ON research_items(mission_id);
+CREATE INDEX IF NOT EXISTS idx_research_items_filter_decision ON research_items(filter_decision);
 `;

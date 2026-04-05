@@ -114,8 +114,10 @@ export function agentsRouter(db: DbClient): Router {
       return;
     }
 
+    const task: string | undefined = typeof req.body?.task === 'string' ? req.body.task : undefined;
+
     // HeartbeatScheduler에 triggerNow 위임 (실제 실행은 비동기)
-    res.status(202).json({ message: '봇 실행을 요청했습니다', agentId: agent.id });
+    res.status(202).json({ message: '봇 실행을 요청했습니다', agentId: agent.id, task });
   });
 
   // DELETE /api/agents/:id

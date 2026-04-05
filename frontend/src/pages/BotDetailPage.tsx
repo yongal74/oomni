@@ -7,6 +7,7 @@ import {
 } from '../lib/api'
 import { useAppStore } from '../store/app.store'
 import { Play, Trash2, Save, Settings, Activity, Loader2, Link2, X, ArrowRight, Plus } from 'lucide-react'
+import { BotRunModal } from '../components/BotRunModal'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
@@ -24,6 +25,7 @@ export default function BotDetailPage() {
   const missionId = currentMission?.id
 
   const [tab, setTab] = useState<'activity' | 'settings' | 'triggers'>('activity')
+  const [showRunModal, setShowRunModal] = useState(false)
   const [editedPrompt, setEditedPrompt] = useState('')
   const [editedBudget, setEditedBudget] = useState<number>(0)
   const [editedSchedule, setEditedSchedule] = useState<string>('manual')
@@ -72,10 +74,6 @@ export default function BotDetailPage() {
   const outgoingTriggers = schedules.filter(
     s => s.trigger_type === 'bot_complete' && s.trigger_value === id
   )
-
-  const trigger = useMutation({
-    mutationFn: () => agentsApi.trigger(id!),
-  })
 
   const update = useMutation({
     mutationFn: () => agentsApi.update(id!, {
@@ -147,11 +145,10 @@ export default function BotDetailPage() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => trigger.mutate()}
-            disabled={trigger.isPending}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[13px] hover:bg-[#C5664A] disabled:opacity-50"
+            onClick={() => setShowRunModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[13px] hover:bg-[#C5664A]"
           >
-            {trigger.isPending ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+            <Play size={13} />
             즉시 실행
           </button>
           <button
@@ -191,7 +188,16 @@ export default function BotDetailPage() {
       {tab === 'activity' && (
         <div className="space-y-2">
           {feed.length === 0 ? (
-            <div className="text-center py-10 text-muted text-[13px]">아직 활동 내역이 없습니다</div>
+            <div className="text-center py-6 text-muted text-[13px]">
+              <p className="mb-4">아직 활동 내역이 없습니다</p>
+              <button
+                onClick={() => setShowRunModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded text-[13px] hover:bg-[#C5664A] mx-auto"
+              >
+                <Play size={13} />
+                지금 실행하기
+              </button>
+            </div>
           ) : feed.map((item: FeedItemAny) => (
             <div key={item.id} className="bg-surface border border-border rounded-lg p-3">
               <div className="flex items-center gap-2 mb-1">
@@ -385,6 +391,11 @@ export default function BotDetailPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* 봇 실행 모달 */}
+      {showRunModal && agent && (
+        <BotRunModal agent={agent} onClose={() => setShowRunModal(false)} />
       )}
     </div>
   )

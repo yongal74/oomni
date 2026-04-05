@@ -14,6 +14,7 @@ const IssuesPage = React.lazy(() => import('./pages/IssuesPage'))
 const SchedulePage = React.lazy(() => import('./pages/SchedulePage'))
 const ReportPage = React.lazy(() => import('./pages/ReportPage'))
 const PinPage = React.lazy(() => import('./pages/PinPage'))
+const ResearchPage = React.lazy(() => import('./pages/ResearchPage'))
 
 const Loader = () => (
   <div className="flex-1 flex items-center justify-center h-64">
@@ -85,6 +86,7 @@ export const router = createHashRouter([
       { path: 'issues', element: <React.Suspense fallback={<Loader />}><IssuesPage /></React.Suspense> },
       { path: 'schedules', element: <React.Suspense fallback={<Loader />}><SchedulePage /></React.Suspense> },
       { path: 'reports', element: <React.Suspense fallback={<Loader />}><ReportPage /></React.Suspense> },
+      { path: 'research', element: <React.Suspense fallback={<Loader />}><ResearchPage /></React.Suspense> },
     ],
   },
   {

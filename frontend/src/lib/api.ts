@@ -48,8 +48,8 @@ export const agentsApi = {
     api.post<ApiResponse<Agent>>('/api/agents', data).then(r => r.data.data),
   update: (id: string, data: Partial<Agent>) =>
     api.patch<ApiResponse<Agent>>(`/api/agents/${id}`, data).then(r => r.data.data),
-  trigger: (id: string) =>
-    api.post(`/api/agents/${id}/trigger`).then(r => r.data),
+  trigger: (id: string, task?: string) =>
+    api.post(`/api/agents/${id}/trigger`, task ? { task } : {}).then(r => r.data),
   delete: (id: string) => api.delete(`/api/agents/${id}`),
 }
 
@@ -115,6 +115,21 @@ export const reportsApi = {
     api.get('/api/reports', { params: { mission_id: missionId, period } }).then(r => r.data),
 }
 
+// 리서치 스튜디오
+export const researchApi = {
+  list: (missionId: string) =>
+    api.get<ApiResponse<ResearchItem[]>>('/api/research', { params: { mission_id: missionId } }).then(r => r.data.data),
+  collect: (data: { mission_id: string; source_type: string; source_url?: string; keyword?: string; content?: string }) =>
+    api.post<ApiResponse<ResearchItem>>('/api/research/collect', data).then(r => r.data.data),
+  create: (data: Partial<ResearchItem>) =>
+    api.post<ApiResponse<ResearchItem>>('/api/research', data).then(r => r.data.data),
+  filter: (id: string, decision: 'keep' | 'drop' | 'watch') =>
+    api.post(`/api/research/${id}/filter`, { decision }).then(r => r.data),
+  convert: (id: string, output_type: string) =>
+    api.post<ApiResponse<{ content: string }>>(`/api/research/${id}/convert`, { output_type }).then(r => r.data.data),
+  delete: (id: string) => api.delete(`/api/research/${id}`),
+}
+
 // 설정 (Bearer 없이 직접 호출, 온보딩용)
 const settingsAxios = axios.create({ baseURL: BASE_URL, timeout: 10000 })
 
@@ -166,4 +181,19 @@ export interface Schedule {
   trigger_type: 'interval' | 'cron' | 'webhook' | 'bot_complete';
   trigger_value: string;
   is_active: boolean; last_run_at: string | null; created_at: string;
+}
+export interface ResearchItem {
+  id: string
+  mission_id: string
+  source_type: 'rss' | 'url' | 'keyword' | 'manual'
+  source_url?: string
+  title: string
+  summary?: string
+  content?: string
+  tags: string[]
+  signal_score: number
+  filter_decision: 'pending' | 'keep' | 'drop' | 'watch'
+  next_action?: string
+  converted_output?: string
+  created_at: string
 }
