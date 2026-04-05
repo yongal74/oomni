@@ -309,6 +309,30 @@ export function agentsRouter(db: DbClient): Router {
     res.end();
   });
 
+  // GET /api/agents/:id/runs — 최근 피드 아이템 조회
+  router.get('/:id/runs', async (req: Request, res: Response) => {
+    const result = await db.query(
+      'SELECT * FROM feed_items WHERE agent_id = $1 ORDER BY created_at DESC LIMIT 50',
+      [req.params.id],
+    );
+    res.json({ data: result.rows });
+  });
+
+  // GET /api/agents/:id/runs/stats — 실행 통계
+  router.get('/:id/runs/stats', async (req: Request, res: Response) => {
+    const rows = (await db.query(
+      'SELECT * FROM feed_items WHERE agent_id = $1 ORDER BY created_at DESC',
+      [req.params.id],
+    )).rows as Array<{ type: string; created_at: string }>;
+
+    const total_runs = rows.length;
+    const success_count = rows.filter(r => r.type === 'result').length;
+    const error_count = rows.filter(r => r.type === 'error').length;
+    const last_run_at = rows.length > 0 ? rows[0].created_at : null;
+
+    res.json({ data: { total_runs, success_count, error_count, last_run_at } });
+  });
+
   // DELETE /api/agents/:id
   router.delete('/:id', async (req: Request, res: Response) => {
     await db.query('DELETE FROM agents WHERE id = $1', [req.params.id]);

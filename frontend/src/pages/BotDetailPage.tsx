@@ -8,8 +8,7 @@ import {
 import { useAppStore } from '../store/app.store'
 import { Play, Trash2, Save, Settings, Activity, Loader2, Link2, X, ArrowRight, Plus } from 'lucide-react'
 import { BotRunModal } from '../components/BotRunModal'
-import { formatDistanceToNow } from 'date-fns'
-import { ko } from 'date-fns/locale'
+import { BotRunHistory } from '../components/BotRunHistory'
 
 const BOT_EMOJI: Record<string, string> = {
   research: '🔬', build: '🔨', design: '🎨', content: '✍️',
@@ -186,10 +185,9 @@ export default function BotDetailPage() {
 
       {/* 활동 탭 */}
       {tab === 'activity' && (
-        <div className="space-y-2">
-          {feed.length === 0 ? (
-            <div className="text-center py-6 text-muted text-[13px]">
-              <p className="mb-4">아직 활동 내역이 없습니다</p>
+        <div>
+          {feed.length === 0 && (
+            <div className="mb-4 text-center">
               <button
                 onClick={() => setShowRunModal(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded text-[13px] hover:bg-[#C5664A] mx-auto"
@@ -198,25 +196,8 @@ export default function BotDetailPage() {
                 지금 실행하기
               </button>
             </div>
-          ) : feed.map((item: FeedItemAny) => (
-            <div key={item.id} className="bg-surface border border-border rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                  item.type === 'error'
-                    ? 'bg-red-900/30 text-red-400'
-                    : item.type === 'result'
-                    ? 'bg-blue-900/30 text-blue-400'
-                    : 'bg-[#2A2A2C] text-muted'
-                }`}>
-                  {item.type}
-                </span>
-                <span className="text-[10px] text-muted">
-                  {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: ko })}
-                </span>
-              </div>
-              <p className="text-[12px] text-muted leading-relaxed">{item.content}</p>
-            </div>
-          ))}
+          )}
+          <BotRunHistory agentId={agent.id} />
         </div>
       )}
 
