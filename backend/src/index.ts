@@ -2,6 +2,8 @@
  * OOMNI Backend 서버 진입점
  */
 import http from 'http';
+import * as fs from 'fs';
+import * as path from 'path';
 import { loadConfig, loadSettings } from './config';
 import { initDb, shutdownDb } from './db/client';
 import { initVault } from './crypto/vault';
@@ -11,11 +13,69 @@ import { HeartbeatScheduler } from './agents/heartbeat';
 import { AgentRunner } from './agents/runner';
 import { EventEmitter } from 'events';
 import { logger } from './logger';
+import { initSkills, WORKSPACE_ROOT, SKILLS_DEST } from './services/claudeCodeService';
+const WORKSPACE_BASE = WORKSPACE_ROOT;
+const SKILLS_BASE = SKILLS_DEST;
+
+/**
+ * Initialize OOMNI data directories on startup.
+ * Creates C:/oomni-data/workspaces/ and C:/oomni-data/.claude/commands/
+ * if they do not already exist.
+ */
+function initWorkspaceDirectories(): void {
+  const dirs = [
+    WORKSPACE_BASE,
+    SKILLS_BASE,
+    // Role-specific skill command directories
+    path.join(SKILLS_BASE, 'research'),
+    path.join(SKILLS_BASE, 'build'),
+    path.join(SKILLS_BASE, 'design'),
+    path.join(SKILLS_BASE, 'content'),
+    path.join(SKILLS_BASE, 'growth'),
+    path.join(SKILLS_BASE, 'ops'),
+    path.join(SKILLS_BASE, 'ceo'),
+  ];
+
+  for (const dir of dirs) {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+      logger.info(`[Init] 디렉토리 생성: ${dir}`);
+    }
+  }
+
+  // Copy bundled skills from app resources if running in Electron
+  const resourcesDir = process.env.RESOURCES_PATH;
+  if (resourcesDir) {
+    const srcSkills = path.join(resourcesDir, 'skills');
+    if (fs.existsSync(srcSkills)) {
+      copyDirIfNotExists(srcSkills, SKILLS_BASE);
+      logger.info(`[Init] 스킬 복사 완료: ${srcSkills} → ${SKILLS_BASE}`);
+    }
+  }
+}
+
+function copyDirIfNotExists(src: string, dest: string): void {
+  if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src)) {
+    const srcPath = path.join(src, entry);
+    const destPath = path.join(dest, entry);
+    const stat = fs.statSync(srcPath);
+    if (stat.isDirectory()) {
+      copyDirIfNotExists(srcPath, destPath);
+    } else if (!fs.existsSync(destPath)) {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
 
 async function main() {
   // settings.json에서 API 키 로드 (loadConfig 전에 실행)
   loadSettings();
   const config = loadConfig();
+
+  // 워크스페이스 및 스킬 디렉토리 초기화
+  initWorkspaceDirectories();
+  initSkills(); // skills/ → C:/oomni-data/.claude/commands/ 복사
 
   // 1. Vault 초기화
   initVault(config.OOMNI_MASTER_KEY);

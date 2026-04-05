@@ -32,6 +32,17 @@ const authAxios = axios.create({ baseURL: BASE_URL, timeout: 10000 })
 // 타입 헬퍼
 export interface ApiResponse<T> { data: T }
 
+// ── 워크스페이스 파일 타입 ──────────────────────────────────────────────────
+export interface FileNode {
+  name: string
+  path: string
+  type: 'file' | 'directory'
+  children?: FileNode[]
+  size?: number
+  modified?: string
+  language?: string
+}
+
 // 미션
 export const missionsApi = {
   list: () => api.get<ApiResponse<Mission[]>>('/api/missions').then(r => r.data.data),
@@ -51,6 +62,19 @@ export const agentsApi = {
   trigger: (id: string, task?: string) =>
     api.post(`/api/agents/${id}/trigger`, task ? { task } : {}).then(r => r.data),
   delete: (id: string) => api.delete(`/api/agents/${id}`),
+}
+
+// 워크스페이스 파일
+export const workspaceApi = {
+  files: (agentId: string) =>
+    api.get<{ data: FileNode[]; workspace: string; exists: boolean }>(
+      `/api/agents/${agentId}/workspace-files`
+    ).then(r => r.data),
+  content: (agentId: string, filePath: string) =>
+    api.get<{ data: string; path: string }>(
+      `/api/agents/${agentId}/workspace-files/content`,
+      { params: { path: filePath } }
+    ).then(r => r.data),
 }
 
 // 피드
@@ -162,6 +186,23 @@ export const authApi = {
     authAxios.post('/api/auth/pin/verify', { pin }).then(r => r.data),
 }
 
+// ── 숏폼 영상 API ────────────────────────────────────────────────────────────
+export const videoApi = {
+  generateScript: (topic: string, type: 'content' | 'growth') =>
+    api.post<{ success: boolean; script: ShortFormScript }>('/api/video/script', { topic, type }).then(r => r.data),
+  listScripts: () =>
+    api.get<{ success: boolean; scripts: ScriptSummary[] }>('/api/video/scripts').then(r => r.data),
+  getScript: (id: string) =>
+    api.get<{ success: boolean; script: ShortFormScript }>(`/api/video/scripts/${id}`).then(r => r.data),
+  renderVideo: (script_id: string, variant_index = 0) =>
+    api.post<{ success: boolean; message: string; output_path: string }>('/api/video/render', { script_id, variant_index }).then(r => r.data),
+  listVideos: () =>
+    api.get<{ success: boolean; videos: VideoMeta[] }>('/api/video/list').then(r => r.data),
+  vrewExport: (id: string) =>
+    api.post<{ success: boolean; file_path: string }>(`/api/video/vrew-export/${id}`).then(r => r.data),
+  downloadUrl: (id: string) => `${api.defaults.baseURL}/api/video/download/${id}`,
+}
+
 // 타입들
 export interface Mission { id: string; name: string; description: string; created_at: string }
 export interface Agent {
@@ -205,5 +246,55 @@ export interface ResearchItem {
   filter_decision: 'pending' | 'keep' | 'drop' | 'watch'
   next_action?: string
   converted_output?: string
+  created_at: string
+}
+
+// Video types
+export interface ScriptVariant {
+  hook: string
+  problem: string
+  solution: string[]
+  proof: string
+  cta: string
+  vrew_text?: string
+  remotion_props?: {
+    durationInFrames: number
+    fps: number
+    width: number
+    height: number
+    slides: Array<{
+      type: 'hook' | 'problem' | 'solution' | 'proof' | 'cta'
+      startFrame: number
+      durationInFrames: number
+      content: string | string[]
+      backgroundColor?: string
+      textColor?: string
+    }>
+  }
+}
+
+export interface ShortFormScript {
+  id: string
+  title: string
+  topic: string
+  type: 'content' | 'growth'
+  variants: ScriptVariant[]
+  created_at: string
+}
+
+export interface ScriptSummary {
+  id: string
+  title: string
+  topic: string
+  type: 'content' | 'growth'
+  variant_count: number
+  created_at: string
+}
+
+export interface VideoMeta {
+  id: string
+  filename: string
+  path: string
+  size_bytes: number
   created_at: string
 }

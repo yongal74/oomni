@@ -24,6 +24,7 @@ import { settingsRouter } from './routes/settings';
 import { devtoolsRouter } from './routes/devtools';
 import { ceoRouter } from './routes/ceo';
 import { templatesRouter } from './routes/templates';
+import { videoRouter } from './routes/video';
 import { logger } from '../logger';
 
 interface AppOptions {
@@ -137,6 +138,7 @@ export function createApp(options: AppOptions): Application {
   app.use('/api/devtools', devtoolsRouter());
   app.use('/api/ceo', ceoRouter(options.db));
   app.use('/api/templates', templatesRouter(options.db));
+  app.use('/api/video', videoRouter());
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });

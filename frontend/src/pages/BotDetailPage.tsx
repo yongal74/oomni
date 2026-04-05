@@ -8,6 +8,7 @@ import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
 import { LiveStreamDrawer } from '../components/bot/LiveStreamDrawer'
 import { ResearchLeftPanel, ResearchCenterPanel, ResearchRightPanel } from '../components/bot/panels/ResearchPanel'
 import { BuildLeftPanel, BuildCenterPanel, BuildRightPanel } from '../components/bot/panels/BuildPanel'
+import type { FileNode } from '../lib/api'
 import { ContentLeftPanel, ContentCenterPanel, ContentRightPanel } from '../components/bot/panels/ContentPanel'
 import { GrowthLeftPanel, GrowthCenterPanel, GrowthRightPanel } from '../components/bot/panels/GrowthPanel'
 import { OpsLeftPanel, OpsCenterPanel, OpsRightPanel } from '../components/bot/panels/OpsPanel'
@@ -54,6 +55,8 @@ export default function BotDetailPage() {
   const [selectedResearchItem, setSelectedResearchItem] = useState<ResearchItem | null>(null)
   const [contentType, setContentType] = useState('blog')
   const [designTemplate, setDesignTemplate] = useState('landing')
+  const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null)
+  const [buildStreamContent, setBuildStreamContent] = useState('')
   const esRef = useRef<EventSource | null>(null)
 
   const { data: agent, isLoading } = useQuery<Agent>({
@@ -78,6 +81,7 @@ export default function BotDetailPage() {
     if (!task.trim() || isRunning) return
     const stages = ROLE_STAGES[agent?.role ?? 'default'] ?? ROLE_STAGES.default
     setCurrentStage(stages[0].key) // 첫 단계 즉시 활성화
+    setBuildStreamContent('') // reset stream for new run
     setIsRunning(true)
   }
 
@@ -127,13 +131,27 @@ export default function BotDetailPage() {
         right: <ResearchRightPanel item={selectedResearchItem} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
       }
       case 'build': return {
-        left: <BuildLeftPanel missionId={missionId ?? ''} />,
-        center: <BuildCenterPanel agentId={agent.id} />,
-        right: <BuildRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+        left: <BuildLeftPanel
+          agentId={agent.id}
+          selectedFilePath={selectedBuildFile?.path ?? null}
+          onFileSelect={setSelectedBuildFile}
+        />,
+        center: <BuildCenterPanel
+          agentId={agent.id}
+          selectedFile={selectedBuildFile}
+          isRunning={isRunning}
+          streamContent={buildStreamContent}
+        />,
+        right: <BuildRightPanel
+          agentId={agent.id}
+          nextBotName={nextBot?.name}
+          onNextBot={handleNextBot}
+          onSkillSelect={(skill: string) => setTask(skill)}
+        />,
       }
       case 'content': return {
         left: <ContentLeftPanel missionId={missionId ?? ''} selectedType={contentType} onTypeChange={setContentType} />,
-        center: <ContentCenterPanel agentId={agent.id} />,
+        center: <ContentCenterPanel agentId={agent.id} selectedType={contentType} />,
         right: <ContentRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
       }
       case 'growth': return {
@@ -240,6 +258,7 @@ export default function BotDetailPage() {
           onStageChange={setCurrentStage}
           onDone={handleDone}
           onError={() => { setIsRunning(false); setCurrentStage(null) }}
+          onOutputChunk={(chunk) => setBuildStreamContent(prev => prev + chunk)}
           esRef={esRef}
         />
 

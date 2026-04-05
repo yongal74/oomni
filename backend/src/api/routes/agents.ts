@@ -1,9 +1,86 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import * as fs from 'fs';
+import * as path from 'path';
 import { ParallelExecutor, type ParallelResult } from '../../services/parallelExecutor';
-import { routeToExecutor } from '../../services/roleExecutors/index';
 import { saveFeedItem } from '../../services/roleExecutors/base';
+import { ClaudeCodeService } from '../../services/claudeCodeService';
+
+// ── Workspace file tree types ────────────────────────────────────────────────
+interface FileNode {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: FileNode[];
+  size?: number;
+  modified?: string;
+  language?: string;
+}
+
+const LANGUAGE_MAP: Record<string, string> = {
+  tsx: 'tsx', ts: 'ts', jsx: 'jsx', js: 'js',
+  py: 'py', json: 'json', md: 'md', css: 'css',
+  scss: 'scss', html: 'html', sql: 'sql', sh: 'sh',
+  yaml: 'yaml', yml: 'yaml', toml: 'toml', env: 'env',
+  txt: 'txt', rs: 'rs', go: 'go', java: 'java',
+};
+
+function detectLanguage(filename: string): string | undefined {
+  const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+  return LANGUAGE_MAP[ext];
+}
+
+function buildFileTree(dirPath: string, relativeTo: string): FileNode[] {
+  try {
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    const nodes: FileNode[] = [];
+
+    for (const entry of entries) {
+      // Skip hidden files and common noise folders
+      if (entry.name.startsWith('.')) continue;
+      if (['node_modules', '__pycache__', '.git', 'dist', 'build', '.next'].includes(entry.name)) continue;
+
+      const fullPath = path.join(dirPath, entry.name);
+      const relPath = path.relative(relativeTo, fullPath).replace(/\\/g, '/');
+
+      if (entry.isDirectory()) {
+        nodes.push({
+          name: entry.name,
+          path: relPath,
+          type: 'directory',
+          children: buildFileTree(fullPath, relativeTo),
+        });
+      } else if (entry.isFile()) {
+        let size: number | undefined;
+        let modified: string | undefined;
+        try {
+          const stat = fs.statSync(fullPath);
+          size = stat.size;
+          modified = stat.mtime.toISOString();
+        } catch {
+          // ignore
+        }
+        nodes.push({
+          name: entry.name,
+          path: relPath,
+          type: 'file',
+          size,
+          modified,
+          language: detectLanguage(entry.name),
+        });
+      }
+    }
+
+    // Directories first, then files, both alphabetical
+    return nodes.sort((a, b) => {
+      if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+  } catch {
+    return [];
+  }
+}
 
 const VALID_ROLES = ['research','build','design','content','growth','ops','integration','n8n','ceo'] as const;
 const VALID_SCHEDULES = ['manual','hourly','daily','weekly'] as const;
@@ -101,7 +178,53 @@ export function agentsRouter(db: DbClient): Router {
     res.json({ data: (result.rows as unknown[])[0] });
   });
 
-  // POST /api/agents/:id/trigger — 봇 즉시 실행
+  // GET /api/agents/:id/workspace-files — 워크스페이스 파일 트리
+  router.get('/:id/workspace-files', (req: Request, res: Response) => {
+    const agentId = String(req.params.id);
+    const workspaceRoot = path.join('C:/oomni-data/workspaces', agentId);
+
+    if (!fs.existsSync(workspaceRoot)) {
+      // Return empty tree — workspace not yet created
+      res.json({ data: [], workspace: workspaceRoot, exists: false });
+      return;
+    }
+
+    const tree = buildFileTree(workspaceRoot, workspaceRoot);
+    res.json({ data: tree, workspace: workspaceRoot, exists: true });
+  });
+
+  // GET /api/agents/:id/workspace-files/content?path=src/foo.tsx — 파일 내용 읽기
+  router.get('/:id/workspace-files/content', (req: Request, res: Response) => {
+    const agentId = String(req.params.id);
+    const filePath = typeof req.query.path === 'string' ? req.query.path : '';
+
+    if (!filePath) {
+      res.status(400).json({ error: 'path 쿼리 파라미터가 필요합니다' });
+      return;
+    }
+
+    const workspaceRoot = path.join('C:/oomni-data/workspaces', agentId);
+    // Prevent path traversal
+    const resolved = path.resolve(workspaceRoot, filePath);
+    if (!resolved.startsWith(path.resolve(workspaceRoot))) {
+      res.status(403).json({ error: '허용되지 않는 경로입니다' });
+      return;
+    }
+
+    if (!fs.existsSync(resolved)) {
+      res.status(404).json({ error: '파일을 찾을 수 없습니다' });
+      return;
+    }
+
+    try {
+      const content = fs.readFileSync(resolved, 'utf-8');
+      res.json({ data: content, path: filePath });
+    } catch {
+      res.status(500).json({ error: '파일을 읽을 수 없습니다' });
+    }
+  });
+
+  // POST /api/agents/:id/trigger — 봇 즉시 실행 (ClaudeCodeService 백그라운드)
   router.post('/:id/trigger', async (req: Request, res: Response) => {
     const result = await db.query('SELECT * FROM agents WHERE id = $1', [req.params.id]);
     const rows = result.rows as Array<{ id: string; is_active: boolean; budget_cents: number }>;
@@ -123,27 +246,31 @@ export function agentsRouter(db: DbClient): Router {
       is_active: boolean; system_prompt: string; budget_cents: number;
     };
 
-    // 비동기 실행 (SSE stream 엔드포인트로 실시간 진행 확인 권장)
-    routeToExecutor({
-      agent: agentFull,
-      task,
-      db,
-      send: () => { /* trigger는 SSE 없이 백그라운드 실행 */ },
+    // ClaudeCodeService 백그라운드 실행 (SSE stream 엔드포인트로 실시간 진행 확인 권장)
+    const ccService = ClaudeCodeService.create(agentFull.id, agentFull.role);
+    ccService.execute(task, async (event, data) => {
+      // 백그라운드: 완료/에러 시 feed_items에 저장
+      if (event === 'done') {
+        await saveFeedItem(db, agentFull.id, 'result', `태스크 완료: ${task}`).catch(() => {});
+      } else if (event === 'error') {
+        const msg = (data as { message: string }).message ?? 'Unknown error';
+        await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${msg}`).catch(() => {});
+      }
     }).catch(async (err) => {
       const errMsg = err instanceof Error ? err.message : String(err);
-      await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`);
+      await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`).catch(() => {});
     });
 
     res.status(202).json({
       success: true,
       message: '봇 실행 시작됨 (실시간 확인: GET /api/agents/:id/stream)',
-      method: 'claude_api',
+      method: 'claude_code_service',
       agentId: agentFull.id,
       task,
     });
   });
 
-  // GET /api/agents/:id/stream — SSE: Claude Code 실시간 출력 스트리밍
+  // GET /api/agents/:id/stream — SSE: ClaudeCodeService 실시간 출력 스트리밍
   // Usage: GET /api/agents/:id/stream?task=<encoded_task>
   router.get('/:id/stream', async (req: Request, res: Response) => {
     const agentResult = await db.query('SELECT * FROM agents WHERE id = $1', [req.params.id]);
@@ -183,17 +310,28 @@ export function agentsRouter(db: DbClient): Router {
 
     send('start', { agentId: agentFull.id, task: taskStr });
 
+    // ClaudeCodeService로 실행
+    const ccService = ClaudeCodeService.create(agentFull.id, agentFull.role);
+
+    // Stop execution if client disconnects
+    req.on('close', () => {
+      ccService.stop();
+    });
+
     try {
-      await routeToExecutor({
-        agent: agentFull,
-        task: taskStr,
-        db,
-        send,
+      await ccService.execute(taskStr, async (event, data) => {
+        send(event, data);
+        // Persist result/error to DB
+        if (event === 'done') {
+          await saveFeedItem(db, agentFull.id, 'result', `태스크 완료: ${taskStr}`).catch(() => {});
+        } else if (event === 'error') {
+          const msg = (data as { message: string }).message ?? 'Unknown error';
+          await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${msg}`).catch(() => {});
+        }
       });
-      send('done', { success: true, agentId: agentFull.id });
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`);
+      await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`).catch(() => {});
       send('error', { message: errMsg });
     }
 

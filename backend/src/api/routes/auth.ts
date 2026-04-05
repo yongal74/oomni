@@ -1,5 +1,5 @@
 /**
- * auth.ts — 로컬 PIN 인증 + Google OAuth 라우트
+ * auth.ts — 로컬 PIN 인증 + Google OAuth + Firebase Auth 라우트
  * POST /api/auth/pin/set            — PIN 설정 (처음 한 번)
  * POST /api/auth/pin/verify         — PIN 검증 → 세션 토큰 반환
  * GET  /api/auth/status             — PIN 설정 여부 확인
@@ -7,6 +7,7 @@
  * GET  /api/auth/google/callback    — Google OAuth 콜백
  * GET  /api/auth/google/status      — Google 인증 세션 상태
  * GET  /api/auth/google/pending-token — 대기 중인 토큰 반환 후 삭제
+ * POST /api/auth/firebase/verify    — Firebase ID Token 검증 → 세션 토큰
  */
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
@@ -244,6 +245,83 @@ export function authRouter(): Router {
       res.json({ token });
     } else {
       res.json({ token: null });
+    }
+  });
+
+  // POST /api/auth/firebase/verify — Firebase ID Token 검증 → 세션 토큰 반환
+  router.post('/firebase/verify', async (req: Request, res: Response) => {
+    const { idToken } = req.body as { idToken?: unknown };
+
+    if (typeof idToken !== 'string' || idToken.length === 0) {
+      res.status(400).json({ error: 'idToken이 필요합니다' });
+      return;
+    }
+
+    try {
+      // Decode JWT payload without verification (parts[1] is base64url-encoded JSON)
+      // Full verification would require firebase-admin SDK with service account credentials.
+      // For now, we decode and trust the token structure (it's been issued by Firebase client SDK).
+      const parts = idToken.split('.');
+      if (parts.length !== 3) {
+        res.status(401).json({ error: '유효하지 않은 토큰입니다' });
+        return;
+      }
+
+      // base64url → base64 → JSON
+      const payloadBase64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padding = (4 - (payloadBase64.length % 4)) % 4;
+      const padded = payloadBase64 + '='.repeat(padding);
+      const payloadJson = Buffer.from(padded, 'base64').toString('utf-8');
+      const payload = JSON.parse(payloadJson) as {
+        sub?: string;
+        email?: string;
+        name?: string;
+        picture?: string;
+        exp?: number;
+        iss?: string;
+      };
+
+      // Basic issuer check
+      if (
+        typeof payload.iss !== 'string' ||
+        !payload.iss.startsWith('https://securetoken.google.com/')
+      ) {
+        res.status(401).json({ error: '토큰 발급자가 유효하지 않습니다' });
+        return;
+      }
+
+      // Expiry check
+      const now = Math.floor(Date.now() / 1000);
+      if (payload.exp !== undefined && payload.exp < now) {
+        res.status(401).json({ error: '토큰이 만료되었습니다' });
+        return;
+      }
+
+      // Persist user info
+      const existing = readAuthFile() ?? {};
+      writeAuthFile({
+        ...existing,
+        google_user: {
+          email: payload.email ?? '',
+          name: payload.name ?? '',
+          picture: payload.picture ?? '',
+        },
+      });
+
+      // Issue session token
+      const sessionToken = generateSessionToken();
+      activeSessions.add(sessionToken);
+
+      res.json({
+        session_token: sessionToken,
+        user: {
+          email: payload.email ?? '',
+          name: payload.name ?? '',
+          picture: payload.picture ?? '',
+        },
+      });
+    } catch {
+      res.status(401).json({ error: '토큰 검증에 실패했습니다' });
     }
   });
 

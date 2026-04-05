@@ -57,6 +57,11 @@
           "!node_modules/**/*.d.ts",
           "!node_modules/**/*.map"
         ]
+      },
+      {
+        "from": "skills",
+        "to": "skills",
+        "filter": ["**/*.md"]
       }
     ],
     "compression": "maximum",

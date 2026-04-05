@@ -16,11 +16,12 @@ interface Props {
   onStageChange?: (stage: string) => void
   onDone?: () => void
   onError?: (msg: string) => void
+  onOutputChunk?: (chunk: string) => void
   esRef: React.MutableRefObject<EventSource | null>
 }
 
 export function LiveStreamDrawer({
-  agentId, task, isRunning, onStageChange, onDone, onError, esRef
+  agentId, task, isRunning, onStageChange, onDone, onError, onOutputChunk, esRef
 }: Props) {
   const [open, setOpen] = useState(false)
   const [lines, setLines] = useState<StreamLine[]>([])
@@ -51,7 +52,9 @@ export function LiveStreamDrawer({
     })
     es.addEventListener('output', (e) => {
       const data = JSON.parse(e.data)
-      addLine('output', data.chunk || '')
+      const chunk = data.chunk || ''
+      addLine('output', chunk)
+      onOutputChunk?.(chunk)
     })
     es.addEventListener('stage', (e) => {
       const data = JSON.parse(e.data)
