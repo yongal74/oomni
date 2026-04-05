@@ -6,16 +6,14 @@ import { useAppStore } from '../store/app.store'
 import { Trash2, Settings, ArrowLeft, Send } from 'lucide-react'
 import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
 import { LiveStreamDrawer } from '../components/bot/LiveStreamDrawer'
-import {
-  ResearchLeftPanel,
-  ResearchCenterPanel,
-  ResearchRightPanel,
-} from '../components/bot/panels/ResearchPanel'
-import {
-  CommonLeftPanel,
-  CommonCenterPanel,
-  CommonRightPanel,
-} from '../components/bot/panels/GenericPanel'
+import { ResearchLeftPanel, ResearchCenterPanel, ResearchRightPanel } from '../components/bot/panels/ResearchPanel'
+import { BuildLeftPanel, BuildCenterPanel, BuildRightPanel } from '../components/bot/panels/BuildPanel'
+import { ContentLeftPanel, ContentCenterPanel, ContentRightPanel } from '../components/bot/panels/ContentPanel'
+import { GrowthLeftPanel, GrowthCenterPanel, GrowthRightPanel } from '../components/bot/panels/GrowthPanel'
+import { OpsLeftPanel, OpsCenterPanel, OpsRightPanel } from '../components/bot/panels/OpsPanel'
+import { CeoLeftPanel, CeoCenterPanel, CeoRightPanel } from '../components/bot/panels/CeoPanel'
+import { DesignLeftPanel, DesignCenterPanel, DesignRightPanel } from '../components/bot/panels/DesignPanel'
+import { CommonLeftPanel, CommonCenterPanel, CommonRightPanel } from '../components/bot/panels/GenericPanel'
 import { cn } from '../lib/utils'
 import type { ResearchItem } from '../lib/api'
 
@@ -30,14 +28,16 @@ const ROLE_LABEL: Record<string, string> = {
 }
 
 const PLACEHOLDER: Record<string, string> = {
-  research: '예: "오늘 AI 트렌드 수집하고 신호강도 채점해줘"',
-  content:  '예: "리서치 결과로 블로그 포스트 초안 작성해줘"',
-  build:    '예: "Research Bot SSE 스트리밍 연결 버그 수정해줘"',
-  growth:   '예: "이번 주 사용자 증가 분석하고 캠페인 추천해줘"',
-  ops:      '예: "Slack 메시지 → 이슈 자동 생성 n8n 워크플로우 만들어줘"',
-  ceo:      '예: "이번 주 전체 봇 현황 브리핑 작성해줘"',
-  design:   '예: "대시보드 랜딩 히어로 섹션 디자인 생성해줘"',
-  default:  '봇에게 지시사항을 입력하세요...',
+  research:    '"오늘 AI 트렌드 수집하고 신호강도 채점해줘"',
+  content:     '"리서치 결과로 블로그 포스트 초안 작성해줘"',
+  build:       '"Research Bot SSE 연결 버그 수정해줘"',
+  growth:      '"이번 주 사용자 증가 분석하고 캠페인 추천해줘"',
+  ops:         '"Slack 메시지 → 이슈 자동 생성 n8n 워크플로우 만들어줘"',
+  ceo:         '"이번 주 전체 봇 현황 브리핑 작성해줘"',
+  design:      '"다크 테마 랜딩 히어로 섹션 디자인해줘"',
+  integration: '"GitHub 이슈 → Slack 알림 연결해줘"',
+  n8n:         '"데이터 파이프라인 워크플로우 만들어줘"',
+  default:     '봇에게 지시사항을 입력하세요...',
 }
 
 export default function BotDetailPage() {
@@ -52,8 +52,9 @@ export default function BotDetailPage() {
   const [currentStage, setCurrentStage] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [selectedResearchItem, setSelectedResearchItem] = useState<ResearchItem | null>(null)
+  const [contentType, setContentType] = useState('blog')
+  const [designTemplate, setDesignTemplate] = useState('landing')
   const esRef = useRef<EventSource | null>(null)
-  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const { data: agent, isLoading } = useQuery<Agent>({
     queryKey: ['agent', id],
@@ -61,7 +62,6 @@ export default function BotDetailPage() {
     enabled: !!id,
   })
 
-  // 다음 봇 (같은 미션의 다른 봇)
   const nextBot = allAgents.find(a => a.mission_id === missionId && a.id !== id)
 
   const update = useMutation({
@@ -76,8 +76,9 @@ export default function BotDetailPage() {
 
   const handleRun = () => {
     if (!task.trim() || isRunning) return
+    const stages = ROLE_STAGES[agent?.role ?? 'default'] ?? ROLE_STAGES.default
+    setCurrentStage(stages[0].key) // 첫 단계 즉시 활성화
     setIsRunning(true)
-    setCurrentStage(null)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -92,6 +93,7 @@ export default function BotDetailPage() {
     setCurrentStage('done')
     qc.invalidateQueries({ queryKey: ['bot-feed', id] })
     qc.invalidateQueries({ queryKey: ['research', missionId] })
+    qc.invalidateQueries({ queryKey: ['issues', missionId] })
     setTask('')
   }
 
@@ -101,38 +103,90 @@ export default function BotDetailPage() {
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-full">
-      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   )
-  if (!agent) return <div className="p-6 text-muted text-[13px]">봇을 찾을 수 없습니다</div>
+  if (!agent) return <div className="p-8 text-base text-muted">봇을 찾을 수 없습니다</div>
 
   const stages = ROLE_STAGES[agent.role] ?? ROLE_STAGES.default
   const placeholder = PLACEHOLDER[agent.role] ?? PLACEHOLDER.default
+
+  // 역할별 Left/Center/Right 패널
+  const renderPanels = () => {
+    if (showSettings) {
+      return {
+        left: <CommonLeftPanel agent={agent} onUpdate={(d) => update.mutate(d as Partial<Agent>)} />,
+        center: <CommonCenterPanel agentId={agent.id} />,
+        right: <CommonRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+      }
+    }
+    switch (agent.role) {
+      case 'research': return {
+        left: <ResearchLeftPanel missionId={missionId ?? ''} />,
+        center: <ResearchCenterPanel missionId={missionId ?? ''} onItemClick={setSelectedResearchItem} />,
+        right: <ResearchRightPanel item={selectedResearchItem} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+      }
+      case 'build': return {
+        left: <BuildLeftPanel missionId={missionId ?? ''} />,
+        center: <BuildCenterPanel agentId={agent.id} />,
+        right: <BuildRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+      }
+      case 'content': return {
+        left: <ContentLeftPanel missionId={missionId ?? ''} selectedType={contentType} onTypeChange={setContentType} />,
+        center: <ContentCenterPanel agentId={agent.id} />,
+        right: <ContentRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+      }
+      case 'growth': return {
+        left: <GrowthLeftPanel />,
+        center: <GrowthCenterPanel agentId={agent.id} />,
+        right: <GrowthRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+      }
+      case 'ops': return {
+        left: <OpsLeftPanel agentId={agent.id} />,
+        center: <OpsCenterPanel agentId={agent.id} />,
+        right: <OpsRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+      }
+      case 'ceo': return {
+        left: <CeoLeftPanel missionId={missionId ?? ''} />,
+        center: <CeoCenterPanel agentId={agent.id} />,
+        right: <CeoRightPanel missionId={missionId ?? ''} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+      }
+      case 'design': return {
+        left: <DesignLeftPanel selectedTemplate={designTemplate} onTemplateChange={setDesignTemplate} />,
+        center: <DesignCenterPanel agentId={agent.id} />,
+        right: <DesignRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+      }
+      default: return {
+        left: <CommonLeftPanel agent={agent} onUpdate={(d) => update.mutate(d as Partial<Agent>)} />,
+        center: <CommonCenterPanel agentId={agent.id} />,
+        right: <CommonRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+      }
+    }
+  }
+
+  const { left, center, right } = renderPanels()
 
   return (
     <div className="flex flex-col h-full">
 
       {/* ── 헤더 ────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-surface shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="text-muted hover:text-text transition-colors"
-          >
-            <ArrowLeft size={15} />
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface shrink-0">
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate('/dashboard')} className="text-muted hover:text-text transition-colors">
+            <ArrowLeft size={17} />
           </button>
-          <span className="text-xl">{BOT_EMOJI[agent.role] ?? '🤖'}</span>
+          <span className="text-2xl">{BOT_EMOJI[agent.role] ?? '🤖'}</span>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-[15px] font-semibold text-text">{agent.name}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-lg font-semibold text-text">{agent.name}</h1>
               <span className={cn(
-                'text-[10px] px-1.5 py-0.5 rounded-full',
+                'text-xs px-2 py-1 rounded-full font-medium',
                 agent.is_active ? 'bg-green-500/15 text-green-400' : 'bg-border text-muted'
               )}>
-                {agent.is_active ? '활성' : '비활성'}
+                {agent.is_active ? '● 활성' : '○ 비활성'}
               </span>
             </div>
-            <div className="text-[11px] text-muted">{ROLE_LABEL[agent.role]} Bot</div>
+            <div className="text-sm text-muted mt-0.5">{ROLE_LABEL[agent.role]} Bot</div>
           </div>
         </div>
 
@@ -140,19 +194,18 @@ export default function BotDetailPage() {
           <button
             onClick={() => setShowSettings(s => !s)}
             className={cn(
-              'p-1.5 rounded transition-colors',
-              showSettings ? 'text-primary bg-primary/10' : 'text-muted hover:text-text'
+              'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
+              showSettings ? 'text-primary bg-primary/10' : 'text-muted hover:text-text hover:bg-surface'
             )}
           >
-            <Settings size={14} />
+            <Settings size={15} />
+            설정
           </button>
           <button
-            onClick={() => {
-              if (confirm('이 봇을 삭제할까요?')) remove.mutate()
-            }}
-            className="p-1.5 text-muted hover:text-red-400 transition-colors rounded"
+            onClick={() => { if (confirm('이 봇을 삭제할까요?')) remove.mutate() }}
+            className="p-2 text-muted hover:text-red-400 transition-colors rounded-lg"
           >
-            <Trash2 size={14} />
+            <Trash2 size={15} />
           </button>
         </div>
       </div>
@@ -162,55 +215,23 @@ export default function BotDetailPage() {
 
       {/* ── 메인 3패널 ────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
-
         {/* LEFT */}
-        <div className="w-52 border-r border-border overflow-y-auto shrink-0">
-          {showSettings ? (
-            <CommonLeftPanel
-              agent={agent}
-              onUpdate={(data) => update.mutate(data as Partial<Agent>)}
-            />
-          ) : agent.role === 'research' ? (
-            <ResearchLeftPanel missionId={missionId ?? ''} />
-          ) : (
-            <CommonLeftPanel
-              agent={agent}
-              onUpdate={(data) => update.mutate(data as Partial<Agent>)}
-            />
-          )}
+        <div className="w-56 border-r border-border overflow-y-auto shrink-0 bg-surface/30">
+          {left}
         </div>
 
         {/* CENTER */}
         <div className="flex-1 overflow-hidden">
-          {agent.role === 'research' ? (
-            <ResearchCenterPanel
-              missionId={missionId ?? ''}
-              onItemClick={setSelectedResearchItem}
-            />
-          ) : (
-            <CommonCenterPanel agentId={agent.id} />
-          )}
+          {center}
         </div>
 
         {/* RIGHT */}
-        <div className="w-64 border-l border-border overflow-y-auto shrink-0">
-          {agent.role === 'research' ? (
-            <ResearchRightPanel
-              item={selectedResearchItem}
-              nextBotName={nextBot?.name}
-              onNextBot={handleNextBot}
-            />
-          ) : (
-            <CommonRightPanel
-              agentId={agent.id}
-              nextBotName={nextBot?.name}
-              onNextBot={handleNextBot}
-            />
-          )}
+        <div className="w-64 border-l border-border overflow-y-auto shrink-0 bg-surface/30">
+          {right}
         </div>
       </div>
 
-      {/* ── 하단 고정: 스트림 + 프롬프트 입력창 ─────────── */}
+      {/* ── 하단: 스트림 드로어 + 프롬프트 입력 ──────────── */}
       <div className="shrink-0">
         <LiveStreamDrawer
           agentId={agent.id}
@@ -218,15 +239,13 @@ export default function BotDetailPage() {
           isRunning={isRunning}
           onStageChange={setCurrentStage}
           onDone={handleDone}
-          onError={() => setIsRunning(false)}
+          onError={() => { setIsRunning(false); setCurrentStage(null) }}
           esRef={esRef}
         />
 
-        {/* 프롬프트 입력창 */}
-        <div className="flex items-end gap-3 px-4 py-3 bg-surface border-t border-border">
-          <div className="flex-1 relative">
+        <div className="flex items-end gap-3 px-5 py-4 bg-surface border-t border-border">
+          <div className="flex-1">
             <textarea
-              ref={inputRef}
               value={task}
               onChange={e => setTask(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -234,16 +253,14 @@ export default function BotDetailPage() {
               rows={1}
               disabled={isRunning}
               className={cn(
-                'w-full bg-bg border border-border rounded-lg px-3 py-2.5 text-[13px] text-text placeholder-muted/60',
+                'w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-text placeholder-muted/60',
                 'focus:outline-none focus:border-primary/60 resize-none leading-relaxed',
-                'transition-colors disabled:opacity-50',
-                'max-h-32 overflow-y-auto'
+                'transition-colors disabled:opacity-50 max-h-36 overflow-y-auto'
               )}
-              style={{ height: 'auto' }}
               onInput={e => {
                 const el = e.currentTarget
                 el.style.height = 'auto'
-                el.style.height = Math.min(el.scrollHeight, 128) + 'px'
+                el.style.height = Math.min(el.scrollHeight, 144) + 'px'
               }}
             />
           </div>
@@ -251,12 +268,12 @@ export default function BotDetailPage() {
             onClick={handleRun}
             disabled={!task.trim() || isRunning}
             className={cn(
-              'flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-[13px] font-medium transition-colors shrink-0',
+              'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors shrink-0',
               'bg-primary text-white hover:bg-primary-hover',
               'disabled:opacity-40 disabled:cursor-not-allowed'
             )}
           >
-            <Send size={13} />
+            <Send size={14} />
             실행
           </button>
         </div>

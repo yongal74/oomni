@@ -9,49 +9,138 @@ interface Props {
   onItemClick?: (item: ResearchItem) => void
 }
 
+const DEFAULT_SOURCES = [
+  { label: 'TechCrunch', emoji: '📰' },
+  { label: 'Product Hunt', emoji: '🚀' },
+  { label: 'Hacker News', emoji: '🔶' },
+  { label: 'YouTube 최신', emoji: '▶️' },
+  { label: 'Reddit r/artificial', emoji: '🤖' },
+  { label: 'Reddit r/startups', emoji: '💼' },
+]
+const DEFAULT_KEYWORDS = ['AI startup', 'Claude API', 'SaaS growth']
+
+const STORAGE_KEY_SOURCES = 'oomni_research_sources'
+const STORAGE_KEY_KEYWORDS = 'oomni_research_keywords'
+
+function loadFromStorage<T>(key: string, defaultVal: T): T {
+  try { return JSON.parse(localStorage.getItem(key) ?? '') } catch { return defaultVal }
+}
+
 // LEFT: 소스 설정 패널 (Research Bot 전용)
 export function ResearchLeftPanel({ missionId: _missionId }: { missionId: string }) {
-  const sources = [
-    { label: 'TechCrunch', type: 'rss' },
-    { label: 'Product Hunt', type: 'rss' },
-    { label: 'Hacker News', type: 'rss' },
-  ]
-  const keywords = ['AI startup', 'Claude API', 'SaaS growth']
+  const [sources, setSources] = useState<Array<{ label: string; emoji: string }>>(
+    () => loadFromStorage(STORAGE_KEY_SOURCES, DEFAULT_SOURCES)
+  )
+  const [keywords, setKeywords] = useState<string[]>(
+    () => loadFromStorage(STORAGE_KEY_KEYWORDS, DEFAULT_KEYWORDS)
+  )
+  const [newSource, setNewSource] = useState('')
+  const [newKeyword, setNewKeyword] = useState('')
+  const [showSourceInput, setShowSourceInput] = useState(false)
+  const [showKeywordInput, setShowKeywordInput] = useState(false)
+
+  const saveAndSetSources = (next: typeof sources) => {
+    setSources(next)
+    localStorage.setItem(STORAGE_KEY_SOURCES, JSON.stringify(next))
+  }
+  const saveAndSetKeywords = (next: string[]) => {
+    setKeywords(next)
+    localStorage.setItem(STORAGE_KEY_KEYWORDS, JSON.stringify(next))
+  }
+
+  const addSource = () => {
+    if (!newSource.trim()) return
+    saveAndSetSources([...sources, { label: newSource.trim(), emoji: '📡' }])
+    setNewSource('')
+    setShowSourceInput(false)
+  }
+
+  const addKeyword = () => {
+    if (!newKeyword.trim()) return
+    saveAndSetKeywords([...keywords, newKeyword.trim()])
+    setNewKeyword('')
+    setShowKeywordInput(false)
+  }
 
   return (
     <div className="p-4 space-y-5">
       <div>
-        <p className="text-[10px] text-muted uppercase tracking-widest mb-3">RSS 소스</p>
+        <p className="text-xs text-muted uppercase tracking-widest mb-3">수집 소스</p>
         <div className="space-y-1.5">
-          {sources.map(s => (
-            <div key={s.label} className="flex items-center justify-between py-1.5 px-2 rounded bg-bg hover:bg-border/20 group">
-              <span className="text-[12px] text-dim">{s.label}</span>
-              <button className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-400 transition-all">
-                <X size={11} />
+          {sources.map((s, i) => (
+            <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg bg-bg hover:bg-border/20 group transition-colors">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">{s.emoji}</span>
+                <span className="text-sm text-dim">{s.label}</span>
+              </div>
+              <button
+                onClick={() => saveAndSetSources(sources.filter((_, j) => j !== i))}
+                className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-400 transition-all"
+              >
+                <X size={12} />
               </button>
             </div>
           ))}
         </div>
-        <button className="mt-2 text-[11px] text-muted hover:text-text transition-colors flex items-center gap-1">
-          + 소스 추가
-        </button>
+
+        {showSourceInput ? (
+          <div className="mt-2 flex gap-2">
+            <input
+              autoFocus
+              value={newSource}
+              onChange={e => setNewSource(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addSource(); if (e.key === 'Escape') setShowSourceInput(false) }}
+              placeholder="소스 이름..."
+              className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder-muted/60 focus:outline-none focus:border-primary/60"
+            />
+            <button onClick={addSource} className="px-3 py-2 bg-primary/10 text-primary rounded-lg text-sm hover:bg-primary/20 transition-colors">추가</button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowSourceInput(true)}
+            className="mt-2 text-sm text-muted hover:text-primary transition-colors flex items-center gap-1.5"
+          >
+            + 소스 추가
+          </button>
+        )}
       </div>
 
       <div>
-        <p className="text-[10px] text-muted uppercase tracking-widest mb-3">키워드</p>
+        <p className="text-xs text-muted uppercase tracking-widest mb-3">키워드</p>
         <div className="space-y-1.5">
-          {keywords.map(k => (
-            <div key={k} className="flex items-center justify-between py-1.5 px-2 rounded bg-bg hover:bg-border/20 group">
-              <span className="text-[12px] text-dim">{k}</span>
-              <button className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-400 transition-all">
-                <X size={11} />
+          {keywords.map((k, i) => (
+            <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg bg-bg hover:bg-border/20 group transition-colors">
+              <span className="text-sm text-dim">{k}</span>
+              <button
+                onClick={() => saveAndSetKeywords(keywords.filter((_, j) => j !== i))}
+                className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-400 transition-all"
+              >
+                <X size={12} />
               </button>
             </div>
           ))}
         </div>
-        <button className="mt-2 text-[11px] text-muted hover:text-text transition-colors flex items-center gap-1">
-          + 키워드 추가
-        </button>
+
+        {showKeywordInput ? (
+          <div className="mt-2 flex gap-2">
+            <input
+              autoFocus
+              value={newKeyword}
+              onChange={e => setNewKeyword(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addKeyword(); if (e.key === 'Escape') setShowKeywordInput(false) }}
+              placeholder="키워드..."
+              className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder-muted/60 focus:outline-none focus:border-primary/60"
+            />
+            <button onClick={addKeyword} className="px-3 py-2 bg-primary/10 text-primary rounded-lg text-sm hover:bg-primary/20 transition-colors">추가</button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowKeywordInput(true)}
+            className="mt-2 text-sm text-muted hover:text-primary transition-colors flex items-center gap-1.5"
+          >
+            + 키워드 추가
+          </button>
+        )}
       </div>
     </div>
   )
