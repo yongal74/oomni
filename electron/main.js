@@ -98,10 +98,11 @@ function createWindow() {
     return { action: 'deny' }
   })
 
-  const url = isDev
-    ? 'http://localhost:5173'
-    : `file://${path.join(__dirname, '../frontend/dist/index.html')}`
-  mainWindow.loadURL(url)
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:5173')
+  } else {
+    mainWindow.loadFile(path.join(__dirname, '../frontend/dist/index.html'))
+  }
 
   if (isDev) mainWindow.webContents.openDevTools()
 }
