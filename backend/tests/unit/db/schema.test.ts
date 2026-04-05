@@ -4,12 +4,12 @@
 import { SCHEMA_SQL, TABLES } from '../../../src/db/schema';
 
 describe('DB Schema', () => {
-  test('9개 테이블이 정의되어 있다', () => {
-    expect(TABLES).toHaveLength(9);
+  test('10개 테이블이 정의되어 있다', () => {
+    expect(TABLES).toHaveLength(10);
     expect(TABLES).toEqual(expect.arrayContaining([
       'missions', 'agents', 'heartbeat_runs',
       'issues', 'feed_items', 'cost_events', 'integrations', 'schedules',
-      'research_items'
+      'research_items', 'token_usage'
     ]));
   });
 
