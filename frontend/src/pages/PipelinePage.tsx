@@ -202,7 +202,7 @@ export default function PipelinePage() {
   }, [agents, isExample, handleClickAgent, setNodes, setEdges])
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges(eds => addEdge(params, eds)),
+    (params: Connection) => setEdges((eds: Edge[]) => addEdge(params, eds)),
     [setEdges]
   )
 
