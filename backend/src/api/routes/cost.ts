@@ -32,12 +32,12 @@ type DailyRow = {
 
 const BUDGET_ALERT_THRESHOLD = 0.8;
 
-function buildDateFilter(period: string): string {
+function buildDateFilter(period: string): string | null {
   if (period === '7d') return `datetime('now', '-7 days')`;
   if (period === '1d') return `datetime('now', '-1 day')`;
   if (period === '30d') return `datetime('now', '-30 days')`;
   // 'all' — no filter
-  return '';
+  return null;
 }
 
 function buildMockData(agentCount: number) {
@@ -66,7 +66,7 @@ export function costRouter(db: DbClient): Router {
   const router = Router();
 
   // GET /api/cost/summary?mission_id=&period=7d|30d|1d|all
-  router.get('/summary', async (req: Request, res: Response) => {
+  router.get('/summary', async (req: Request, res: Response): Promise<void> => {
     try {
       const { mission_id, period = '7d' } = req.query as Record<string, string>;
       const dateFilter = buildDateFilter(period);
@@ -161,7 +161,7 @@ export function costRouter(db: DbClient): Router {
           mission_id ? [mission_id] : [],
         );
         const cnt = (agentCountRes.rows[0] as { cnt: number })?.cnt ?? 0;
-        return res.json({ data: buildMockData(cnt) });
+        res.json({ data: buildMockData(cnt) }); return;
       }
 
       // Budget alerts (>80%)
@@ -259,7 +259,7 @@ export function costRouter(db: DbClient): Router {
   });
 
   // POST /api/cost — 봇이 토큰 사용량 기록
-  router.post('/', async (req: Request, res: Response) => {
+  router.post('/', async (req: Request, res: Response): Promise<void> => {
     try {
       const parsed = RecordCostSchema.safeParse(req.body);
       if (!parsed.success) {

@@ -9,8 +9,6 @@ import { useAppStore } from '../store/app.store'
 import { Play, Trash2, Save, Settings, Activity, Loader2, Link2, X, ArrowRight, Plus } from 'lucide-react'
 import { BotRunModal } from '../components/BotRunModal'
 import { BotStreamOutput } from '../components/BotStreamOutput'
-import { formatDistanceToNow } from 'date-fns'
-import { ko } from 'date-fns/locale'
 import { BotRunHistory } from '../components/BotRunHistory'
 
 const BOT_EMOJI: Record<string, string> = {
