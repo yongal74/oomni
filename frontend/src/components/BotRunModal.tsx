@@ -76,9 +76,10 @@ const EXAMPLE_PROMPTS: Record<string, string[]> = {
 interface BotRunModalProps {
   agent: Agent
   onClose: () => void
+  onSuccess?: () => void
 }
 
-export function BotRunModal({ agent, onClose }: BotRunModalProps) {
+export function BotRunModal({ agent, onClose, onSuccess }: BotRunModalProps) {
   const [task, setTask] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -90,6 +91,7 @@ export function BotRunModal({ agent, onClose }: BotRunModalProps) {
     setIsLoading(true)
     try {
       await agentsApi.trigger(agent.id, task || undefined)
+      onSuccess?.()
       onClose()
     } catch {
       // stay open on error

@@ -8,6 +8,7 @@ import {
 import { useAppStore } from '../store/app.store'
 import { Play, Trash2, Save, Settings, Activity, Loader2, Link2, X, ArrowRight, Plus } from 'lucide-react'
 import { BotRunModal } from '../components/BotRunModal'
+import { BotStreamOutput } from '../components/BotStreamOutput'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
@@ -26,6 +27,7 @@ export default function BotDetailPage() {
 
   const [tab, setTab] = useState<'activity' | 'settings' | 'triggers'>('activity')
   const [showRunModal, setShowRunModal] = useState(false)
+  const [showStream, setShowStream] = useState(false)
   const [editedPrompt, setEditedPrompt] = useState('')
   const [editedBudget, setEditedBudget] = useState<number>(0)
   const [editedSchedule, setEditedSchedule] = useState<string>('manual')
@@ -183,6 +185,19 @@ export default function BotDetailPage() {
           </button>
         ))}
       </div>
+
+      {/* SSE 스트림 출력 패널 */}
+      {showStream && agent && (
+        <div className="mb-5">
+          <BotStreamOutput
+            agentId={agent.id}
+            onDone={() => {
+              setShowStream(false)
+              qc.invalidateQueries()
+            }}
+          />
+        </div>
+      )}
 
       {/* 활동 탭 */}
       {tab === 'activity' && (
@@ -395,7 +410,11 @@ export default function BotDetailPage() {
 
       {/* 봇 실행 모달 */}
       {showRunModal && agent && (
-        <BotRunModal agent={agent} onClose={() => setShowRunModal(false)} />
+        <BotRunModal
+          agent={agent}
+          onClose={() => setShowRunModal(false)}
+          onSuccess={() => setShowStream(true)}
+        />
       )}
     </div>
   )
