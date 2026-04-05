@@ -168,7 +168,7 @@ app.on('before-quit', () => {
 
 // ── IPC 핸들러 ───────────────────────────────────────────
 ipcMain.handle('get-internal-api-key', () => {
-  return process.env.OOMNI_INTERNAL_API_KEY ?? 'dev-internal-key'
+  return process.env.OOMNI_INTERNAL_API_KEY ?? 'oomni-internal-dev-key-change-me!'
 })
 
 ipcMain.handle('open-external', (_event, url) => {
