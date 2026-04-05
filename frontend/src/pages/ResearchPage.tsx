@@ -2,7 +2,7 @@
  * Research Studio Page
  * A: Source Registration → B: AI Filter Results → C: Manual Filter → D: Convert
  */
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, Plus, X, Check, Eye, Trash2, Copy, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '../lib/utils'
