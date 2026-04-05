@@ -45,7 +45,7 @@ const STATUS_COLORS: Record<Issue['status'], string> = {
   open: 'bg-blue-900/30 text-blue-400',
   in_progress: 'bg-yellow-900/30 text-yellow-400',
   done: 'bg-green-900/30 text-green-400',
-  cancelled: 'bg-[#2A2A2C] text-muted',
+  cancelled: 'bg-border/40 text-muted',
 }
 const STATUS_LABELS: Record<Issue['status'], string> = {
   open: '열림',
@@ -54,7 +54,7 @@ const STATUS_LABELS: Record<Issue['status'], string> = {
   cancelled: '취소',
 }
 const PRIORITY_COLORS: Record<Issue['priority'], string> = {
-  low: 'bg-[#2A2A2C] text-muted',
+  low: 'bg-border/40 text-muted',
   medium: 'bg-orange-900/30 text-orange-400',
   high: 'bg-red-900/30 text-red-400',
 }
@@ -228,7 +228,7 @@ export default function DashboardPage() {
           <button
             onClick={() => applyTemplate.mutate('solo-factory-os')}
             disabled={applyTemplate.isPending}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-700 text-white rounded text-[13px] hover:bg-purple-600 transition-colors disabled:opacity-60"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[13px] hover:bg-primary-hover transition-colors disabled:opacity-60"
             title="Solo Factory OS 템플릿 적용"
           >
             {applyTemplate.isPending ? <Loader2 size={14} className="animate-spin" /> : <Layers size={14} />}
@@ -259,7 +259,7 @@ export default function DashboardPage() {
           <h3 className="text-[13px] font-medium text-text mb-3">봇 현황</h3>
           <div className="space-y-2">
             {agents.map(agent => (
-              <div key={agent.id} className="flex items-center gap-2 p-2 rounded hover:bg-[#1E1E20]">
+              <div key={agent.id} className="flex items-center gap-2 p-2 rounded hover:bg-surface">
                 <span className="text-base">{BOT_TEMPLATES.find(t => t.role === agent.role)?.emoji ?? '🤖'}</span>
                 <div className="flex-1 min-w-0">
                   <div className="text-[12px] text-text truncate">{agent.name}</div>
@@ -278,18 +278,18 @@ export default function DashboardPage() {
             {agents.length === 0 && (
               <div className="space-y-3">
                 {/* Solo Factory OS 배너 */}
-                <div className="rounded-lg border border-purple-700 bg-purple-900/20 p-3">
+                <div className="rounded-lg border border-[#D4763B]/50 bg-primary/10 p-3">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-base">🚀</span>
-                    <span className="text-[13px] font-semibold text-purple-300">Solo Factory OS</span>
+                    <span className="text-[13px] font-semibold text-primary">Solo Factory OS</span>
                   </div>
-                  <p className="text-[11px] text-purple-400 mb-2 leading-relaxed">
+                  <p className="text-[11px] text-primary/80 mb-2 leading-relaxed">
                     6개 AI 봇으로 혼자서 팀처럼 일하기
                   </p>
                   <button
                     onClick={() => applyTemplate.mutate('solo-factory-os')}
                     disabled={applyTemplate.isPending}
-                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-purple-700 text-white rounded text-[12px] hover:bg-purple-600 transition-colors disabled:opacity-60"
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[12px] hover:bg-primary-hover transition-colors disabled:opacity-60"
                   >
                     {applyTemplate.isPending
                       ? <><Loader2 size={12} className="animate-spin" /> 생성 중...</>
@@ -435,7 +435,7 @@ export default function DashboardPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-[13px] text-text">{s.name}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#2A2A2C] text-muted">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-border/40 text-muted">
                           {TRIGGER_TYPE_LABELS[s.trigger_type]}
                         </span>
                       </div>
@@ -512,7 +512,7 @@ export default function DashboardPage() {
                     createBot.mutate(tmpl.role)
                   }}
                   disabled={createBot.isPending || !!agents.find(a => a.role === tmpl.role)}
-                  className="text-left p-3 rounded-lg border border-border hover:border-primary hover:bg-[#1E1E20] transition-colors disabled:opacity-50"
+                  className="text-left p-3 rounded-lg border border-border hover:border-primary hover:bg-surface transition-colors disabled:opacity-50"
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xl">{tmpl.emoji}</span>
@@ -567,13 +567,13 @@ function FeedCard({
     growth: '📈', ops: '⚙️', integration: '🔗', n8n: '⚡', ceo: '👔',
   }
   const typeColor: Record<string, string> = {
-    info: 'border-[#2A2A2C]',
+    info: 'border-border',
     result: 'border-blue-800/40',
     approval: 'border-yellow-800/40',
     error: 'border-red-800/40',
   }
   return (
-    <div className={`border rounded-lg p-3 ${typeColor[item.type] ?? 'border-[#2A2A2C]'}`}>
+    <div className={`border rounded-lg p-3 ${typeColor[item.type] ?? 'border-border'}`}>
       <div className="flex items-start gap-2">
         <span className="text-sm mt-0.5">{emoji[item.agent_role ?? ''] ?? '🤖'}</span>
         <div className="flex-1 min-w-0">

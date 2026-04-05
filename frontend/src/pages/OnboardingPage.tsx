@@ -117,12 +117,12 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-bg flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* 로고 */}
         <div className="text-center mb-8">
-          <div className="text-3xl font-bold text-purple-400 mb-1">OOMNI</div>
-          <div className="text-zinc-500 text-sm">딸깍 하나로 AI 팀이 일한다</div>
+          <div className="text-3xl font-bold text-primary mb-1">OOMNI</div>
+          <div className="text-muted text-sm">딸깍 하나로 AI 팀이 일한다</div>
         </div>
 
         {/* 진행 표시 */}
@@ -132,32 +132,32 @@ export default function OnboardingPage() {
               <div
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-medium transition-colors ${
                   step > n
-                    ? 'bg-purple-600 text-white'
+                    ? 'bg-primary text-white'
                     : step === n
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-zinc-800 border border-zinc-700 text-zinc-500'
+                    ? 'bg-primary text-white'
+                    : 'bg-surface border border-border text-muted'
                 }`}
               >
                 {step > n ? <CheckCircle size={14} /> : n}
               </div>
               {n < TOTAL_STEPS && (
-                <div className={`w-10 h-px ${step > n ? 'bg-purple-600' : 'bg-zinc-700'}`} />
+                <div className={`w-10 h-px ${step > n ? 'bg-primary' : 'bg-border'}`} />
               )}
             </div>
           ))}
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+        <div className="bg-surface border border-border rounded-xl p-6">
           {/* ── Step 1: API 키 설정 ── */}
           {step === 1 && (
             <div>
-              <h2 className="text-lg font-semibold text-white mb-1">Claude API 키 연결</h2>
-              <p className="text-zinc-400 text-sm mb-5">
+              <h2 className="text-lg font-semibold text-text mb-1">Claude API 키 연결</h2>
+              <p className="text-muted text-sm mb-5">
                 Claude AI가 봇들을 실행합니다. API 키는 이 기기에만 저장됩니다.
               </p>
               <div className="space-y-4">
                 <div>
-                  <label className="text-[12px] text-zinc-400 block mb-1.5">Anthropic API 키</label>
+                  <label className="text-[12px] text-muted block mb-1.5">Anthropic API 키</label>
                   <div className="relative">
                     <input
                       type={showKey ? 'text' : 'password'}
@@ -166,22 +166,22 @@ export default function OnboardingPage() {
                       onKeyDown={e => e.key === 'Enter' && handleStep1()}
                       placeholder="sk-ant-..."
                       autoFocus
-                      className="w-full bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-[13px] text-white placeholder-zinc-600 focus:outline-none focus:border-purple-500 pr-10"
+                      className="w-full bg-bg border border-border rounded px-3 py-2 text-[13px] text-text placeholder-muted focus:outline-none focus:border-primary pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowKey(!showKey)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text"
                     >
                       {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
                   </div>
-                  <p className="text-[11px] text-zinc-500 mt-1.5">
+                  <p className="text-[11px] text-muted mt-1.5">
                     <a
                       href="https://console.anthropic.com"
                       target="_blank"
                       rel="noreferrer"
-                      className="text-purple-400 hover:underline"
+                      className="text-primary hover:underline"
                     >
                       console.anthropic.com
                     </a>
@@ -192,14 +192,14 @@ export default function OnboardingPage() {
                 <button
                   onClick={handleStep1}
                   disabled={loading}
-                  className="w-full bg-purple-600 hover:bg-purple-500 text-white py-2.5 rounded text-[14px] font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+                  className="w-full bg-primary hover:bg-primary-hover text-white py-2.5 rounded text-[14px] font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
                 >
                   {loading && <Loader2 size={16} className="animate-spin" />}
                   확인 &amp; 다음
                 </button>
                 <button
                   onClick={handleSkipApiKey}
-                  className="w-full text-center text-[13px] text-zinc-500 hover:text-zinc-300 transition-colors"
+                  className="w-full text-center text-[13px] text-muted hover:text-text transition-colors"
                 >
                   나중에 설정하기
                 </button>
@@ -210,11 +210,11 @@ export default function OnboardingPage() {
           {/* ── Step 2: 미션 만들기 ── */}
           {step === 2 && (
             <div>
-              <h2 className="text-lg font-semibold text-white mb-1">첫 번째 미션 만들기</h2>
-              <p className="text-zinc-400 text-sm mb-5">미션은 AI 팀이 달성할 목표입니다</p>
+              <h2 className="text-lg font-semibold text-text mb-1">첫 번째 미션 만들기</h2>
+              <p className="text-muted text-sm mb-5">미션은 AI 팀이 달성할 목표입니다</p>
               <div className="space-y-4">
                 <div>
-                  <label className="text-[12px] text-zinc-400 block mb-1.5">미션 이름</label>
+                  <label className="text-[12px] text-muted block mb-1.5">미션 이름</label>
                   <input
                     type="text"
                     value={missionName}
@@ -222,29 +222,29 @@ export default function OnboardingPage() {
                     onKeyDown={e => e.key === 'Enter' && handleStep2()}
                     placeholder="나의 스타트업"
                     autoFocus
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-[13px] text-white placeholder-zinc-600 focus:outline-none focus:border-purple-500"
+                    className="w-full bg-bg border border-border rounded px-3 py-2 text-[13px] text-text placeholder-muted focus:outline-none focus:border-primary"
                   />
                 </div>
                 <div>
-                  <label className="text-[12px] text-zinc-400 block mb-1.5">설명 (선택)</label>
+                  <label className="text-[12px] text-muted block mb-1.5">설명 (선택)</label>
                   <textarea
                     value={missionDesc}
                     onChange={e => setMissionDesc(e.target.value)}
                     placeholder="SaaS 제품 개발 및 마케팅"
                     rows={2}
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-[13px] text-white placeholder-zinc-600 focus:outline-none focus:border-purple-500 resize-none"
+                    className="w-full bg-bg border border-border rounded px-3 py-2 text-[13px] text-text placeholder-muted focus:outline-none focus:border-primary resize-none"
                   />
                 </div>
                 {/* 프리셋 버튼 */}
                 <div>
-                  <label className="text-[12px] text-zinc-400 block mb-2">예시 선택</label>
+                  <label className="text-[12px] text-muted block mb-2">예시 선택</label>
                   <div className="grid grid-cols-2 gap-2">
                     {PRESETS.map(p => (
                       <button
                         key={p.label}
                         type="button"
                         onClick={() => { setMissionName(p.name); setMissionDesc(p.desc) }}
-                        className="text-left px-3 py-2 rounded-lg border border-zinc-700 hover:border-purple-500 hover:bg-zinc-800 text-[12px] text-zinc-300 transition-colors"
+                        className="text-left px-3 py-2 rounded-lg border border-border hover:border-primary hover:bg-surface text-[12px] text-text transition-colors"
                       >
                         {p.label}
                       </button>
@@ -255,7 +255,7 @@ export default function OnboardingPage() {
                 <button
                   onClick={handleStep2}
                   disabled={loading}
-                  className="w-full bg-purple-600 hover:bg-purple-500 text-white py-2.5 rounded text-[14px] font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+                  className="w-full bg-primary hover:bg-primary-hover text-white py-2.5 rounded text-[14px] font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
                 >
                   {loading && <Loader2 size={16} className="animate-spin" />}
                   미션 만들기
@@ -267,8 +267,8 @@ export default function OnboardingPage() {
           {/* ── Step 3: AI 팀 구성 ── */}
           {step === 3 && (
             <div>
-              <h2 className="text-lg font-semibold text-white mb-1">AI 팀을 구성하세요</h2>
-              <p className="text-zinc-400 text-sm mb-5">시작 방법을 선택하세요</p>
+              <h2 className="text-lg font-semibold text-text mb-1">AI 팀을 구성하세요</h2>
+              <p className="text-muted text-sm mb-5">시작 방법을 선택하세요</p>
               <div className="space-y-3 mb-5">
                 {/* Solo Factory OS */}
                 <button
@@ -276,24 +276,24 @@ export default function OnboardingPage() {
                   onClick={() => handleSelectTemplate('solo-factory-os')}
                   className={`w-full text-left p-4 rounded-xl border-2 transition-colors ${
                     selectedTemplate === 'solo-factory-os'
-                      ? 'border-purple-500 bg-purple-950/30'
-                      : 'border-zinc-700 hover:border-zinc-500 bg-zinc-800/50'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50 bg-surface/50'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[14px] font-semibold text-white">Solo Factory OS</span>
-                        <span className="text-[10px] bg-purple-600 text-white px-1.5 py-0.5 rounded font-medium">
+                        <span className="text-[14px] font-semibold text-text">Solo Factory OS</span>
+                        <span className="text-[10px] bg-primary text-white px-1.5 py-0.5 rounded font-medium">
                           추천
                         </span>
                       </div>
-                      <p className="text-[12px] text-zinc-400">
+                      <p className="text-[12px] text-muted">
                         Research, Design, Build, Content, Ops, CEO 6개 봇으로 시작
                       </p>
                     </div>
                     {selectedTemplate === 'solo-factory-os' && (
-                      <CheckCircle size={18} className="text-purple-400 shrink-0 mt-0.5" />
+                      <CheckCircle size={18} className="text-primary shrink-0 mt-0.5" />
                     )}
                   </div>
                 </button>
@@ -304,17 +304,17 @@ export default function OnboardingPage() {
                   onClick={() => handleSelectTemplate('manual')}
                   className={`w-full text-left p-4 rounded-xl border-2 transition-colors ${
                     selectedTemplate === 'manual'
-                      ? 'border-purple-500 bg-purple-950/30'
-                      : 'border-zinc-700 hover:border-zinc-500 bg-zinc-800/50'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50 bg-surface/50'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <div className="text-[14px] font-semibold text-white mb-1">직접 구성</div>
-                      <p className="text-[12px] text-zinc-400">나중에 직접 봇을 추가합니다</p>
+                      <div className="text-[14px] font-semibold text-text mb-1">직접 구성</div>
+                      <p className="text-[12px] text-muted">나중에 직접 봇을 추가합니다</p>
                     </div>
                     {selectedTemplate === 'manual' && (
-                      <CheckCircle size={18} className="text-purple-400 shrink-0 mt-0.5" />
+                      <CheckCircle size={18} className="text-primary shrink-0 mt-0.5" />
                     )}
                   </div>
                 </button>
@@ -323,7 +323,7 @@ export default function OnboardingPage() {
               <button
                 onClick={handleStep3}
                 disabled={loading || !selectedTemplate}
-                className="w-full bg-purple-600 hover:bg-purple-500 text-white py-2.5 rounded text-[14px] font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+                className="w-full bg-primary hover:bg-primary-hover text-white py-2.5 rounded text-[14px] font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
               >
                 {loading && <Loader2 size={16} className="animate-spin" />}
                 시작하기
@@ -335,37 +335,37 @@ export default function OnboardingPage() {
           {step === 4 && (
             <div className="text-center">
               <div className="text-4xl mb-3">🎉</div>
-              <h2 className="text-lg font-semibold text-white mb-1">준비 완료!</h2>
-              <p className="text-zinc-400 text-sm mb-6">설정이 완료되었습니다. OOMNI를 시작하세요.</p>
-              <div className="bg-zinc-800 rounded-lg p-4 text-left space-y-2 mb-6">
+              <h2 className="text-lg font-semibold text-text mb-1">준비 완료!</h2>
+              <p className="text-muted text-sm mb-6">설정이 완료되었습니다. OOMNI를 시작하세요.</p>
+              <div className="bg-surface rounded-lg p-4 text-left space-y-2 mb-6">
                 <div className="flex items-center gap-2 text-[13px]">
-                  <CheckCircle size={14} className={apiKeySet ? 'text-purple-400' : 'text-zinc-600'} />
-                  <span className={apiKeySet ? 'text-zinc-200' : 'text-zinc-500'}>
+                  <CheckCircle size={14} className={apiKeySet ? 'text-primary' : 'text-muted'} />
+                  <span className={apiKeySet ? 'text-text' : 'text-muted'}>
                     {apiKeySet ? 'API 키 연결 완료' : 'API 키 미설정 (나중에 설정 가능)'}
                   </span>
                 </div>
                 {createdMission && (
                   <div className="flex items-center gap-2 text-[13px]">
-                    <CheckCircle size={14} className="text-purple-400" />
-                    <span className="text-zinc-200">미션: {createdMission.name}</span>
+                    <CheckCircle size={14} className="text-primary" />
+                    <span className="text-text">미션: {createdMission.name}</span>
                   </div>
                 )}
                 {selectedTemplate === 'solo-factory-os' && (
                   <div className="flex items-center gap-2 text-[13px]">
-                    <CheckCircle size={14} className="text-purple-400" />
-                    <span className="text-zinc-200">Solo Factory OS 팀 구성{templateApplied ? ' 완료' : ''}</span>
+                    <CheckCircle size={14} className="text-primary" />
+                    <span className="text-text">Solo Factory OS 팀 구성{templateApplied ? ' 완료' : ''}</span>
                   </div>
                 )}
                 {selectedTemplate === 'manual' && (
                   <div className="flex items-center gap-2 text-[13px]">
-                    <CheckCircle size={14} className="text-zinc-600" />
-                    <span className="text-zinc-500">봇 구성 (대시보드에서 직접 추가)</span>
+                    <CheckCircle size={14} className="text-muted" />
+                    <span className="text-muted">봇 구성 (대시보드에서 직접 추가)</span>
                   </div>
                 )}
               </div>
               <button
                 onClick={handleFinish}
-                className="w-full bg-purple-600 hover:bg-purple-500 text-white py-2.5 rounded text-[14px] font-medium transition-colors"
+                className="w-full bg-primary hover:bg-primary-hover text-white py-2.5 rounded text-[14px] font-medium transition-colors"
               >
                 OOMNI 시작하기
               </button>
@@ -373,7 +373,7 @@ export default function OnboardingPage() {
           )}
         </div>
 
-        <p className="text-center text-[11px] text-zinc-600 mt-4">
+        <p className="text-center text-[11px] text-muted mt-4">
           API 키는 이 기기에서만 사용되며 외부로 전송되지 않습니다
         </p>
       </div>

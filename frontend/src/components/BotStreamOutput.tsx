@@ -89,9 +89,9 @@ export function BotStreamOutput({ agentId, onDone }: Props) {
   }
 
   return (
-    <div className="bg-[#0D0D0D] border border-[#2A2A2C] rounded-lg overflow-hidden">
-      {/* Terminal header bar */}
-      <div className="flex items-center justify-between px-3 py-2 bg-[#1A1A1C] border-b border-[#2A2A2C]">
+    <div className="bg-bg border border-border rounded-lg overflow-hidden">
+      {/* Terminal header bar — UI chrome uses warm-brown tokens */}
+      <div className="flex items-center justify-between px-3 py-2 bg-surface border-b border-border">
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
           <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
@@ -112,7 +112,7 @@ export function BotStreamOutput({ agentId, onDone }: Props) {
         )}
       </div>
 
-      {/* Output area */}
+      {/* Output area — intentionally black terminal aesthetic */}
       <div
         ref={outputRef}
         className="bg-black text-green-400 font-mono text-sm px-4 py-3 h-64 overflow-y-auto whitespace-pre-wrap break-words"
