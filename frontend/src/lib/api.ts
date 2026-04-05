@@ -142,6 +142,16 @@ export const settingsApi = {
     settingsAxios.get('/api/settings').then(r => r.data),
 }
 
+// 개발 환경
+export const devtoolsApi = {
+  status: (): Promise<{ claude_code: boolean; vscode: boolean; cursor: boolean; antigravity: boolean }> =>
+    api.get('/api/devtools/status').then(r => r.data),
+  savePreference: (preferred_ide: string) =>
+    api.post('/api/devtools/save-preference', { preferred_ide }).then(r => r.data),
+  getPreference: (): Promise<{ preferred_ide: string }> =>
+    api.get('/api/devtools/preference').then(r => r.data),
+}
+
 // 인증 (Bearer 없이 직접 호출)
 export const authApi = {
   status: (): Promise<{ pin_set: boolean }> =>

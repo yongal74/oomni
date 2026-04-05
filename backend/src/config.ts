@@ -25,6 +25,7 @@ interface Settings {
   anthropic_api_key?: string;
   google_client_id?: string;
   google_client_secret?: string;
+  preferred_ide?: string;
 }
 
 // ── 암호화 유틸 ────────────────────────────────────────────
@@ -161,6 +162,8 @@ export function readSettings(): Settings {
   for (const field of SENSITIVE_FIELDS) {
     if (raw[field]) result[field] = decryptField(raw[field]!);
   }
+  // Non-sensitive fields — return as-is
+  if (raw.preferred_ide) result.preferred_ide = raw.preferred_ide;
   return result;
 }
 

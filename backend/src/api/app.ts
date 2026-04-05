@@ -21,6 +21,7 @@ import { reportsRouter } from './routes/reports';
 import { researchRouter } from './routes/research';
 import { authRouter } from './routes/auth';
 import { settingsRouter } from './routes/settings';
+import { devtoolsRouter } from './routes/devtools';
 import { logger } from '../logger';
 
 interface AppOptions {
@@ -131,6 +132,7 @@ export function createApp(options: AppOptions): Application {
   app.use('/api/schedules', schedulesRouter(options.db));
   app.use('/api/reports', reportsRouter(options.db));
   app.use('/api/research', researchRouter(options.db));
+  app.use('/api/devtools', devtoolsRouter());
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });

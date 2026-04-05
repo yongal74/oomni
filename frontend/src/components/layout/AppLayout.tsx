@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../../store/app.store'
-import { LayoutDashboard, Bell, DollarSign, Plug, Zap, Plus, Ticket, Calendar, BarChart2, Search } from 'lucide-react'
+import { BarChart2, Bell, Calendar, DollarSign, LayoutDashboard, Plug, Plus, Search, Ticket, Wrench, Zap } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useEffect } from 'react'
 import { oomniWs } from '../../lib/ws'
@@ -15,6 +15,7 @@ const NAV = [
   { to: '/dashboard/research', icon: Search, label: 'Research Studio' },
   { to: '/dashboard/integrations', icon: Plug, label: '서비스 연동' },
   { to: '/dashboard/n8n', icon: Zap, label: 'n8n 자동화' },
+  { to: '/dashboard/devtools', icon: Wrench, label: '개발 환경' },
 ]
 
 export function AppLayout() {
