@@ -15,7 +15,7 @@ function setupCSP() {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' http://localhost:3001 ws://localhost:3001"
+          "default-src 'self' file: data:; script-src 'self' 'unsafe-inline' file:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: file:; connect-src 'self' http://localhost:3001 ws://localhost:3001"
         ],
       },
     })
@@ -59,13 +59,29 @@ function startBackend() {
   process.env.NODE_ENV = 'production'
   process.env.PORT = '3001'
 
-  // Electron에 내장된 Node.js로 직접 실행 (별도 node 설치 불필요)
+  // 포트 이미 사용 중인지 먼저 확인
+  return new Promise((resolve) => {
+    const testConn = http.get('http://localhost:3001/api/health', (res) => {
+      if (res.statusCode === 200) {
+        console.log('[Backend] 이미 실행 중 — 재사용')
+        resolve()
+      } else {
+        launchBackend(backendPath, resolve)
+      }
+    })
+    testConn.on('error', () => launchBackend(backendPath, resolve))
+    testConn.setTimeout(500, () => { testConn.destroy(); launchBackend(backendPath, resolve) })
+  })
+}
+
+function launchBackend(backendPath, done) {
   try {
     require(path.join(backendPath, 'dist', 'index.js'))
     console.log('[Backend] 인-프로세스 시작 완료')
   } catch (err) {
     console.error('[Backend] 시작 실패:', err)
   }
+  done()
 }
 
 function createWindow() {
@@ -108,7 +124,7 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  startBackend()
+  await startBackend()
 
   // 프로덕션에서는 백엔드 준비 대기
   if (!isDev) {
