@@ -4,13 +4,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: '#0F0F10',
-        surface: '#1A1A1C',
-        border: '#2A2A2C',
-        primary: '#D97757',
+        bg: '#1C1812',
+        surface: '#242018',
+        border: '#3D3828',
+        primary: '#D4763B',
         'primary-hover': '#C5664A',
-        text: '#E8E6E1',
-        muted: '#6B6B6B',
+        text: '#F2EAD8',
+        muted: '#8A7E6E',
+        dim: '#BDB09E',
       },
       fontFamily: {
         sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],

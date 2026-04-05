@@ -204,9 +204,7 @@ export default function DashboardPage() {
     const d = new Date(f.created_at)
     return d.toDateString() === new Date().toDateString() && f.type === 'result'
   }).length
-  const totalCost = (costData?.data ?? []).reduce(
-    (sum: number, r: Record<string, unknown>) => sum + parseFloat((r.total_cost_usd as string) ?? '0'), 0
-  )
+  const totalCost = (costData?.data as Record<string, unknown>)?.total_cost_usd as number ?? 0
 
   if (!missionId) {
     return (
