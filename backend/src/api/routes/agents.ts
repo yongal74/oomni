@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import { ClaudeCodeExecutor } from '../../services/claudeCodeExecutor';
 
 const VALID_ROLES = ['research','build','design','content','growth','ops','integration','n8n','ceo'] as const;
 const VALID_SCHEDULES = ['manual','hourly','daily','weekly'] as const;
@@ -116,8 +117,196 @@ export function agentsRouter(db: DbClient): Router {
 
     const task: string | undefined = typeof req.body?.task === 'string' ? req.body.task : undefined;
 
-    // HeartbeatScheduler에 triggerNow 위임 (실제 실행은 비동기)
-    res.status(202).json({ message: '봇 실행을 요청했습니다', agentId: agent.id, task });
+    // Claude Code CLI 실행 시도
+    const claudeAvailable = await ClaudeCodeExecutor.isAvailable();
+
+    if (claudeAvailable && task) {
+      // 시작 feed item 저장
+      const startId = uuidv4();
+      await db.query(
+        `INSERT INTO feed_items (id, agent_id, run_id, type, content, action_label, action_data, requires_approval)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [startId, agent.id, null, 'info', `🤖 Claude Code 실행 시작: ${task}`, null, null, false],
+      );
+
+      try {
+        const executor = new ClaudeCodeExecutor();
+        const execResult = await executor.execute(task);
+
+        if (execResult.success) {
+          // 성공 결과 저장
+          const resultId = uuidv4();
+          await db.query(
+            `INSERT INTO feed_items (id, agent_id, run_id, type, content, action_label, action_data, requires_approval)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+            [resultId, agent.id, null, 'result', execResult.output || '(출력 없음)', null, null, false],
+          );
+
+          res.status(200).json({
+            success: true,
+            output: execResult.output,
+            exitCode: execResult.exitCode,
+            method: 'claude_code',
+            agentId: agent.id,
+            task,
+          });
+        } else {
+          // 비정상 종료 — error feed item
+          const errId = uuidv4();
+          await db.query(
+            `INSERT INTO feed_items (id, agent_id, run_id, type, content, action_label, action_data, requires_approval)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+            [errId, agent.id, null, 'error', `Claude Code 실행 실패 (exit ${execResult.exitCode}): ${execResult.output}`, null, null, false],
+          );
+
+          res.status(200).json({
+            success: false,
+            output: execResult.output,
+            exitCode: execResult.exitCode,
+            method: 'claude_code',
+            agentId: agent.id,
+            task,
+          });
+        }
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+
+        // 예외 → error feed item
+        const errId = uuidv4();
+        await db.query(
+          `INSERT INTO feed_items (id, agent_id, run_id, type, content, action_label, action_data, requires_approval)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [errId, agent.id, null, 'error', `Claude Code 실행 중 오류: ${errMsg}`, null, null, false],
+        );
+
+        res.status(500).json({
+          success: false,
+          output: errMsg,
+          method: 'claude_code',
+          agentId: agent.id,
+          task,
+        });
+      }
+      return;
+    }
+
+    // Fallback: Claude CLI 없거나 task 없음 — mock 응답
+    res.status(202).json({
+      success: true,
+      message: '봇 실행을 요청했습니다',
+      output: task ? `(mock) task 수신: ${task}` : '(mock) 태스크 없음',
+      method: 'mock',
+      agentId: agent.id,
+      task,
+    });
+  });
+
+  // GET /api/agents/:id/stream — SSE: Claude Code 실시간 출력 스트리밍
+  // Usage: GET /api/agents/:id/stream?task=<encoded_task>
+  router.get('/:id/stream', async (req: Request, res: Response) => {
+    const agentResult = await db.query('SELECT * FROM agents WHERE id = $1', [req.params.id]);
+    const agentRows = agentResult.rows as Array<{ id: string; is_active: boolean }>;
+
+    if (agentRows.length === 0) {
+      res.status(404).json({ error: '봇을 찾을 수 없습니다' });
+      return;
+    }
+
+    const agent = agentRows[0];
+    if (!agent.is_active) {
+      res.status(409).json({ error: '비활성 봇은 실행할 수 없습니다' });
+      return;
+    }
+
+    const task: string | undefined =
+      typeof req.query.task === 'string' && req.query.task.length > 0
+        ? req.query.task
+        : undefined;
+
+    // SSE 헤더 설정
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const send = (event: string, data: unknown) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    const claudeAvailable = await ClaudeCodeExecutor.isAvailable();
+
+    if (!claudeAvailable) {
+      send('error', { message: 'claude CLI를 찾을 수 없습니다' });
+      res.end();
+      return;
+    }
+
+    if (!task) {
+      send('error', { message: 'task 파라미터가 필요합니다 (?task=...)' });
+      res.end();
+      return;
+    }
+
+    // 시작 feed item
+    const startId = uuidv4();
+    await db.query(
+      `INSERT INTO feed_items (id, agent_id, run_id, type, content, action_label, action_data, requires_approval)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [startId, agent.id, null, 'info', `🤖 Claude Code 실행 시작: ${task}`, null, null, false],
+    );
+
+    send('start', { agentId: agent.id, task });
+
+    const executor = new ClaudeCodeExecutor();
+
+    executor.on('output', (chunk: string) => {
+      send('output', { chunk });
+    });
+
+    executor.on('error', (err: Error) => {
+      send('error', { message: err.message });
+    });
+
+    // Client disconnect → kill process
+    req.on('close', () => {
+      executor.kill();
+    });
+
+    try {
+      const execResult = await executor.execute(task);
+
+      // 결과 feed item 저장
+      const feedType = execResult.success ? 'result' : 'error';
+      const feedContent = execResult.success
+        ? (execResult.output || '(출력 없음)')
+        : `Claude Code 실행 실패 (exit ${execResult.exitCode}): ${execResult.output}`;
+
+      const doneId = uuidv4();
+      await db.query(
+        `INSERT INTO feed_items (id, agent_id, run_id, type, content, action_label, action_data, requires_approval)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [doneId, agent.id, null, feedType, feedContent, null, null, false],
+      );
+
+      send('done', {
+        success: execResult.success,
+        exitCode: execResult.exitCode,
+        agentId: agent.id,
+      });
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+
+      const errId = uuidv4();
+      await db.query(
+        `INSERT INTO feed_items (id, agent_id, run_id, type, content, action_label, action_data, requires_approval)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [errId, agent.id, null, 'error', `Claude Code 실행 중 오류: ${errMsg}`, null, null, false],
+      );
+
+      send('error', { message: errMsg });
+    }
+
+    res.end();
   });
 
   // DELETE /api/agents/:id
