@@ -23,7 +23,15 @@ export type Provider =
   | 'n8n'
   | 'hubspot'
   | 'linear'
-  | 'figma';
+  | 'figma'
+  | 'perplexity'
+  | 'openai'
+  | 'telegram'
+  | 'discord'
+  | 'posthog'
+  | 'ga4'
+  | 'polar'
+  | 'toss';
 
 export interface Mission {
   id: string;

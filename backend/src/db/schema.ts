@@ -102,7 +102,9 @@ CREATE TABLE IF NOT EXISTS integrations (
   mission_id  TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
   provider    TEXT NOT NULL CHECK (provider IN (
                 'slack','notion','gmail','stripe','github','google_sheets',
-                'n8n','hubspot','linear','figma'
+                'n8n','hubspot','linear','figma',
+                'perplexity','openai','telegram','discord',
+                'posthog','ga4','polar','toss'
               )),
   label       TEXT NOT NULL DEFAULT '',
   credentials TEXT NOT NULL,
