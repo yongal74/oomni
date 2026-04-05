@@ -20,13 +20,46 @@
       "electron/**/*",
       "frontend/dist/**/*",
       "backend/dist/**/*",
-      "backend/package.json"
+      "backend/package.json",
+      "!**/node_modules/**",
+      "!**/*.map",
+      "!**/*.d.ts"
     ],
     "extraResources": [
-      { "from": "backend", "to": "backend" }
+      {
+        "from": "backend",
+        "to": "backend",
+        "filter": [
+          "dist/**/*",
+          "package.json",
+          "node_modules/**/*",
+          "!node_modules/typescript/**",
+          "!node_modules/ts-jest/**",
+          "!node_modules/ts-node/**",
+          "!node_modules/ts-node-dev/**",
+          "!node_modules/@babel/**",
+          "!node_modules/jest/**",
+          "!node_modules/jest-circus/**",
+          "!node_modules/jest-cli/**",
+          "!node_modules/@jest/**",
+          "!node_modules/babel-jest/**",
+          "!node_modules/caniuse-lite/**",
+          "!node_modules/uglify-js/**",
+          "!node_modules/supertest/**",
+          "!node_modules/superagent/**",
+          "!node_modules/@types/**",
+          "!node_modules/**/test/**",
+          "!node_modules/**/tests/**",
+          "!node_modules/**/__tests__/**",
+          "!node_modules/**/*.md",
+          "!node_modules/**/*.d.ts",
+          "!node_modules/**/*.map"
+        ]
+      }
     ],
-    "win": { "target": "nsis", "icon": "assets/icon.ico" },
-    "mac": { "target": "dmg", "icon": "assets/icon.icns" },
+    "compression": "maximum",
+    "win": { "target": "nsis" },
+    "mac": { "target": "dmg" },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
