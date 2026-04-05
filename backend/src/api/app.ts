@@ -6,6 +6,8 @@ import express, { type Application, type Request, type Response, type NextFuncti
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import session from 'express-session';
+import passport from 'passport';
 import { agentsRouter } from './routes/agents';
 import { feedRouter } from './routes/feed';
 import { integrationsRouter } from './routes/integrations';
@@ -17,6 +19,7 @@ import { schedulesRouter } from './routes/schedules';
 import { webhooksRouter } from './routes/webhooks';
 import { reportsRouter } from './routes/reports';
 import { authRouter } from './routes/auth';
+import { settingsRouter } from './routes/settings';
 import { logger } from '../logger';
 
 interface AppOptions {
@@ -74,6 +77,21 @@ export function createApp(options: AppOptions): Application {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
+  // ── express-session (Google OAuth 콜백용) ────────────────
+  app.use(session({
+    secret: process.env.OOMNI_MASTER_KEY ?? 'oomni-session-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false, httpOnly: true, maxAge: 5 * 60 * 1000 }, // 5분 (OAuth 플로우용)
+  }));
+
+  // ── Passport 초기화 ──────────────────────────────────────
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  // ── 설정 라우터 (인증 없이 접근 가능, 온보딩용) ──────────
+  app.use('/api/settings', settingsRouter());
+
   // ── 인증 라우터 (Bearer 인증 제외) ──────────────────────
   app.use('/api/auth', authRouter());
 
@@ -92,8 +110,8 @@ export function createApp(options: AppOptions): Application {
       next();
       return;
     }
-    // 헬스체크 및 auth 경로는 인증 제외
-    if (req.path === '/health' || req.path.startsWith('/auth')) {
+    // 헬스체크 및 auth/settings 경로는 인증 제외
+    if (req.path === '/health' || req.path.startsWith('/auth') || req.path.startsWith('/settings')) {
       next();
       return;
     }

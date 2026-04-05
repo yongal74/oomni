@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { missionsApi, agentsApi, type Mission } from '../lib/api'
+import { missionsApi, agentsApi, settingsApi, type Mission } from '../lib/api'
 import { useAppStore } from '../store/app.store'
 import { ArrowRight, Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react'
 
@@ -47,7 +47,7 @@ export default function OnboardingPage() {
     }
     setLoading(true)
     try {
-      localStorage.setItem('oomni_anthropic_key', apiKey)
+      await settingsApi.setApiKey(apiKey)
       const mission = await missionsApi.create({ name: missionName, description: missionDesc })
       localStorage.setItem('oomni_mission_id', mission.id)
       setCurrentMission(mission)

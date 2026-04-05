@@ -2,7 +2,7 @@
  * OOMNI Backend 서버 진입점
  */
 import http from 'http';
-import { loadConfig } from './config';
+import { loadConfig, loadSettings } from './config';
 import { initDb, shutdownDb } from './db/client';
 import { initVault } from './crypto/vault';
 import { createApp } from './api/app';
@@ -13,6 +13,8 @@ import { EventEmitter } from 'events';
 import { logger } from './logger';
 
 async function main() {
+  // settings.json에서 API 키 로드 (loadConfig 전에 실행)
+  loadSettings();
   const config = loadConfig();
 
   // 1. Vault 초기화

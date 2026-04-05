@@ -140,7 +140,12 @@ ipcMain.handle('get-internal-api-key', () => {
 
 ipcMain.handle('open-external', (_event, url) => {
   // 허용된 도메인만 외부 브라우저로 열기
-  const allowed = ['https://console.anthropic.com', 'https://openrouter.ai', 'https://n8n.io']
+  const allowed = [
+    'https://console.anthropic.com',
+    'https://openrouter.ai',
+    'https://n8n.io',
+    'http://localhost:3001',
+  ]
   if (allowed.some(a => url.startsWith(a))) {
     shell.openExternal(url)
   }

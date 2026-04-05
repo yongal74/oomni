@@ -98,6 +98,18 @@ export const reportsApi = {
     api.get('/api/reports', { params: { mission_id: missionId, period } }).then(r => r.data),
 }
 
+// 설정 (Bearer 없이 직접 호출, 온보딩용)
+const settingsAxios = axios.create({ baseURL: BASE_URL, timeout: 10000 })
+
+export const settingsApi = {
+  setApiKey: (key: string): Promise<{ success: boolean; message: string }> =>
+    settingsAxios.post('/api/settings/api-key', { key }).then(r => r.data),
+  getStatus: (): Promise<{ api_key_set: boolean }> =>
+    settingsAxios.get('/api/settings/api-key/status').then(r => r.data),
+  get: (): Promise<{ anthropic_api_key: string | null; google_configured: boolean }> =>
+    settingsAxios.get('/api/settings').then(r => r.data),
+}
+
 // 인증 (Bearer 없이 직접 호출)
 export const authApi = {
   status: (): Promise<{ pin_set: boolean }> =>
