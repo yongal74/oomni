@@ -1,12 +1,29 @@
 import axios from 'axios'
 
-const API_KEY = (window as any).electronAPI?.getInternalApiKey?.() ?? 'dev-key'
 const BASE_URL = 'http://localhost:3001'
+
+// getInternalApiKey()는 async IPC 호출 → interceptor로 lazy하게 처리
+let _cachedKey: string | null = null
+async function getInternalApiKey(): Promise<string> {
+  if (_cachedKey) return _cachedKey
+  try {
+    const key = await (window as any).electronAPI?.getInternalApiKey?.()
+    _cachedKey = key ?? 'dev-key'
+  } catch {
+    _cachedKey = 'dev-key'
+  }
+  return _cachedKey!
+}
 
 export const api = axios.create({
   baseURL: BASE_URL,
-  headers: { Authorization: `Bearer ${API_KEY}` },
   timeout: 30000,
+})
+
+api.interceptors.request.use(async (config) => {
+  const key = await getInternalApiKey()
+  config.headers.Authorization = `Bearer ${key}`
+  return config
 })
 
 // 인증용 axios (Bearer 인증 없음)

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, session } = require('electron')
+const { app, BrowserWindow, ipcMain, shell, session, Menu, MenuItem } = require('electron')
 const path = require('path')
 const http = require('http')
 
@@ -144,6 +144,22 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+})
+
+// ── 우클릭 컨텍스트 메뉴 (복사/붙여넣기) ─────────────────
+app.on('web-contents-created', (_, wc) => {
+  wc.on('context-menu', (_, params) => {
+    const menu = new Menu()
+    if (params.selectionText) {
+      menu.append(new MenuItem({ role: 'copy', label: '복사' }))
+    }
+    if (params.isEditable) {
+      menu.append(new MenuItem({ role: 'cut', label: '잘라내기' }))
+      menu.append(new MenuItem({ role: 'paste', label: '붙여넣기' }))
+      menu.append(new MenuItem({ role: 'selectAll', label: '전체 선택' }))
+    }
+    if (menu.items.length > 0) menu.popup()
+  })
 })
 
 app.on('before-quit', () => {
