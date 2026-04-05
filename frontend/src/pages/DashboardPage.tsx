@@ -3,13 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   agentsApi, feedApi, costApi, issuesApi, schedulesApi, reportsApi,
+  api,
   type FeedItem, type Agent, type Issue, type Schedule,
 } from '../lib/api'
 import { useAppStore } from '../store/app.store'
 import { oomniWs } from '../lib/ws'
 import {
   Play, Plus, X, Check, XCircle, Loader2,
-  ArrowRight,
+  ArrowRight, Layers,
 } from 'lucide-react'
 import { BotRunModal } from '../components/BotRunModal'
 import { formatDistanceToNow } from 'date-fns'
@@ -156,6 +157,17 @@ export default function DashboardPage() {
     return () => { off() }
   }, [qc])
 
+  // Solo Factory OS 템플릿 적용
+  const applyTemplate = useMutation({
+    mutationFn: async (templateId: string) => {
+      const res = await api.post(`/api/templates/${templateId}/apply`, { mission_id: missionId })
+      return res.data
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['agents'] })
+    },
+  })
+
   // 봇 생성
   const createBot = useMutation({
     mutationFn: async (role: string) => {
@@ -214,13 +226,24 @@ export default function DashboardPage() {
           <h1 className="text-xl font-semibold text-text">{currentMission?.name}</h1>
           <p className="text-[13px] text-muted mt-0.5">{currentMission?.description}</p>
         </div>
-        <button
-          onClick={() => setShowAddBot(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[13px] hover:bg-[#C5664A] transition-colors"
-        >
-          <Plus size={14} />
-          봇 추가
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => applyTemplate.mutate('solo-factory-os')}
+            disabled={applyTemplate.isPending}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-700 text-white rounded text-[13px] hover:bg-purple-600 transition-colors disabled:opacity-60"
+            title="Solo Factory OS 템플릿 적용"
+          >
+            {applyTemplate.isPending ? <Loader2 size={14} className="animate-spin" /> : <Layers size={14} />}
+            템플릿
+          </button>
+          <button
+            onClick={() => setShowAddBot(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[13px] hover:bg-[#C5664A] transition-colors"
+          >
+            <Plus size={14} />
+            봇 추가
+          </button>
+        </div>
       </div>
 
       {/* KPI 카드 */}
@@ -255,11 +278,32 @@ export default function DashboardPage() {
               </div>
             ))}
             {agents.length === 0 && (
-              <div className="text-center text-muted text-[12px] py-4">
-                봇이 없습니다<br />
-                <button onClick={() => setShowAddBot(true)} className="text-primary mt-1 hover:underline">
-                  봇 추가하기
-                </button>
+              <div className="space-y-3">
+                {/* Solo Factory OS 배너 */}
+                <div className="rounded-lg border border-purple-700 bg-purple-900/20 p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-base">🚀</span>
+                    <span className="text-[13px] font-semibold text-purple-300">Solo Factory OS</span>
+                  </div>
+                  <p className="text-[11px] text-purple-400 mb-2 leading-relaxed">
+                    6개 AI 봇으로 혼자서 팀처럼 일하기
+                  </p>
+                  <button
+                    onClick={() => applyTemplate.mutate('solo-factory-os')}
+                    disabled={applyTemplate.isPending}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-purple-700 text-white rounded text-[12px] hover:bg-purple-600 transition-colors disabled:opacity-60"
+                  >
+                    {applyTemplate.isPending
+                      ? <><Loader2 size={12} className="animate-spin" /> 생성 중...</>
+                      : '바로 시작하기'}
+                  </button>
+                </div>
+                <div className="text-center text-muted text-[12px]">
+                  또는{' '}
+                  <button onClick={() => setShowAddBot(true)} className="text-primary hover:underline">
+                    봇 직접 추가하기
+                  </button>
+                </div>
               </div>
             )}
           </div>
