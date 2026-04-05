@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, session, Menu, MenuItem } = require('electron')
+const { app, BrowserWindow, ipcMain, Notification, shell, session, Menu, MenuItem } = require('electron')
 const path = require('path')
 const http = require('http')
 
@@ -185,3 +185,25 @@ ipcMain.handle('open-external', (_event, url) => {
 })
 
 ipcMain.handle('get-app-version', () => app.getVersion())
+
+// ── 알림 IPC 핸들러 ──────────────────────────────────────
+// Frontend usage:
+// window.electronAPI.showNotification({ title: '승인 대기', body: '봇이 승인을 요청했습니다' })
+// window.electronAPI.showNotification({ title: '봇 실행 완료', body: '에이전트가 작업을 완료했습니다', urgency: 'normal' })
+ipcMain.handle('show-notification', (_event, { title, body, urgency }) => {
+  if (Notification.isSupported()) {
+    const n = new Notification({
+      title: title ?? 'OOMNI',
+      body: body ?? '',
+      icon: path.join(__dirname, 'assets/icon.ico'),
+      urgency: urgency ?? 'normal',  // 'normal' | 'critical' | 'low'
+    })
+    n.on('click', () => {
+      mainWindow?.focus()
+      mainWindow?.show()
+    })
+    n.show()
+    return true
+  }
+  return false
+})
