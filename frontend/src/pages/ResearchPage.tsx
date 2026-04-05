@@ -28,7 +28,7 @@ function decisionBadge(decision: ResearchItem['filter_decision']) {
     case 'keep': return 'bg-green-500/20 text-green-400 border border-green-500/30'
     case 'drop': return 'bg-red-500/20 text-red-400 border border-red-500/30'
     case 'watch': return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-    default: return 'bg-[#2A2A2C] text-[#888] border border-[#2A2A2C]'
+    default: return 'bg-border/40 text-muted border border-border'
   }
 }
 
@@ -99,20 +99,20 @@ function ConvertModal({ item, onClose }: ConvertModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="bg-[#1A1A1C] border border-[#2A2A2C] rounded-xl w-full max-w-3xl max-h-[85vh] flex flex-col"
+        className="bg-surface border border-border rounded-xl w-full max-w-3xl max-h-[85vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2A2A2C]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div>
-            <h2 className="text-[#F2EAD8] font-semibold text-base">콘텐츠 변환</h2>
-            <p className="text-[#888] text-sm mt-0.5 truncate max-w-md">{item.title}</p>
+            <h2 className="text-text font-semibold text-base">콘텐츠 변환</h2>
+            <p className="text-muted text-sm mt-0.5 truncate max-w-md">{item.title}</p>
           </div>
-          <button onClick={onClose} className="text-[#888] hover:text-[#F2EAD8]">
+          <button onClick={onClose} className="text-muted hover:text-text">
             <X size={18} />
           </button>
         </div>
 
-        <div className="px-6 py-4 border-b border-[#2A2A2C]">
+        <div className="px-6 py-4 border-b border-border">
           <div className="flex gap-2">
             {OUTPUT_TYPES.map(({ type, icon, label }) => (
               <button
@@ -122,8 +122,8 @@ function ConvertModal({ item, onClose }: ConvertModalProps) {
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors',
                   selectedType === type
-                    ? 'bg-[#D4763B]/20 border-[#D4763B]/50 text-[#D4763B]'
-                    : 'border-[#2A2A2C] text-[#888] hover:text-[#F2EAD8] hover:border-[#3A3A3C]',
+                    ? 'bg-primary/20 border-primary/50 text-primary'
+                    : 'border-border text-muted hover:text-text hover:border-primary/50',
                   converting && 'opacity-50 cursor-not-allowed'
                 )}
               >
@@ -136,26 +136,26 @@ function ConvertModal({ item, onClose }: ConvertModalProps) {
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {converting && (
-            <div className="flex items-center justify-center gap-2 text-[#888] py-12">
+            <div className="flex items-center justify-center gap-2 text-muted py-12">
               <Loader2 size={18} className="animate-spin" />
               <span className="text-sm">AI가 변환 중입니다...</span>
             </div>
           )}
           {!converting && convertedContent && (
-            <pre className="text-[#F2EAD8] text-sm whitespace-pre-wrap font-sans leading-relaxed">{convertedContent}</pre>
+            <pre className="text-text text-sm whitespace-pre-wrap font-sans leading-relaxed">{convertedContent}</pre>
           )}
           {!converting && !convertedContent && (
-            <div className="text-[#888] text-sm text-center py-12">
+            <div className="text-muted text-sm text-center py-12">
               위에서 변환 형식을 선택하세요
             </div>
           )}
         </div>
 
         {convertedContent && (
-          <div className="px-6 py-4 border-t border-[#2A2A2C]">
+          <div className="px-6 py-4 border-t border-border">
             <button
               onClick={handleCopy}
-              className="flex items-center gap-2 px-4 py-2 bg-[#D4763B] text-white rounded-lg text-sm hover:bg-[#C4662B] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-[#C4662B] transition-colors"
             >
               <Copy size={14} />
               {copied ? '복사됨!' : '클립보드에 복사'}
@@ -181,9 +181,9 @@ function ResearchCard({ item, onFilter, onDelete, onConvert, isFiltering }: Rese
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="bg-[#1A1A1C] border border-[#2A2A2C] rounded-xl overflow-hidden">
+    <div className="bg-surface border border-border rounded-xl overflow-hidden">
       <div
-        className="p-4 cursor-pointer hover:bg-[#1E1E20] transition-colors"
+        className="p-4 cursor-pointer hover:bg-surface transition-colors"
         onClick={() => setExpanded(e => !e)}
       >
         <div className="flex items-start justify-between gap-3">
@@ -195,11 +195,11 @@ function ResearchCard({ item, onFilter, onDelete, onConvert, isFiltering }: Rese
                   : item.filter_decision === 'watch' ? 'Watch'
                   : 'Drop'}
               </span>
-              <span className="text-xs text-[#888] capitalize">{item.source_type}</span>
+              <span className="text-xs text-muted capitalize">{item.source_type}</span>
             </div>
-            <h3 className="text-[#F2EAD8] text-sm font-medium truncate">{item.title}</h3>
+            <h3 className="text-text text-sm font-medium truncate">{item.title}</h3>
             {item.summary && (
-              <p className="text-[#888] text-xs mt-1 line-clamp-2">{item.summary}</p>
+              <p className="text-muted text-xs mt-1 line-clamp-2">{item.summary}</p>
             )}
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -207,14 +207,14 @@ function ResearchCard({ item, onFilter, onDelete, onConvert, isFiltering }: Rese
               <div className={cn('text-sm font-bold', scoreColor(item.signal_score))}>
                 {item.signal_score}
               </div>
-              <div className="text-[10px] text-[#888]">점수</div>
+              <div className="text-[10px] text-muted">점수</div>
             </div>
-            {expanded ? <ChevronUp size={14} className="text-[#888]" /> : <ChevronDown size={14} className="text-[#888]" />}
+            {expanded ? <ChevronUp size={14} className="text-muted" /> : <ChevronDown size={14} className="text-muted" />}
           </div>
         </div>
 
         {/* Signal score bar */}
-        <div className="mt-3 h-1 bg-[#0F0F10] rounded-full overflow-hidden">
+        <div className="mt-3 h-1 bg-bg rounded-full overflow-hidden">
           <div
             className={cn('h-full rounded-full transition-all', scoreBarColor(item.signal_score))}
             style={{ width: `${item.signal_score}%` }}
@@ -225,7 +225,7 @@ function ResearchCard({ item, onFilter, onDelete, onConvert, isFiltering }: Rese
         {item.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {item.tags.map((tag, i) => (
-              <span key={i} className="text-[10px] bg-[#0F0F10] text-[#888] px-1.5 py-0.5 rounded">
+              <span key={i} className="text-[10px] bg-bg text-muted px-1.5 py-0.5 rounded">
                 {tag}
               </span>
             ))}
@@ -235,15 +235,15 @@ function ResearchCard({ item, onFilter, onDelete, onConvert, isFiltering }: Rese
 
       {/* Expanded content */}
       {expanded && item.content && (
-        <div className="px-4 pb-3 border-t border-[#2A2A2C] mt-0">
-          <p className="text-[#F2EAD8] text-xs mt-3 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">
+        <div className="px-4 pb-3 border-t border-border mt-0">
+          <p className="text-text text-xs mt-3 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">
             {item.content}
           </p>
         </div>
       )}
 
       {/* Actions */}
-      <div className="px-4 py-3 border-t border-[#2A2A2C] flex items-center gap-2">
+      <div className="px-4 py-3 border-t border-border flex items-center gap-2">
         {item.filter_decision !== 'keep' && (
           <button
             onClick={() => onFilter(item.id, 'keep')}
@@ -274,14 +274,14 @@ function ResearchCard({ item, onFilter, onDelete, onConvert, isFiltering }: Rese
         {item.filter_decision === 'keep' && (
           <button
             onClick={() => onConvert(item)}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-[#D4763B]/10 text-[#D4763B] hover:bg-[#D4763B]/20 border border-[#D4763B]/20 transition-colors ml-1"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 transition-colors ml-1"
           >
             변환하기
           </button>
         )}
         <button
           onClick={() => onDelete(item.id)}
-          className="ml-auto text-[#888] hover:text-red-400 transition-colors"
+          className="ml-auto text-muted hover:text-red-400 transition-colors"
         >
           <Trash2 size={13} />
         </button>
@@ -360,7 +360,7 @@ export default function ResearchPage() {
 
   if (!missionId) {
     return (
-      <div className="p-8 text-center text-[#888] text-sm">
+      <div className="p-8 text-center text-muted text-sm">
         미션을 먼저 선택해주세요
       </div>
     )
@@ -369,16 +369,16 @@ export default function ResearchPage() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-[#F2EAD8] text-xl font-bold flex items-center gap-2">
-          <Search size={20} className="text-[#D4763B]" />
+        <h1 className="text-text text-xl font-bold flex items-center gap-2">
+          <Search size={20} className="text-primary" />
           Research Studio
         </h1>
-        <p className="text-[#888] text-sm mt-1">소스를 수집하고 AI로 분석·필터링합니다</p>
+        <p className="text-muted text-sm mt-1">소스를 수집하고 AI로 분석·필터링합니다</p>
       </div>
 
       {/* Section A: Source Registration */}
-      <div className="bg-[#1A1A1C] border border-[#2A2A2C] rounded-xl p-4 mb-6">
-        <h2 className="text-[#F2EAD8] text-sm font-semibold mb-3">소스 등록</h2>
+      <div className="bg-surface border border-border rounded-xl p-4 mb-6">
+        <h2 className="text-text text-sm font-semibold mb-3">소스 등록</h2>
 
         {/* Source type tabs */}
         <div className="flex gap-1 mb-3">
@@ -389,8 +389,8 @@ export default function ResearchPage() {
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
                 sourceType === tab.type
-                  ? 'bg-[#D4763B] text-white'
-                  : 'text-[#888] hover:text-[#F2EAD8] hover:bg-[#2A2A2C]'
+                  ? 'bg-primary text-white'
+                  : 'text-muted hover:text-text hover:bg-border/40'
               )}
             >
               {tab.label}
@@ -405,7 +405,7 @@ export default function ResearchPage() {
               onChange={e => setSourceInput(e.target.value)}
               placeholder={currentTab.placeholder}
               rows={4}
-              className="flex-1 bg-[#0F0F10] border border-[#2A2A2C] rounded-lg px-3 py-2 text-sm text-[#F2EAD8] placeholder:text-[#888] focus:outline-none focus:border-[#D4763B] resize-none"
+              className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:border-primary resize-none"
             />
           ) : (
             <input
@@ -414,7 +414,7 @@ export default function ResearchPage() {
               onChange={e => setSourceInput(e.target.value)}
               placeholder={currentTab.placeholder}
               onKeyDown={e => e.key === 'Enter' && handleCollect()}
-              className="flex-1 bg-[#0F0F10] border border-[#2A2A2C] rounded-lg px-3 py-2 text-sm text-[#F2EAD8] placeholder:text-[#888] focus:outline-none focus:border-[#D4763B]"
+              className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:border-primary"
             />
           )}
           <button
@@ -423,8 +423,8 @@ export default function ResearchPage() {
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
               sourceInput.trim() && !collectMutation.isPending
-                ? 'bg-[#D4763B] text-white hover:bg-[#C4662B]'
-                : 'bg-[#2A2A2C] text-[#888] cursor-not-allowed'
+                ? 'bg-primary text-white hover:bg-[#C4662B]'
+                : 'bg-border/40 text-muted cursor-not-allowed'
             )}
           >
             {collectMutation.isPending ? (
@@ -451,15 +451,15 @@ export default function ResearchPage() {
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
                 filterTab === tab.key
-                  ? 'bg-[#D4763B]/20 text-[#D4763B] border border-[#D4763B]/30'
-                  : 'text-[#888] hover:text-[#F2EAD8] border border-transparent hover:border-[#2A2A2C]'
+                  ? 'bg-primary/20 text-primary border border-primary/30'
+                  : 'text-muted hover:text-text border border-transparent hover:border-border'
               )}
             >
               {tab.label}
               {count > 0 && (
                 <span className={cn(
                   'text-[10px] px-1.5 py-0.5 rounded-full',
-                  filterTab === tab.key ? 'bg-[#D4763B]/30' : 'bg-[#2A2A2C]'
+                  filterTab === tab.key ? 'bg-primary/30' : 'bg-border/40'
                 )}>
                   {count}
                 </span>
@@ -471,12 +471,12 @@ export default function ResearchPage() {
 
       {/* Sections B+C+D: Card Grid */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-16 text-[#888] gap-2">
+        <div className="flex items-center justify-center py-16 text-muted gap-2">
           <Loader2 size={18} className="animate-spin" />
           <span className="text-sm">로딩 중...</span>
         </div>
       ) : filteredItems.length === 0 ? (
-        <div className="text-center py-16 text-[#888] text-sm">
+        <div className="text-center py-16 text-muted text-sm">
           {items.length === 0
             ? '아직 수집된 리서치가 없습니다. 위에서 소스를 등록해보세요.'
             : '해당 필터에 맞는 항목이 없습니다.'}

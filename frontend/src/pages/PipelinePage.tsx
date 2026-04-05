@@ -74,13 +74,13 @@ function BotNode({ data }: { data: BotNodeData }) {
     <div
       onClick={() => !isExample && onClick(agent.id)}
       style={{
-        background: '#1C1C1E',
-        border: isActive ? '1.5px solid #8B5CF6' : '1.5px solid #3F3F46',
+        background: '#242018',
+        border: isActive ? '1.5px solid #D4763B' : '1.5px solid #3D3828',
         borderRadius: 10,
         padding: '10px 14px',
         minWidth: 160,
         cursor: isExample ? 'default' : 'pointer',
-        boxShadow: isActive ? '0 0 0 1px rgba(139,92,246,0.2)' : 'none',
+        boxShadow: isActive ? '0 0 0 1px rgba(212,118,59,0.2)' : 'none',
         transition: 'box-shadow 0.15s ease',
         userSelect: 'none',
       }}
@@ -88,15 +88,15 @@ function BotNode({ data }: { data: BotNodeData }) {
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: '#8B5CF6', border: 'none', width: 8, height: 8 }}
+        style={{ background: '#D4763B', border: 'none', width: 8, height: 8 }}
       />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ fontSize: 18, lineHeight: 1 }}>{icon}</span>
         <div>
-          <div style={{ color: '#fff', fontWeight: 600, fontSize: 13, lineHeight: 1.3 }}>
+          <div style={{ color: '#F2EAD8', fontWeight: 600, fontSize: 13, lineHeight: 1.3 }}>
             {agent.name}
           </div>
-          <div style={{ color: '#71717A', fontSize: 11, marginTop: 2, textTransform: 'capitalize' }}>
+          <div style={{ color: '#8A7E6E', fontSize: 11, marginTop: 2, textTransform: 'capitalize' }}>
             {agent.role}
           </div>
         </div>
@@ -106,10 +106,10 @@ function BotNode({ data }: { data: BotNodeData }) {
               width: 7,
               height: 7,
               borderRadius: '50%',
-              background: isActive ? '#22C55E' : '#3F3F46',
+              background: isActive ? '#22C55E' : '#3D3828',
             }}
           />
-          <span style={{ color: isActive ? '#22C55E' : '#52525B', fontSize: 10 }}>
+          <span style={{ color: isActive ? '#22C55E' : '#8A7E6E', fontSize: 10 }}>
             {isActive ? 'active' : 'off'}
           </span>
         </div>
@@ -117,7 +117,7 @@ function BotNode({ data }: { data: BotNodeData }) {
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ background: '#8B5CF6', border: 'none', width: 8, height: 8 }}
+        style={{ background: '#D4763B', border: 'none', width: 8, height: 8 }}
       />
     </div>
   )
@@ -156,10 +156,10 @@ function buildNodesAndEdges(
       source: a.id,
       target: a.reports_to!,
       animated: a.is_active,
-      style: { stroke: '#8B5CF6', strokeWidth: 1.5 },
+      style: { stroke: '#D4763B', strokeWidth: 1.5 },
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: '#8B5CF6',
+        color: '#D4763B',
         width: 16,
         height: 16,
       },
@@ -262,19 +262,19 @@ export default function PipelinePage() {
             nodeTypes={nodeTypes}
             fitView
             fitViewOptions={{ padding: 0.3 }}
-            style={{ background: '#111113' }}
+            style={{ background: '#1C1812' }}
             proOptions={{ hideAttribution: true }}
           >
             <Background
               variant={BackgroundVariant.Dots}
               gap={24}
               size={1}
-              color="#2A2A2C"
+              color="#3D3828"
             />
             <Controls
               style={{
-                background: '#1C1C1E',
-                border: '1px solid #3F3F46',
+                background: '#242018',
+                border: '1px solid #3D3828',
                 borderRadius: 8,
               }}
             />
@@ -288,10 +288,10 @@ export default function PipelinePage() {
           <div className="w-2 h-2 rounded-full bg-green-500" /> active
         </span>
         <span className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-[#3F3F46]" /> inactive
+          <div className="w-2 h-2 rounded-full bg-border" /> inactive
         </span>
         <span className="flex items-center gap-1.5">
-          <div className="w-8 border-t border-[#8B5CF6]" /> reports_to 연결
+          <div className="w-8 border-t border-primary" /> reports_to 연결
         </span>
         <span className="ml-auto">노드를 드래그해서 위치를 조정하세요</span>
       </div>

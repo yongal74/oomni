@@ -188,7 +188,7 @@ export default function IntegrationsPage() {
               <div className="flex gap-2 mt-auto">
                 <button
                   onClick={() => openModal(p.id)}
-                  className="flex-1 py-1.5 rounded text-[12px] bg-[#1E1E20] border border-border text-muted hover:text-text transition-colors"
+                  className="flex-1 py-1.5 rounded text-[12px] bg-[#2C271E] border border-border text-muted hover:text-text transition-colors"
                 >
                   {isConnected ? '설정' : '연결하기'}
                 </button>

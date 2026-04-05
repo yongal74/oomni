@@ -14,10 +14,10 @@ const BOT_EMOJI: Record<string, string> = {
 const ROLE_BADGE_COLOR: Record<string, string> = {
   research: 'bg-blue-900/40 text-blue-300',
   build: 'bg-orange-900/40 text-orange-300',
-  design: 'bg-purple-900/40 text-purple-300',
+  design: 'bg-primary/20 text-primary',
   content: 'bg-teal-900/40 text-teal-300',
   growth: 'bg-green-900/40 text-green-300',
-  ops: 'bg-gray-700/60 text-gray-300',
+  ops: 'bg-border/60 text-muted',
   integration: 'bg-yellow-900/40 text-yellow-300',
   n8n: 'bg-pink-900/40 text-pink-300',
 }
@@ -80,7 +80,7 @@ function ApprovalCard({
   }
 
   const role = item.agent_role ?? ''
-  const badgeColor = ROLE_BADGE_COLOR[role] ?? 'bg-gray-700/60 text-gray-300'
+  const badgeColor = ROLE_BADGE_COLOR[role] ?? 'bg-border/60 text-muted'
   const displayContent = state.expanded ? (item.content ?? '') : preview
 
   return (
@@ -116,7 +116,7 @@ function ApprovalCard({
       {item.content && (
         <div className="mb-3">
           {isCode ? (
-            <pre className="bg-gray-900 rounded-lg p-3 text-[11px] text-green-300 font-mono whitespace-pre-wrap overflow-x-auto leading-relaxed">
+            <pre className="bg-bg rounded-lg p-3 text-[11px] text-green-300 font-mono whitespace-pre-wrap overflow-x-auto leading-relaxed">
               {displayContent}{hasMore && !state.expanded ? '…' : ''}
             </pre>
           ) : (
@@ -147,7 +147,7 @@ function ApprovalCard({
               value={state.editedContent}
               onChange={(e: { target: { value: string } }) => set({ editedContent: e.target.value })}
               rows={6}
-              className="w-full mb-3 bg-gray-900 border border-border rounded-lg p-3 text-[12px] text-text font-mono resize-y focus:outline-none focus:border-primary"
+              className="w-full mb-3 bg-bg border border-border rounded-lg p-3 text-[12px] text-text font-mono resize-y focus:outline-none focus:border-primary"
             />
           )}
 
@@ -179,7 +179,7 @@ function ApprovalCard({
             </button>
             <button
               onClick={() => set({ editing: !state.editing, editedContent: item.content ?? '' })}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700/40 text-gray-300 rounded text-[12px] hover:bg-gray-700/60 transition-colors ml-auto"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-border/40 text-muted rounded text-[12px] hover:bg-border/60 hover:text-text transition-colors ml-auto"
             >
               <Edit2 size={12} />
               {state.editing ? '취소' : '✏️ 수정하기'}

@@ -71,7 +71,7 @@ export default function DevToolsPage() {
               className={`bg-surface border rounded-xl p-5 cursor-pointer transition-colors ${
                 selectedIde === 'claude_code'
                   ? 'border-primary'
-                  : 'border-border hover:border-zinc-600'
+                  : 'border-border hover:border-primary/50'
               }`}
               onClick={() => setSelectedIde('claude_code')}
             >
@@ -120,7 +120,7 @@ export default function DevToolsPage() {
 
                   {/* 미설치인 경우: 설치 가이드 */}
                   {!isInstalled('claude_code') && (
-                    <div className="bg-zinc-900 border border-border rounded-lg p-4 text-[12px] text-muted space-y-1.5">
+                    <div className="bg-bg border border-border rounded-lg p-4 text-[12px] text-muted space-y-1.5">
                       <p className="text-text font-medium mb-2">설치 방법</p>
                       <p>
                         1.{' '}
@@ -132,7 +132,7 @@ export default function DevToolsPage() {
                         </button>
                         {' '}에서 Claude Code 다운로드
                       </p>
-                      <p>2. 설치 후 터미널에서: <code className="bg-zinc-800 px-1.5 py-0.5 rounded text-[11px]">claude --version</code> 으로 확인</p>
+                      <p>2. 설치 후 터미널에서: <code className="bg-surface border border-border px-1.5 py-0.5 rounded text-[11px]">claude --version</code> 으로 확인</p>
                       <p>3. 앱 재시작 후 자동 감지됩니다</p>
                     </div>
                   )}
@@ -172,7 +172,7 @@ export default function DevToolsPage() {
               {/* Antigravity */}
               <OptionalToolCard
                 ideKey="antigravity"
-                icon={<Rocket size={22} className="text-purple-400" />}
+                icon={<Rocket size={22} className="text-primary" />}
                 title="Antigravity"
                 description="차세대 AI 개발 환경. 에이전트 기반 코딩을 지원합니다."
                 installUrl="https://antigravity.dev"
@@ -242,7 +242,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="flex items-center gap-1 px-2 py-1 rounded text-[11px] bg-zinc-800 border border-border text-muted hover:text-text transition-colors"
+      className="flex items-center gap-1 px-2 py-1 rounded text-[11px] bg-surface border border-border text-muted hover:text-text transition-colors"
       title="복사"
     >
       {copied ? <Check size={11} className="text-green-400" /> : <Copy size={11} />}
@@ -293,7 +293,7 @@ function DesignBotSection() {
       <div className="bg-surface border border-border rounded-xl p-5 mb-3">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-[14px] font-semibold text-text">Pencil.dev MCP Server</span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-muted border border-border">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface text-muted border border-border">
             선택
           </span>
         </div>
@@ -302,13 +302,13 @@ function DesignBotSection() {
         </p>
 
         {/* Installation steps */}
-        <div className="bg-zinc-900 border border-border rounded-lg p-4 mb-3">
+        <div className="bg-bg border border-border rounded-lg p-4 mb-3">
           <p className="text-[12px] font-medium text-text mb-3">설치 방법</p>
           <ol className="space-y-3 text-[12px] text-muted">
             <li>
               <span className="text-text font-medium">1. Claude Code MCP 설정에 Pencil.dev 추가:</span>
               <div className="flex items-center gap-2 mt-1.5">
-                <code className="flex-1 bg-zinc-800 border border-border rounded px-3 py-1.5 text-[11px] text-green-300 font-mono overflow-x-auto">
+                <code className="flex-1 bg-surface border border-border rounded px-3 py-1.5 text-[11px] text-green-300 font-mono overflow-x-auto">
                   {MCP_COMMAND}
                 </code>
                 <CopyButton text={MCP_COMMAND} />
@@ -335,7 +335,7 @@ function DesignBotSection() {
         <p className="text-[13px] font-semibold text-text mb-4">Design Bot 워크플로우</p>
         <div className="flex flex-col items-center gap-1 text-[12px]">
           {/* Research Bot */}
-          <div className="w-full bg-zinc-900 border border-border rounded-lg px-4 py-2.5 text-center">
+          <div className="w-full bg-bg border border-border rounded-lg px-4 py-2.5 text-center">
             <span className="text-[11px] text-muted">1단계</span>
             <p className="text-text font-medium mt-0.5">Research Bot</p>
             <p className="text-[11px] text-muted mt-0.5">[리서치 결과 생성]</p>
@@ -358,7 +358,7 @@ function DesignBotSection() {
           <div className="text-muted text-lg leading-none py-0.5">↓</div>
 
           {/* Build Bot */}
-          <div className="w-full bg-zinc-900 border border-border rounded-lg px-4 py-2.5 text-center">
+          <div className="w-full bg-bg border border-border rounded-lg px-4 py-2.5 text-center">
             <span className="text-[11px] text-muted">3단계</span>
             <p className="text-text font-medium mt-0.5">Build Bot</p>
             <p className="text-[11px] text-muted mt-0.5">[디자인 기반 코드 구현]</p>
@@ -372,12 +372,12 @@ function DesignBotSection() {
 
         {/* Config file path */}
         <div className="flex items-center gap-2 mb-4">
-          <code className="flex-1 bg-zinc-900 border border-border rounded px-3 py-1.5 text-[11px] text-muted font-mono">
+          <code className="flex-1 bg-bg border border-border rounded px-3 py-1.5 text-[11px] text-muted font-mono">
             {configPath}
           </code>
           <button
             onClick={openConfigFile}
-            className="px-3 py-1.5 bg-zinc-800 border border-border rounded text-[11px] text-text hover:border-zinc-500 transition-colors whitespace-nowrap"
+            className="px-3 py-1.5 bg-surface border border-border rounded text-[11px] text-text hover:border-primary/50 transition-colors whitespace-nowrap"
           >
             MCP 설정 열기
           </button>
@@ -386,7 +386,7 @@ function DesignBotSection() {
         {/* Example MCP config */}
         <p className="text-[11px] text-muted mb-2">예시 설정 (claude_desktop_config.json):</p>
         <div className="relative">
-          <pre className="bg-zinc-900 border border-border rounded-lg px-4 py-3 text-[11px] text-green-300 font-mono overflow-x-auto">
+          <pre className="bg-bg border border-border rounded-lg px-4 py-3 text-[11px] text-green-300 font-mono overflow-x-auto">
             {MCP_CONFIG_JSON}
           </pre>
           <div className="absolute top-2 right-2">
@@ -416,14 +416,14 @@ function OptionalToolCard({
   return (
     <div
       className={`bg-surface border rounded-xl p-4 cursor-pointer transition-colors flex flex-col ${
-        selected ? 'border-primary' : 'border-border hover:border-zinc-600'
+        selected ? 'border-primary' : 'border-border hover:border-primary/50'
       }`}
       onClick={onSelect}
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {icon}
-          <span className="text-[12px] px-1.5 py-0.5 rounded-full bg-zinc-800 text-muted border border-border text-[10px]">
+          <span className="text-[12px] px-1.5 py-0.5 rounded-full bg-surface text-muted border border-border text-[10px]">
             선택
           </span>
         </div>
@@ -444,7 +444,7 @@ function OptionalToolCard({
           </>
         ) : (
           <>
-            <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+            <div className="w-1.5 h-1.5 rounded-full bg-border" />
             <span className="text-[11px] text-muted">미설치</span>
           </>
         )}
@@ -464,7 +464,7 @@ function OptionalToolCard({
           className={`text-[11px] py-1 px-2 rounded text-center transition-colors ${
             selected
               ? 'bg-primary/20 text-primary border border-primary/30'
-              : 'bg-zinc-800 text-muted border border-border hover:text-text'
+              : 'bg-surface text-muted border border-border hover:text-text'
           }`}
         >
           {selected ? '기본 도구로 설정됨' : '기본 도구로 설정'}
