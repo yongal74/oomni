@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { devtoolsApi } from '../lib/api'
-import { RefreshCw, CheckCircle, XCircle, Terminal, Monitor, Zap, Rocket } from 'lucide-react'
+import { RefreshCw, CheckCircle, XCircle, Terminal, Monitor, Zap, Rocket, Copy, Check } from 'lucide-react'
 
 type IdeKey = 'claude_code' | 'vscode' | 'cursor' | 'antigravity'
 
@@ -183,7 +183,10 @@ export default function DevToolsPage() {
             </div>
           </div>
 
-          {/* Section 3: 현재 설정 저장 */}
+          {/* Section 3: Design Bot — Pencil.dev MCP */}
+          <DesignBotSection />
+
+          {/* Section 4: 현재 설정 저장 */}
           <div className="bg-surface border border-border rounded-xl p-5">
             <div className="text-[10px] text-muted uppercase tracking-widest mb-3">현재 설정</div>
             <div className="flex items-center justify-between">
@@ -223,6 +226,179 @@ export default function DevToolsPage() {
   )
 }
 
+// ──────────────────────────────────────────────────────────────
+// CopyButton
+// ──────────────────────────────────────────────────────────────
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="flex items-center gap-1 px-2 py-1 rounded text-[11px] bg-zinc-800 border border-border text-muted hover:text-text transition-colors"
+      title="복사"
+    >
+      {copied ? <Check size={11} className="text-green-400" /> : <Copy size={11} />}
+      {copied ? '복사됨' : '복사'}
+    </button>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────
+// DesignBotSection
+// ──────────────────────────────────────────────────────────────
+const MCP_COMMAND = 'claude mcp add pencil npx @pencilapp/mcp-server'
+
+const MCP_CONFIG_JSON = `{
+  "mcpServers": {
+    "pencil": {
+      "command": "npx",
+      "args": ["@pencilapp/mcp-server"]
+    }
+  }
+}`
+
+function DesignBotSection() {
+  const configPath = '~/.claude/claude_desktop_config.json'
+
+  const openConfigFile = () => {
+    // In Electron the setWindowOpenHandler will route this via shell.openExternal
+    window.open(`file://${configPath}`, '_blank')
+  }
+
+  return (
+    <div className="mb-6">
+      {/* Section header */}
+      <div className="text-[10px] text-muted uppercase tracking-widest mb-3">Design Bot</div>
+
+      {/* Title card */}
+      <div className="bg-surface border border-border rounded-xl p-5 mb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xl">🎨</span>
+          <h2 className="text-[15px] font-semibold text-text">Design Bot — Pencil.dev MCP</h2>
+        </div>
+        <p className="text-[12px] text-muted">
+          Design Bot은 Claude Code + Pencil.dev MCP를 사용하여 UI/UX 디자인을 자동화합니다.
+        </p>
+      </div>
+
+      {/* Pencil.dev MCP status card */}
+      <div className="bg-surface border border-border rounded-xl p-5 mb-3">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[14px] font-semibold text-text">Pencil.dev MCP Server</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-muted border border-border">
+            선택
+          </span>
+        </div>
+        <p className="text-[12px] text-muted mb-4">
+          클로드 코드가 Pencil.dev 디자인 파일을 직접 읽고 수정할 수 있게 합니다
+        </p>
+
+        {/* Installation steps */}
+        <div className="bg-zinc-900 border border-border rounded-lg p-4 mb-3">
+          <p className="text-[12px] font-medium text-text mb-3">설치 방법</p>
+          <ol className="space-y-3 text-[12px] text-muted">
+            <li>
+              <span className="text-text font-medium">1. Claude Code MCP 설정에 Pencil.dev 추가:</span>
+              <div className="flex items-center gap-2 mt-1.5">
+                <code className="flex-1 bg-zinc-800 border border-border rounded px-3 py-1.5 text-[11px] text-green-300 font-mono overflow-x-auto">
+                  {MCP_COMMAND}
+                </code>
+                <CopyButton text={MCP_COMMAND} />
+              </div>
+            </li>
+            <li>
+              <span className="text-text font-medium">2. Pencil.dev 앱 설치:</span>{' '}
+              <button
+                onClick={() => openLink('https://pencil.dev/download')}
+                className="text-primary hover:underline"
+              >
+                pencil.dev/download
+              </button>
+            </li>
+            <li>
+              <span className="text-text font-medium">3. .pen 파일을 프로젝트에 생성 후 Claude Code로 디자인 자동화</span>
+            </li>
+          </ol>
+        </div>
+      </div>
+
+      {/* Design Bot workflow card */}
+      <div className="bg-surface border border-border rounded-xl p-5 mb-3">
+        <p className="text-[13px] font-semibold text-text mb-4">Design Bot 워크플로우</p>
+        <div className="flex flex-col items-center gap-1 text-[12px]">
+          {/* Research Bot */}
+          <div className="w-full bg-zinc-900 border border-border rounded-lg px-4 py-2.5 text-center">
+            <span className="text-[11px] text-muted">1단계</span>
+            <p className="text-text font-medium mt-0.5">Research Bot</p>
+            <p className="text-[11px] text-muted mt-0.5">[리서치 결과 생성]</p>
+          </div>
+
+          <div className="text-muted text-lg leading-none py-0.5">↓</div>
+
+          {/* Design Bot */}
+          <div className="w-full bg-primary/10 border border-primary/30 rounded-lg px-4 py-3">
+            <span className="text-[11px] text-primary">2단계</span>
+            <p className="text-text font-medium mt-0.5">Design Bot</p>
+            <p className="text-[11px] text-primary/80 mt-0.5">Claude Code + Pencil.dev MCP</p>
+            <ul className="mt-2 space-y-0.5 text-[11px] text-muted list-disc list-inside">
+              <li>리서치 기반 UI 컴포넌트 생성</li>
+              <li>색상/타이포그래피 시스템 정의</li>
+              <li>화면 흐름 자동 설계</li>
+            </ul>
+          </div>
+
+          <div className="text-muted text-lg leading-none py-0.5">↓</div>
+
+          {/* Build Bot */}
+          <div className="w-full bg-zinc-900 border border-border rounded-lg px-4 py-2.5 text-center">
+            <span className="text-[11px] text-muted">3단계</span>
+            <p className="text-text font-medium mt-0.5">Build Bot</p>
+            <p className="text-[11px] text-muted mt-0.5">[디자인 기반 코드 구현]</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Claude Code MCP config helper card */}
+      <div className="bg-surface border border-border rounded-xl p-5">
+        <p className="text-[13px] font-semibold text-text mb-3">Claude Code MCP 설정 도우미</p>
+
+        {/* Config file path */}
+        <div className="flex items-center gap-2 mb-4">
+          <code className="flex-1 bg-zinc-900 border border-border rounded px-3 py-1.5 text-[11px] text-muted font-mono">
+            {configPath}
+          </code>
+          <button
+            onClick={openConfigFile}
+            className="px-3 py-1.5 bg-zinc-800 border border-border rounded text-[11px] text-text hover:border-zinc-500 transition-colors whitespace-nowrap"
+          >
+            MCP 설정 열기
+          </button>
+        </div>
+
+        {/* Example MCP config */}
+        <p className="text-[11px] text-muted mb-2">예시 설정 (claude_desktop_config.json):</p>
+        <div className="relative">
+          <pre className="bg-zinc-900 border border-border rounded-lg px-4 py-3 text-[11px] text-green-300 font-mono overflow-x-auto">
+            {MCP_CONFIG_JSON}
+          </pre>
+          <div className="absolute top-2 right-2">
+            <CopyButton text={MCP_CONFIG_JSON} />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────
 interface OptionalToolCardProps {
   ideKey: IdeKey
   icon: React.ReactNode
