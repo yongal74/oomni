@@ -8,6 +8,7 @@ export const TABLES = [
   'integrations',
   'schedules',
   'research_items',
+  'token_usage',
 ] as const;
 
 // SQLite 스키마 (PostgreSQL 호환 제거: TIMESTAMPTZ→TEXT, BOOLEAN→INTEGER, JSONB→TEXT, NUMERIC→REAL)
@@ -145,4 +146,19 @@ CREATE TABLE IF NOT EXISTS research_items (
 );
 CREATE INDEX IF NOT EXISTS idx_research_items_mission_id ON research_items(mission_id);
 CREATE INDEX IF NOT EXISTS idx_research_items_filter_decision ON research_items(filter_decision);
+
+-- 토큰 사용량 추적 (봇별 실행별 상세 기록)
+CREATE TABLE IF NOT EXISTS token_usage (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+  mission_id TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+  run_id TEXT,
+  input_tokens INTEGER NOT NULL DEFAULT 0,
+  output_tokens INTEGER NOT NULL DEFAULT 0,
+  cost_usd REAL NOT NULL DEFAULT 0,
+  model TEXT DEFAULT 'claude-3-5-sonnet',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_token_usage_agent_id ON token_usage(agent_id);
+CREATE INDEX IF NOT EXISTS idx_token_usage_mission_id ON token_usage(mission_id);
 `;
