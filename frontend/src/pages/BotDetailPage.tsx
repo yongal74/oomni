@@ -1,92 +1,72 @@
-import { useState, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  agentsApi, feedApi, schedulesApi,
-  type Agent, type Schedule,
-} from '../lib/api'
+import { agentsApi, type Agent } from '../lib/api'
 import { useAppStore } from '../store/app.store'
-import { Play, Trash2, Save, Settings, Activity, Loader2, Link2, X, ArrowRight, Plus } from 'lucide-react'
-import { BotRunModal } from '../components/BotRunModal'
-import { BotStreamOutput } from '../components/BotStreamOutput'
-import { BotRunHistory } from '../components/BotRunHistory'
+import { Trash2, Settings, ArrowLeft, Send } from 'lucide-react'
+import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
+import { LiveStreamDrawer } from '../components/bot/LiveStreamDrawer'
+import {
+  ResearchLeftPanel,
+  ResearchCenterPanel,
+  ResearchRightPanel,
+} from '../components/bot/panels/ResearchPanel'
+import {
+  CommonLeftPanel,
+  CommonCenterPanel,
+  CommonRightPanel,
+} from '../components/bot/panels/GenericPanel'
+import { cn } from '../lib/utils'
+import type { ResearchItem } from '../lib/api'
 
 const BOT_EMOJI: Record<string, string> = {
   research: '🔬', build: '🔨', design: '🎨', content: '✍️',
-  growth: '📈', ops: '⚙️', integration: '🔗', n8n: '⚡',
+  growth: '📈', ops: '⚙️', integration: '🔗', n8n: '⚡', ceo: '👔',
 }
-const SCHEDULE_LABELS = { manual: '수동', hourly: '매시간', daily: '매일', weekly: '매주' }
+
+const ROLE_LABEL: Record<string, string> = {
+  research: 'Research', build: 'Build', design: 'Design', content: 'Content',
+  growth: 'Growth', ops: 'Ops', integration: 'Integration', n8n: 'n8n', ceo: 'CEO',
+}
+
+const PLACEHOLDER: Record<string, string> = {
+  research: '예: "오늘 AI 트렌드 수집하고 신호강도 채점해줘"',
+  content:  '예: "리서치 결과로 블로그 포스트 초안 작성해줘"',
+  build:    '예: "Research Bot SSE 스트리밍 연결 버그 수정해줘"',
+  growth:   '예: "이번 주 사용자 증가 분석하고 캠페인 추천해줘"',
+  ops:      '예: "Slack 메시지 → 이슈 자동 생성 n8n 워크플로우 만들어줘"',
+  ceo:      '예: "이번 주 전체 봇 현황 브리핑 작성해줘"',
+  design:   '예: "대시보드 랜딩 히어로 섹션 디자인 생성해줘"',
+  default:  '봇에게 지시사항을 입력하세요...',
+}
 
 export default function BotDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const { currentMission } = useAppStore()
+  const { currentMission, agents: allAgents } = useAppStore()
   const missionId = currentMission?.id
 
-  const [tab, setTab] = useState<'activity' | 'settings' | 'triggers'>('activity')
-  const [showRunModal, setShowRunModal] = useState(false)
-  const [showStream, setShowStream] = useState(false)
-  const [editedPrompt, setEditedPrompt] = useState('')
-  const [editedBudget, setEditedBudget] = useState<number>(0)
-  const [editedSchedule, setEditedSchedule] = useState<string>('manual')
-  const [saveMsg, setSaveMsg] = useState('')
-  const [selectedConnectBot, setSelectedConnectBot] = useState('')
-  const [connectScheduleName, setConnectScheduleName] = useState('')
+  const [task, setTask] = useState('')
+  const [isRunning, setIsRunning] = useState(false)
+  const [currentStage, setCurrentStage] = useState<string | null>(null)
+  const [showSettings, setShowSettings] = useState(false)
+  const [selectedResearchItem, setSelectedResearchItem] = useState<ResearchItem | null>(null)
+  const esRef = useRef<EventSource | null>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const { data: agent, isLoading } = useQuery<Agent>({
     queryKey: ['agent', id],
     queryFn: () => agentsApi.list().then(list => list.find((a: Agent) => a.id === id)!),
     enabled: !!id,
   })
-  useEffect(() => {
-    if (agent) {
-      setEditedPrompt(agent.system_prompt)
-      setEditedBudget(agent.budget_cents)
-      setEditedSchedule(agent.schedule)
-    }
-  }, [agent])
 
-  // 모든 에이전트 (같은 미션)
-  const { data: allAgents = [] } = useQuery<Agent[]>({
-    queryKey: ['agents', missionId],
-    queryFn: () => agentsApi.list(missionId),
-    enabled: !!missionId,
-  })
-
-  const { data: feed = [] } = useQuery({
-    queryKey: ['bot-feed', id],
-    queryFn: () => feedApi.list({ limit: 20 }),
-    select: (data: FeedItemAny[]) => data.filter(f => f.agent_id === id),
-  })
-
-  // 이 봇과 관련된 스케줄
-  const { data: schedules = [] } = useQuery<Schedule[]>({
-    queryKey: ['schedules', missionId],
-    queryFn: () => schedulesApi.list({ mission_id: missionId }),
-    enabled: !!missionId,
-  })
-
-  // 이 봇을 트리거하는 스케줄 (trigger_value === id, bot_complete 타입)
-  const incomingTriggers = schedules.filter(
-    s => s.trigger_type === 'bot_complete' && s.agent_id === id
-  )
-  // 이 봇이 완료되면 실행할 스케줄 (trigger_value === id, bot_complete 타입, agent_id !== id)
-  const outgoingTriggers = schedules.filter(
-    s => s.trigger_type === 'bot_complete' && s.trigger_value === id
-  )
+  // 다음 봇 (같은 미션의 다른 봇)
+  const nextBot = allAgents.find(a => a.mission_id === missionId && a.id !== id)
 
   const update = useMutation({
-    mutationFn: () => agentsApi.update(id!, {
-      system_prompt: editedPrompt,
-      budget_cents: editedBudget,
-      schedule: editedSchedule as Agent['schedule'],
-    }),
-    onSuccess: () => {
-      setSaveMsg('저장됨!')
-      setTimeout(() => setSaveMsg(''), 2000)
-      qc.invalidateQueries({ queryKey: ['agent', id] })
-    },
+    mutationFn: (data: Partial<Agent>) => agentsApi.update(id!, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['agent', id] }),
   })
 
   const remove = useMutation({
@@ -94,318 +74,193 @@ export default function BotDetailPage() {
     onSuccess: () => navigate('/dashboard'),
   })
 
-  // 봇 완료 시 자동 실행 연결 추가
-  const addOutgoingTrigger = useMutation({
-    mutationFn: () => schedulesApi.create({
-      agent_id: selectedConnectBot,
-      mission_id: missionId!,
-      name: connectScheduleName || `${agent?.name} 완료 → ${allAgents.find(a => a.id === selectedConnectBot)?.name ?? ''} 실행`,
-      trigger_type: 'bot_complete',
-      trigger_value: id!,
-    }),
-    onSuccess: () => {
-      setSelectedConnectBot('')
-      setConnectScheduleName('')
-      qc.invalidateQueries({ queryKey: ['schedules'] })
-    },
-  })
+  const handleRun = () => {
+    if (!task.trim() || isRunning) return
+    setIsRunning(true)
+    setCurrentStage(null)
+  }
 
-  // 스케줄 삭제
-  const deleteSchedule = useMutation({
-    mutationFn: (scheduleId: string) => schedulesApi.delete(scheduleId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['schedules'] }),
-  })
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleRun()
+    }
+  }
 
-  const getAgentName = (agentId: string) =>
-    allAgents.find(a => a.id === agentId)?.name ?? agentId
+  const handleDone = () => {
+    setIsRunning(false)
+    setCurrentStage('done')
+    qc.invalidateQueries({ queryKey: ['bot-feed', id] })
+    qc.invalidateQueries({ queryKey: ['research', missionId] })
+    setTask('')
+  }
+
+  const handleNextBot = () => {
+    if (nextBot) navigate(`/dashboard/bots/${nextBot.id}`)
+  }
 
   if (isLoading) return (
-    <div className="flex justify-center py-12">
-      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    <div className="flex items-center justify-center h-full">
+      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   )
-  if (!agent) return <div className="p-6 text-muted">봇을 찾을 수 없습니다</div>
+  if (!agent) return <div className="p-6 text-muted text-[13px]">봇을 찾을 수 없습니다</div>
 
-  const otherAgents = allAgents.filter(a => a.id !== id)
+  const stages = ROLE_STAGES[agent.role] ?? ROLE_STAGES.default
+  const placeholder = PLACEHOLDER[agent.role] ?? PLACEHOLDER.default
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="flex flex-col h-full">
+
+      {/* ── 헤더 ────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-surface shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">{BOT_EMOJI[agent.role] ?? '🤖'}</span>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="text-muted hover:text-text transition-colors"
+          >
+            <ArrowLeft size={15} />
+          </button>
+          <span className="text-xl">{BOT_EMOJI[agent.role] ?? '🤖'}</span>
           <div>
-            <h1 className="text-xl font-semibold text-text">{agent.name}</h1>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[11px] text-muted">{agent.role}</span>
-              <span className="text-[11px] text-muted">•</span>
-              <span className="text-[11px] text-muted">{SCHEDULE_LABELS[agent.schedule as keyof typeof SCHEDULE_LABELS]}</span>
-              <div className={`w-2 h-2 rounded-full ${agent.is_active ? 'bg-green-500' : 'bg-[#444]'}`} />
+            <div className="flex items-center gap-2">
+              <h1 className="text-[15px] font-semibold text-text">{agent.name}</h1>
+              <span className={cn(
+                'text-[10px] px-1.5 py-0.5 rounded-full',
+                agent.is_active ? 'bg-green-500/15 text-green-400' : 'bg-border text-muted'
+              )}>
+                {agent.is_active ? '활성' : '비활성'}
+              </span>
             </div>
+            <div className="text-[11px] text-muted">{ROLE_LABEL[agent.role]} Bot</div>
           </div>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowRunModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[13px] hover:bg-[#C5664A]"
+            onClick={() => setShowSettings(s => !s)}
+            className={cn(
+              'p-1.5 rounded transition-colors',
+              showSettings ? 'text-primary bg-primary/10' : 'text-muted hover:text-text'
+            )}
           >
-            <Play size={13} />
-            즉시 실행
+            <Settings size={14} />
           </button>
           <button
-            onClick={() => remove.mutate()}
-            className="p-1.5 text-muted hover:text-red-400 border border-border rounded"
+            onClick={() => {
+              if (confirm('이 봇을 삭제할까요?')) remove.mutate()
+            }}
+            className="p-1.5 text-muted hover:text-red-400 transition-colors rounded"
           >
             <Trash2 size={14} />
           </button>
         </div>
       </div>
 
-      {/* 탭 */}
-      <div className="flex gap-1 mb-5 border-b border-border">
-        {([
-          ['activity', Activity, '활동'],
-          ['settings', Settings, '설정'],
-          ['triggers', Link2, '트리거 연결'],
-        ] as const).map(([key, Icon, label]) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`flex items-center gap-1.5 px-3 py-2 text-[13px] border-b-2 -mb-px transition-colors ${
-              tab === key ? 'border-primary text-text' : 'border-transparent text-muted hover:text-text'
-            }`}
-          >
-            <Icon size={13} />{label}
-            {key === 'triggers' && (incomingTriggers.length + outgoingTriggers.length) > 0 && (
-              <span className="bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                {incomingTriggers.length + outgoingTriggers.length}
-              </span>
-            )}
-          </button>
-        ))}
+      {/* ── 파이프라인 바 ─────────────────────────────────── */}
+      <PipelineBar stages={stages} currentStage={currentStage} />
+
+      {/* ── 메인 3패널 ────────────────────────────────────── */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* LEFT */}
+        <div className="w-52 border-r border-border overflow-y-auto shrink-0">
+          {showSettings ? (
+            <CommonLeftPanel
+              agent={agent}
+              onUpdate={(data) => update.mutate(data as Partial<Agent>)}
+            />
+          ) : agent.role === 'research' ? (
+            <ResearchLeftPanel missionId={missionId ?? ''} />
+          ) : (
+            <CommonLeftPanel
+              agent={agent}
+              onUpdate={(data) => update.mutate(data as Partial<Agent>)}
+            />
+          )}
+        </div>
+
+        {/* CENTER */}
+        <div className="flex-1 overflow-hidden">
+          {agent.role === 'research' ? (
+            <ResearchCenterPanel
+              missionId={missionId ?? ''}
+              onItemClick={setSelectedResearchItem}
+            />
+          ) : (
+            <CommonCenterPanel agentId={agent.id} />
+          )}
+        </div>
+
+        {/* RIGHT */}
+        <div className="w-64 border-l border-border overflow-y-auto shrink-0">
+          {agent.role === 'research' ? (
+            <ResearchRightPanel
+              item={selectedResearchItem}
+              nextBotName={nextBot?.name}
+              onNextBot={handleNextBot}
+            />
+          ) : (
+            <CommonRightPanel
+              agentId={agent.id}
+              nextBotName={nextBot?.name}
+              onNextBot={handleNextBot}
+            />
+          )}
+        </div>
       </div>
 
-      {/* SSE 스트림 출력 패널 */}
-      {showStream && agent && (
-        <div className="mb-5">
-          <BotStreamOutput
-            agentId={agent.id}
-            onDone={() => {
-              setShowStream(false)
-              qc.invalidateQueries()
-            }}
-          />
-        </div>
-      )}
-
-      {/* 활동 탭 */}
-      {tab === 'activity' && (
-        <div>
-          {feed.length === 0 && (
-            <div className="mb-4 text-center">
-              <button
-                onClick={() => setShowRunModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded text-[13px] hover:bg-[#C5664A] mx-auto"
-              >
-                <Play size={13} />
-                지금 실행하기
-              </button>
-            </div>
-          )}
-          <BotRunHistory agentId={agent.id} />
-        </div>
-      )}
-
-      {/* 설정 탭 */}
-      {tab === 'settings' && (
-        <div className="space-y-5">
-          <div>
-            <label className="text-[12px] text-muted block mb-1.5">실행 스케줄</label>
-            <select
-              value={editedSchedule}
-              onChange={e => setEditedSchedule(e.target.value)}
-              className="bg-bg border border-border rounded px-3 py-2 text-[13px] text-text focus:outline-none focus:border-primary"
-            >
-              {Object.entries(SCHEDULE_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-[12px] text-muted block mb-1.5">월 예산 한도 (cents, $1 = 100)</label>
-            <input
-              type="number"
-              value={editedBudget}
-              onChange={e => setEditedBudget(parseInt(e.target.value) || 0)}
-              min={0}
-              className="w-48 bg-bg border border-border rounded px-3 py-2 text-[13px] text-text focus:outline-none focus:border-primary"
-            />
-            <span className="text-[11px] text-muted ml-2">${(editedBudget / 100).toFixed(2)}/월</span>
-          </div>
-          <div>
-            <label className="text-[12px] text-muted block mb-1.5">시스템 프롬프트</label>
-            <textarea
-              value={editedPrompt}
-              onChange={e => setEditedPrompt(e.target.value)}
-              rows={8}
-              className="w-full bg-bg border border-border rounded px-3 py-2 text-[12px] text-text font-mono focus:outline-none focus:border-primary resize-none"
-            />
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => update.mutate()}
-              disabled={update.isPending}
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded text-[13px] hover:bg-[#C5664A] disabled:opacity-50"
-            >
-              {update.isPending ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-              저장
-            </button>
-            {saveMsg && <span className="text-[12px] text-green-400">{saveMsg}</span>}
-          </div>
-        </div>
-      )}
-
-      {/* 트리거 연결 탭 */}
-      {tab === 'triggers' && (
-        <div className="space-y-6">
-          {/* 이 봇을 트리거하는 스케줄 */}
-          <div>
-            <h3 className="text-[12px] font-medium text-muted uppercase tracking-wider mb-3">
-              이 봇을 실행시키는 트리거
-            </h3>
-            {incomingTriggers.length === 0 ? (
-              <div className="text-center py-6 text-muted text-[12px] bg-surface border border-border rounded-lg">
-                이 봇을 자동으로 실행하는 트리거가 없습니다
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {incomingTriggers.map(s => (
-                  <div key={s.id} className="flex items-center gap-3 bg-surface border border-border rounded-lg p-3">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-[12px] text-muted">
-                        {s.trigger_type === 'bot_complete' ? (
-                          <span className="flex items-center gap-1.5">
-                            <span className="text-text font-medium">{getAgentName(s.trigger_value)}</span>
-                            <span>완료 시 자동 실행</span>
-                          </span>
-                        ) : (
-                          <span>{s.name}</span>
-                        )}
-                      </span>
-                    </div>
-                    <div className={`w-2 h-2 rounded-full ${s.is_active ? 'bg-green-500' : 'bg-[#444]'}`} />
-                    <button
-                      onClick={() => deleteSchedule.mutate(s.id)}
-                      className="text-muted hover:text-red-400 p-1 rounded"
-                      title="연결 제거"
-                    >
-                      <X size={13} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 이 봇 완료 후 자동 실행할 봇 */}
-          <div>
-            <h3 className="text-[12px] font-medium text-muted uppercase tracking-wider mb-3">
-              이 봇 완료 시 자동 실행할 봇
-            </h3>
-            {outgoingTriggers.length === 0 ? (
-              <div className="text-center py-4 text-muted text-[12px] bg-surface border border-border rounded-lg mb-3">
-                연결된 봇이 없습니다
-              </div>
-            ) : (
-              <div className="space-y-2 mb-3">
-                {outgoingTriggers.map(s => (
-                  <div key={s.id} className="flex items-center gap-3 bg-surface border border-border rounded-lg p-3">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-text font-medium text-[12px]">{agent.name}</span>
-                      <ArrowRight size={12} className="text-primary" />
-                      <span className="text-text font-medium text-[12px]">{getAgentName(s.agent_id)}</span>
-                      <span className="text-[11px] text-muted">자동 실행</span>
-                    </div>
-                    <div className={`w-2 h-2 rounded-full ${s.is_active ? 'bg-green-500' : 'bg-[#444]'}`} />
-                    <button
-                      onClick={() => deleteSchedule.mutate(s.id)}
-                      className="text-muted hover:text-red-400 p-1 rounded"
-                      title="연결 제거"
-                    >
-                      <X size={13} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* 연결 추가 폼 */}
-            {otherAgents.length > 0 ? (
-              <div className="bg-surface border border-border rounded-lg p-4">
-                <div className="text-[12px] text-muted mb-3">연결할 봇 선택</div>
-                <div className="space-y-3">
-                  <select
-                    value={selectedConnectBot}
-                    onChange={e => setSelectedConnectBot(e.target.value)}
-                    className="w-full bg-bg border border-border rounded px-3 py-2 text-[13px] text-text focus:outline-none focus:border-primary"
-                  >
-                    <option value="">봇 선택 (이 봇 완료 후 자동 실행)</option>
-                    {otherAgents.map(a => (
-                      <option key={a.id} value={a.id}>{a.name}</option>
-                    ))}
-                  </select>
-                  {selectedConnectBot && (
-                    <div className="flex items-center gap-2 text-[12px] text-muted">
-                      <span className="text-text">{agent.name}</span>
-                      <span>완료</span>
-                      <ArrowRight size={12} className="text-primary" />
-                      <span className="text-text">{getAgentName(selectedConnectBot)}</span>
-                      <span>자동 실행</span>
-                    </div>
-                  )}
-                  <input
-                    type="text"
-                    value={connectScheduleName}
-                    onChange={e => setConnectScheduleName(e.target.value)}
-                    placeholder="스케줄 이름 (선택)"
-                    className="w-full bg-bg border border-border rounded px-3 py-2 text-[13px] text-text placeholder-muted focus:outline-none focus:border-primary"
-                  />
-                  <button
-                    onClick={() => addOutgoingTrigger.mutate()}
-                    disabled={!selectedConnectBot || addOutgoingTrigger.isPending || !missionId}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[12px] hover:bg-[#C5664A] disabled:opacity-50"
-                  >
-                    {addOutgoingTrigger.isPending ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
-                    연결 추가
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-4 text-muted text-[12px] bg-surface border border-border rounded-lg">
-                연결 가능한 다른 봇이 없습니다
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 봇 실행 모달 */}
-      {showRunModal && agent && (
-        <BotRunModal
-          agent={agent}
-          onClose={() => setShowRunModal(false)}
-          onSuccess={() => setShowStream(true)}
+      {/* ── 하단 고정: 스트림 + 프롬프트 입력창 ─────────── */}
+      <div className="shrink-0">
+        <LiveStreamDrawer
+          agentId={agent.id}
+          task={task}
+          isRunning={isRunning}
+          onStageChange={setCurrentStage}
+          onDone={handleDone}
+          onError={() => setIsRunning(false)}
+          esRef={esRef}
         />
-      )}
+
+        {/* 프롬프트 입력창 */}
+        <div className="flex items-end gap-3 px-4 py-3 bg-surface border-t border-border">
+          <div className="flex-1 relative">
+            <textarea
+              ref={inputRef}
+              value={task}
+              onChange={e => setTask(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              rows={1}
+              disabled={isRunning}
+              className={cn(
+                'w-full bg-bg border border-border rounded-lg px-3 py-2.5 text-[13px] text-text placeholder-muted/60',
+                'focus:outline-none focus:border-primary/60 resize-none leading-relaxed',
+                'transition-colors disabled:opacity-50',
+                'max-h-32 overflow-y-auto'
+              )}
+              style={{ height: 'auto' }}
+              onInput={e => {
+                const el = e.currentTarget
+                el.style.height = 'auto'
+                el.style.height = Math.min(el.scrollHeight, 128) + 'px'
+              }}
+            />
+          </div>
+          <button
+            onClick={handleRun}
+            disabled={!task.trim() || isRunning}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-[13px] font-medium transition-colors shrink-0',
+              'bg-primary text-white hover:bg-primary-hover',
+              'disabled:opacity-40 disabled:cursor-not-allowed'
+            )}
+          >
+            <Send size={13} />
+            실행
+          </button>
+        </div>
+      </div>
     </div>
   )
-}
-
-// 로컬 타입 (feedApi 반환값용)
-interface FeedItemAny {
-  id: string
-  agent_id: string
-  type: string
-  content: string
-  created_at: string
 }

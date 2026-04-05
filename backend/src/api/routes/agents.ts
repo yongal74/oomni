@@ -1,8 +1,9 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import { ClaudeCodeExecutor } from '../../services/claudeCodeExecutor';
 import { ParallelExecutor, type ParallelResult } from '../../services/parallelExecutor';
+import { routeToExecutor } from '../../services/roleExecutors/index';
+import { saveFeedItem } from '../../services/roleExecutors/base';
 
 const VALID_ROLES = ['research','build','design','content','growth','ops','integration','n8n','ceo'] as const;
 const VALID_SCHEDULES = ['manual','hourly','daily','weekly'] as const;
@@ -116,88 +117,28 @@ export function agentsRouter(db: DbClient): Router {
       return;
     }
 
-    const task: string | undefined = typeof req.body?.task === 'string' ? req.body.task : undefined;
+    const task: string = typeof req.body?.task === 'string' ? req.body.task : '정기 실행';
+    const agentFull = rows[0] as {
+      id: string; name: string; role: string; mission_id: string;
+      is_active: boolean; system_prompt: string; budget_cents: number;
+    };
 
-    // Claude Code CLI 실행 시도
-    const claudeAvailable = await ClaudeCodeExecutor.isAvailable();
+    // 비동기 실행 (SSE stream 엔드포인트로 실시간 진행 확인 권장)
+    routeToExecutor({
+      agent: agentFull,
+      task,
+      db,
+      send: () => { /* trigger는 SSE 없이 백그라운드 실행 */ },
+    }).catch(async (err) => {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`);
+    });
 
-    if (claudeAvailable && task) {
-      // 시작 feed item 저장
-      const startId = uuidv4();
-      await db.query(
-        `INSERT INTO feed_items (id, agent_id, run_id, type, content, action_label, action_data, requires_approval)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [startId, agent.id, null, 'info', `🤖 Claude Code 실행 시작: ${task}`, null, null, false],
-      );
-
-      try {
-        const executor = new ClaudeCodeExecutor();
-        const execResult = await executor.execute(task);
-
-        if (execResult.success) {
-          // 성공 결과 저장
-          const resultId = uuidv4();
-          await db.query(
-            `INSERT INTO feed_items (id, agent_id, run_id, type, content, action_label, action_data, requires_approval)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-            [resultId, agent.id, null, 'result', execResult.output || '(출력 없음)', null, null, false],
-          );
-
-          res.status(200).json({
-            success: true,
-            output: execResult.output,
-            exitCode: execResult.exitCode,
-            method: 'claude_code',
-            agentId: agent.id,
-            task,
-          });
-        } else {
-          // 비정상 종료 — error feed item
-          const errId = uuidv4();
-          await db.query(
-            `INSERT INTO feed_items (id, agent_id, run_id, type, content, action_label, action_data, requires_approval)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-            [errId, agent.id, null, 'error', `Claude Code 실행 실패 (exit ${execResult.exitCode}): ${execResult.output}`, null, null, false],
-          );
-
-          res.status(200).json({
-            success: false,
-            output: execResult.output,
-            exitCode: execResult.exitCode,
-            method: 'claude_code',
-            agentId: agent.id,
-            task,
-          });
-        }
-      } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-
-        // 예외 → error feed item
-        const errId = uuidv4();
-        await db.query(
-          `INSERT INTO feed_items (id, agent_id, run_id, type, content, action_label, action_data, requires_approval)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-          [errId, agent.id, null, 'error', `Claude Code 실행 중 오류: ${errMsg}`, null, null, false],
-        );
-
-        res.status(500).json({
-          success: false,
-          output: errMsg,
-          method: 'claude_code',
-          agentId: agent.id,
-          task,
-        });
-      }
-      return;
-    }
-
-    // Fallback: Claude CLI 없거나 task 없음 — mock 응답
     res.status(202).json({
       success: true,
-      message: '봇 실행을 요청했습니다',
-      output: task ? `(mock) task 수신: ${task}` : '(mock) 태스크 없음',
-      method: 'mock',
-      agentId: agent.id,
+      message: '봇 실행 시작됨 (실시간 확인: GET /api/agents/:id/stream)',
+      method: 'claude_api',
+      agentId: agentFull.id,
       task,
     });
   });
@@ -234,76 +175,25 @@ export function agentsRouter(db: DbClient): Router {
       res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     };
 
-    const claudeAvailable = await ClaudeCodeExecutor.isAvailable();
+    const taskStr = task ?? '정기 실행';
+    const agentFull = agentRows[0] as {
+      id: string; name: string; role: string; mission_id: string;
+      is_active: boolean; system_prompt: string; budget_cents: number;
+    };
 
-    if (!claudeAvailable) {
-      send('error', { message: 'claude CLI를 찾을 수 없습니다' });
-      res.end();
-      return;
-    }
-
-    if (!task) {
-      send('error', { message: 'task 파라미터가 필요합니다 (?task=...)' });
-      res.end();
-      return;
-    }
-
-    // 시작 feed item
-    const startId = uuidv4();
-    await db.query(
-      `INSERT INTO feed_items (id, agent_id, run_id, type, content, action_label, action_data, requires_approval)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [startId, agent.id, null, 'info', `🤖 Claude Code 실행 시작: ${task}`, null, null, false],
-    );
-
-    send('start', { agentId: agent.id, task });
-
-    const executor = new ClaudeCodeExecutor();
-
-    executor.on('output', (chunk: string) => {
-      send('output', { chunk });
-    });
-
-    executor.on('error', (err: Error) => {
-      send('error', { message: err.message });
-    });
-
-    // Client disconnect → kill process
-    req.on('close', () => {
-      executor.kill();
-    });
+    send('start', { agentId: agentFull.id, task: taskStr });
 
     try {
-      const execResult = await executor.execute(task);
-
-      // 결과 feed item 저장
-      const feedType = execResult.success ? 'result' : 'error';
-      const feedContent = execResult.success
-        ? (execResult.output || '(출력 없음)')
-        : `Claude Code 실행 실패 (exit ${execResult.exitCode}): ${execResult.output}`;
-
-      const doneId = uuidv4();
-      await db.query(
-        `INSERT INTO feed_items (id, agent_id, run_id, type, content, action_label, action_data, requires_approval)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [doneId, agent.id, null, feedType, feedContent, null, null, false],
-      );
-
-      send('done', {
-        success: execResult.success,
-        exitCode: execResult.exitCode,
-        agentId: agent.id,
+      await routeToExecutor({
+        agent: agentFull,
+        task: taskStr,
+        db,
+        send,
       });
+      send('done', { success: true, agentId: agentFull.id });
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
-
-      const errId = uuidv4();
-      await db.query(
-        `INSERT INTO feed_items (id, agent_id, run_id, type, content, action_label, action_data, requires_approval)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [errId, agent.id, null, 'error', `Claude Code 실행 중 오류: ${errMsg}`, null, null, false],
-      );
-
+      await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`);
       send('error', { message: errMsg });
     }
 
