@@ -40,7 +40,7 @@ export function CeoLeftPanel({ missionId }: { missionId: string }) {
 }
 
 // CENTER: CEO 브리핑
-export function CeoCenterPanel({ agentId }: { agentId: string }) {
+export function CeoCenterPanel({ agentId, streamOutput, isRunning }: { agentId: string; streamOutput?: string; isRunning?: boolean }) {
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
     queryFn: () => feedApi.list({ limit: 10 }),
@@ -50,22 +50,46 @@ export function CeoCenterPanel({ agentId }: { agentId: string }) {
 
   const latest = feed[0]
 
-  if (!latest) return (
-    <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
-      <span className="text-5xl opacity-30">👔</span>
-      <p className="text-sm text-muted">CEO 브리핑을 생성하세요</p>
-      <p className="text-xs text-muted/60">"이번 주 전체 현황 브리핑해줘" 등</p>
-    </div>
-  )
+  if (isRunning) {
+    return (
+      <div className="h-full flex flex-col overflow-hidden">
+        <div className="flex items-center gap-2 px-5 py-3 border-b border-border bg-surface shrink-0">
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <span className="text-sm text-muted">브리핑 작성 중...</span>
+        </div>
+        <div className="h-full overflow-y-auto p-6">
+          <pre className="text-base text-dim leading-loose whitespace-pre-wrap font-sans">{streamOutput || ''}</pre>
+        </div>
+      </div>
+    )
+  }
+
+  if (!latest) {
+    if (streamOutput) {
+      return (
+        <div className="h-full overflow-y-auto p-6">
+          <p className="text-xs text-muted mb-4 uppercase tracking-widest">마지막 브리핑</p>
+          <pre className="text-base text-dim leading-loose whitespace-pre-wrap font-sans">{streamOutput}</pre>
+        </div>
+      )
+    }
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
+        <span className="text-5xl opacity-30">👔</span>
+        <p className="text-base text-muted">CEO 브리핑을 생성하세요</p>
+        <p className="text-sm text-muted/60">"이번 주 전체 현황 브리핑해줘" 등</p>
+      </div>
+    )
+  }
 
   return (
     <div className="h-full overflow-y-auto p-6">
       <div className="mb-4">
-        <p className="text-xs text-muted mb-1">
+        <p className="text-sm text-muted mb-1">
           {new Date(latest.created_at).toLocaleString('ko-KR')}
         </p>
       </div>
-      <div className="text-sm text-dim leading-loose whitespace-pre-wrap">
+      <div className="text-base text-dim leading-loose whitespace-pre-wrap">
         {latest.content}
       </div>
       {feed.length > 1 && (
@@ -147,14 +171,14 @@ export function CeoRightPanel({ missionId, nextBotName, onNextBot, onSkillSelect
       </div>
       {/* 빠른 실행 */}
       <div>
-        <p className="text-[10px] text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
         <div className="flex flex-wrap gap-1.5">
           {CEO_SKILLS.map(skill => (
             <button
               key={skill.label}
               onClick={() => onSkillSelect?.(skill.prompt)}
               title={skill.prompt}
-              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-[11px] text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-xs text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
             >
               {skill.label}
             </button>

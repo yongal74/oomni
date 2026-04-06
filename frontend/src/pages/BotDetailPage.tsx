@@ -57,7 +57,7 @@ export default function BotDetailPage() {
   const [contentType, setContentType] = useState('blog')
   const [designTemplate, setDesignTemplate] = useState('landing')
   const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null)
-  const [buildStreamContent, setBuildStreamContent] = useState('')
+  const [streamOutput, setStreamOutput] = useState('')
   const esRef = useRef<EventSource | null>(null)
 
   const { data: agent, isLoading } = useQuery<Agent>({
@@ -89,7 +89,7 @@ export default function BotDetailPage() {
     requestAnimationFrame(() => {
       const stages = ROLE_STAGES[agent.role] ?? ROLE_STAGES.default
       setCurrentStage(stages[0].key)
-      setBuildStreamContent('')
+      setStreamOutput('')
       setIsRunning(true)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,7 +99,7 @@ export default function BotDetailPage() {
     if (!task.trim() || isRunning) return
     const stages = ROLE_STAGES[agent?.role ?? 'default'] ?? ROLE_STAGES.default
     setCurrentStage(stages[0].key) // 첫 단계 즉시 활성화
-    setBuildStreamContent('') // reset stream for new run
+    setStreamOutput('') // reset stream for new run
     setIsRunning(true)
   }
 
@@ -138,14 +138,14 @@ export default function BotDetailPage() {
     if (showSettings) {
       return {
         left: <CommonLeftPanel agent={agent} onUpdate={(d) => update.mutate(d as Partial<Agent>)} />,
-        center: <CommonCenterPanel agentId={agent.id} />,
+        center: <CommonCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
         right: <CommonRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
       }
     }
     switch (agent.role) {
       case 'research': return {
         left: <ResearchLeftPanel missionId={missionId ?? ''} />,
-        center: <ResearchCenterPanel missionId={missionId ?? ''} onItemClick={setSelectedResearchItem} />,
+        center: <ResearchCenterPanel missionId={missionId ?? ''} onItemClick={setSelectedResearchItem} streamOutput={streamOutput} isRunning={isRunning} />,
         right: <ResearchRightPanel item={selectedResearchItem} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
       }
       case 'build': return {
@@ -158,7 +158,7 @@ export default function BotDetailPage() {
           agentId={agent.id}
           selectedFile={selectedBuildFile}
           isRunning={isRunning}
-          streamContent={buildStreamContent}
+          streamContent={streamOutput}
         />,
         right: <BuildRightPanel
           agentId={agent.id}
@@ -169,32 +169,32 @@ export default function BotDetailPage() {
       }
       case 'content': return {
         left: <ContentLeftPanel missionId={missionId ?? ''} selectedType={contentType} onTypeChange={setContentType} />,
-        center: <ContentCenterPanel agentId={agent.id} selectedType={contentType} />,
+        center: <ContentCenterPanel agentId={agent.id} selectedType={contentType} streamOutput={streamOutput} isRunning={isRunning} />,
         right: <ContentRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
       }
       case 'growth': return {
         left: <GrowthLeftPanel />,
-        center: <GrowthCenterPanel agentId={agent.id} />,
+        center: <GrowthCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
         right: <GrowthRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
       }
       case 'ops': return {
         left: <OpsLeftPanel agentId={agent.id} />,
-        center: <OpsCenterPanel agentId={agent.id} />,
+        center: <OpsCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
         right: <OpsRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
       }
       case 'ceo': return {
         left: <CeoLeftPanel missionId={missionId ?? ''} />,
-        center: <CeoCenterPanel agentId={agent.id} />,
+        center: <CeoCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
         right: <CeoRightPanel missionId={missionId ?? ''} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
       }
       case 'design': return {
         left: <DesignLeftPanel selectedTemplate={designTemplate} onTemplateChange={setDesignTemplate} />,
-        center: <DesignCenterPanel agentId={agent.id} />,
+        center: <DesignCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
         right: <DesignRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
       }
       default: return {
         left: <CommonLeftPanel agent={agent} onUpdate={(d) => update.mutate(d as Partial<Agent>)} />,
-        center: <CommonCenterPanel agentId={agent.id} />,
+        center: <CommonCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
         right: <CommonRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
       }
     }
@@ -276,7 +276,7 @@ export default function BotDetailPage() {
           onStageChange={setCurrentStage}
           onDone={handleDone}
           onError={() => { setIsRunning(false); setCurrentStage(null) }}
-          onOutputChunk={(chunk) => setBuildStreamContent(prev => prev + chunk)}
+          onOutputChunk={(chunk) => setStreamOutput(prev => prev + chunk)}
           esRef={esRef}
         />
 
@@ -290,7 +290,7 @@ export default function BotDetailPage() {
               rows={1}
               disabled={isRunning}
               className={cn(
-                'w-full bg-bg border border-border rounded-xl px-4 py-3 text-sm text-text placeholder-muted/60',
+                'w-full bg-bg border border-border rounded-xl px-4 py-3 text-base text-text placeholder-muted/60',
                 'focus:outline-none focus:border-primary/60 resize-none leading-relaxed',
                 'transition-colors disabled:opacity-50 max-h-36 overflow-y-auto'
               )}

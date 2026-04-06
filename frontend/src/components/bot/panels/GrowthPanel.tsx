@@ -59,7 +59,7 @@ export function GrowthLeftPanel() {
 }
 
 // CENTER: 탭별 분석 결과
-export function GrowthCenterPanel({ agentId }: { agentId: string }) {
+export function GrowthCenterPanel({ agentId, streamOutput, isRunning }: { agentId: string; streamOutput?: string; isRunning?: boolean }) {
   const [activeTab, setActiveTab] = useState('marketing')
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
@@ -93,14 +93,22 @@ export function GrowthCenterPanel({ agentId }: { agentId: string }) {
 
       {/* 탭 내용 */}
       <div className="flex-1 overflow-y-auto p-5">
-        {!latest ? (
+        {isRunning ? (
+          <pre className="text-base text-dim leading-relaxed whitespace-pre-wrap font-sans">{streamOutput || '분석 중...'}</pre>
+        ) : !latest ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
             <TrendingUp size={36} className="text-muted/30" />
-            <p className="text-sm text-muted">하단 입력창에서 그로스 분석을 지시하세요</p>
-            <p className="text-xs text-muted/60">"이번 주 성장 현황 분석해줘" 등</p>
+            {streamOutput ? (
+              <pre className="text-base text-dim leading-relaxed whitespace-pre-wrap font-sans text-left">{streamOutput}</pre>
+            ) : (
+              <>
+                <p className="text-base text-muted">하단 입력창에서 그로스 분석을 지시하세요</p>
+                <p className="text-sm text-muted/60">"이번 주 성장 현황 분석해줘" 등</p>
+              </>
+            )}
           </div>
         ) : (
-          <div className="text-sm text-dim leading-relaxed whitespace-pre-wrap">
+          <div className="text-base text-dim leading-relaxed whitespace-pre-wrap">
             {latest.content}
           </div>
         )}
@@ -386,14 +394,14 @@ export function GrowthRightPanel({ agentId, nextBotName, onNextBot, onSkillSelec
 
       {/* 빠른 실행 */}
       <div className="shrink-0">
-        <p className="text-[10px] text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
         <div className="flex flex-wrap gap-1.5">
           {GROWTH_SKILLS.map(skill => (
             <button
               key={skill.label}
               onClick={() => onSkillSelect?.(skill.prompt)}
               title={skill.prompt}
-              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-[11px] text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-xs text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
             >
               {skill.label}
             </button>

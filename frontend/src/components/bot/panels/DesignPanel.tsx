@@ -54,7 +54,7 @@ export function DesignLeftPanel({ selectedTemplate, onTemplateChange }: {
 }
 
 // CENTER: 생성된 디자인 출력
-export function DesignCenterPanel({ agentId }: { agentId: string }) {
+export function DesignCenterPanel({ agentId, streamOutput, isRunning }: { agentId: string; streamOutput?: string; isRunning?: boolean }) {
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
     queryFn: () => feedApi.list({ limit: 10 }),
@@ -64,20 +64,44 @@ export function DesignCenterPanel({ agentId }: { agentId: string }) {
 
   const latest = feed[0]
 
-  if (!latest) return (
-    <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
-      <Palette size={36} className="text-muted/30" />
-      <p className="text-sm text-muted">하단 입력창에서 디자인을 지시하세요</p>
-      <p className="text-xs text-muted/60">"다크 테마 랜딩 히어로 섹션 디자인해줘" 등</p>
-    </div>
-  )
+  if (isRunning) {
+    return (
+      <div className="h-full flex flex-col overflow-hidden">
+        <div className="flex items-center gap-2 px-5 py-3 border-b border-border bg-surface shrink-0">
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <span className="text-sm text-muted">디자인 생성 중...</span>
+        </div>
+        <div className="h-full overflow-y-auto p-5">
+          <pre className="text-base text-dim leading-relaxed whitespace-pre-wrap font-sans">{streamOutput || ''}</pre>
+        </div>
+      </div>
+    )
+  }
+
+  if (!latest) {
+    if (streamOutput) {
+      return (
+        <div className="h-full overflow-y-auto p-5">
+          <p className="text-xs text-muted mb-3 uppercase tracking-widest">마지막 실행 결과</p>
+          <pre className="text-base text-dim leading-relaxed whitespace-pre-wrap font-sans">{streamOutput}</pre>
+        </div>
+      )
+    }
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
+        <Palette size={36} className="text-muted/30" />
+        <p className="text-base text-muted">하단 입력창에서 디자인을 지시하세요</p>
+        <p className="text-sm text-muted/60">"다크 테마 랜딩 히어로 섹션 디자인해줘" 등</p>
+      </div>
+    )
+  }
 
   return (
     <div className="h-full overflow-y-auto p-5">
       <p className="text-xs text-muted mb-4">
         {new Date(latest.created_at).toLocaleString('ko-KR')}
       </p>
-      <div className="text-sm text-dim leading-relaxed whitespace-pre-wrap">
+      <div className="text-base text-dim leading-relaxed whitespace-pre-wrap">
         {latest.content}
       </div>
     </div>
@@ -116,14 +140,14 @@ export function DesignRightPanel({ nextBotName, onNextBot, onSkillSelect }: {
       </div>
       {/* 빠른 실행 */}
       <div>
-        <p className="text-[10px] text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
         <div className="flex flex-wrap gap-1.5">
           {DESIGN_SKILLS.map(skill => (
             <button
               key={skill.label}
               onClick={() => onSkillSelect?.(skill.prompt)}
               title={skill.prompt}
-              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-[11px] text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-xs text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
             >
               {skill.label}
             </button>

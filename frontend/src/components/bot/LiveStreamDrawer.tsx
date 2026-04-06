@@ -121,7 +121,7 @@ export function LiveStreamDrawer({
     <div className="border-t border-border">
       {/* 스트림 패널 (슬라이드) */}
       <div className={cn('overflow-hidden transition-all duration-200', height)}>
-        <div className="h-full bg-[#0d0d0d] overflow-y-auto px-4 py-2 font-mono text-[12px]">
+        <div className="h-full bg-[#0d0d0d] overflow-y-auto px-4 py-2 font-mono text-sm">
           {lines.length === 0 && (
             <span className="text-muted">대기 중...</span>
           )}
@@ -158,7 +158,7 @@ export function LiveStreamDrawer({
           ) : (
             <span className="w-2 h-2 rounded-full bg-muted/40" />
           )}
-          <span className="text-[11px] text-muted">
+          <span className="text-xs text-muted">
             {status === 'running' ? '실행 중...' :
              status === 'done' ? '완료' :
              status === 'error' ? '오류' : '실행 로그'}
@@ -168,7 +168,7 @@ export function LiveStreamDrawer({
           {status === 'running' && (
             <button
               onClick={(e) => { e.stopPropagation(); handleStop() }}
-              className="flex items-center gap-1 text-[11px] text-muted hover:text-red-400 transition-colors"
+              className="flex items-center gap-1 text-xs text-muted hover:text-red-400 transition-colors"
             >
               <Square size={10} /> 중지
             </button>

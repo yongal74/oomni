@@ -28,9 +28,9 @@ export function CommonRightPanel({ agentId, nextBotName, onNextBot }: RightPanel
   return (
     <div className="h-full flex flex-col p-4 gap-4">
       <div className="flex-1 overflow-y-auto space-y-3">
-        <p className="text-[10px] text-muted uppercase tracking-widest">최근 결과</p>
+        <p className="text-xs text-muted uppercase tracking-widest">최근 결과</p>
         {results.length === 0 ? (
-          <p className="text-[12px] text-muted/60">실행 결과가 여기에 표시됩니다</p>
+          <p className="text-sm text-muted/60">실행 결과가 여기에 표시됩니다</p>
         ) : (
           results.slice(0, 5).map(item => (
             <ResultCard key={item.id} item={item} />
@@ -44,7 +44,7 @@ export function CommonRightPanel({ agentId, nextBotName, onNextBot }: RightPanel
             onClick={onNextBot}
             className="w-full flex items-center justify-between px-3 py-2.5 rounded border border-primary/30 text-primary hover:bg-primary/5 transition-colors"
           >
-            <span className="text-[12px]">{nextBotName}으로 이어서</span>
+            <span className="text-sm">{nextBotName}으로 이어서</span>
             <ChevronRight size={14} />
           </button>
         </div>
@@ -66,7 +66,7 @@ function ResultCard({ item }: { item: FeedItem }) {
   return (
     <div className="bg-bg rounded-lg border border-border p-3 group">
       <div className="flex items-start justify-between gap-2 mb-1.5">
-        <span className="text-[10px] text-muted">
+        <span className="text-xs text-muted">
           {new Date(item.created_at).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </span>
         <button
@@ -76,13 +76,13 @@ function ResultCard({ item }: { item: FeedItem }) {
           {copied ? <Check size={11} className="text-green-400" /> : <Copy size={11} />}
         </button>
       </div>
-      <p className="text-[12px] text-dim leading-relaxed">{preview}</p>
+      <p className="text-sm text-dim leading-relaxed">{preview}</p>
     </div>
   )
 }
 
 // ─── Center 패널: 활동 피드 (공통) ────────────────────────────────────
-export function CommonCenterPanel({ agentId }: { agentId: string }) {
+export function CommonCenterPanel({ agentId, streamOutput, isRunning }: { agentId: string; streamOutput?: string; isRunning?: boolean }) {
   const { data: feed = [], isLoading } = useQuery({
     queryKey: ['bot-feed', agentId],
     queryFn: () => feedApi.list({ limit: 30 }),
@@ -91,15 +91,39 @@ export function CommonCenterPanel({ agentId }: { agentId: string }) {
   })
 
   if (isLoading) return (
-    <div className="flex items-center justify-center h-full text-muted text-[13px]">로딩 중...</div>
+    <div className="flex items-center justify-center h-full text-muted text-sm">로딩 중...</div>
   )
 
-  if (feed.length === 0) return (
-    <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
-      <div className="text-3xl opacity-20">💬</div>
-      <p className="text-[13px] text-muted">하단 입력창에서 봇을 실행하세요</p>
-    </div>
-  )
+  if (isRunning) {
+    return (
+      <div className="h-full flex flex-col overflow-hidden">
+        <div className="flex items-center gap-2 px-5 py-3 border-b border-border bg-surface shrink-0">
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <span className="text-sm text-muted">실행 중...</span>
+        </div>
+        <div className="h-full overflow-y-auto p-5">
+          <pre className="text-sm text-dim leading-relaxed whitespace-pre-wrap font-sans">{streamOutput || ''}</pre>
+        </div>
+      </div>
+    )
+  }
+
+  if (feed.length === 0) {
+    if (streamOutput) {
+      return (
+        <div className="h-full overflow-y-auto p-5">
+          <p className="text-xs text-muted mb-3 uppercase tracking-widest">마지막 실행 결과</p>
+          <pre className="text-sm text-dim leading-relaxed whitespace-pre-wrap font-sans">{streamOutput}</pre>
+        </div>
+      )
+    }
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
+        <div className="text-3xl opacity-20">💬</div>
+        <p className="text-sm text-muted">하단 입력창에서 봇을 실행하세요</p>
+      </div>
+    )
+  }
 
   return (
     <div className="h-full overflow-y-auto p-4 space-y-3">
@@ -126,7 +150,7 @@ function FeedCard({ item }: { item: FeedItem }) {
     <div className={cn('bg-bg rounded-lg p-3 pl-4', typeStyle)}>
       <div className="flex items-center gap-2 mb-1.5">
         <span className={cn(
-          'text-[10px] font-medium uppercase',
+          'text-xs font-medium uppercase',
           item.type === 'result' ? 'text-primary' :
           item.type === 'error' ? 'text-red-400' :
           item.type === 'approval' ? 'text-yellow-400' :
@@ -136,13 +160,13 @@ function FeedCard({ item }: { item: FeedItem }) {
            item.type === 'error' ? '오류' :
            item.type === 'approval' ? '승인 필요' : '정보'}
         </span>
-        <span className="text-[10px] text-muted/60">
+        <span className="text-xs text-muted/60">
           {new Date(item.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
-      <p className="text-[12px] text-dim leading-relaxed whitespace-pre-wrap">{display + (isLong && !expanded ? '...' : '')}</p>
+      <p className="text-sm text-dim leading-relaxed whitespace-pre-wrap">{display + (isLong && !expanded ? '...' : '')}</p>
       {isLong && (
-        <button onClick={() => setExpanded(e => !e)} className="mt-1.5 text-[11px] text-primary/70 hover:text-primary">
+        <button onClick={() => setExpanded(e => !e)} className="mt-1.5 text-xs text-primary/70 hover:text-primary">
           {expanded ? '접기' : '더 보기'}
         </button>
       )}
@@ -167,8 +191,8 @@ export function CommonLeftPanel({ agent, onUpdate }: {
   return (
     <div className="p-4 space-y-5">
       <div>
-        <p className="text-[10px] text-muted uppercase tracking-widest mb-3">역할 설정</p>
-        <div className="space-y-1 text-[12px]">
+        <p className="text-xs text-muted uppercase tracking-widest mb-3">역할 설정</p>
+        <div className="space-y-1 text-sm">
           <div className="flex items-center justify-between py-1">
             <span className="text-muted">역할</span>
             <span className="text-dim capitalize">{agent.role}</span>
@@ -187,17 +211,17 @@ export function CommonLeftPanel({ agent, onUpdate }: {
       </div>
 
       <div>
-        <p className="text-[10px] text-muted uppercase tracking-widest mb-2">시스템 프롬프트</p>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2">시스템 프롬프트</p>
         <textarea
           value={prompt}
           onChange={e => setPrompt(e.target.value)}
           rows={6}
-          className="w-full bg-bg border border-border rounded px-3 py-2 text-[11px] text-dim font-mono focus:outline-none focus:border-primary/60 resize-none leading-relaxed"
+          className="w-full bg-bg border border-border rounded px-3 py-2 text-xs text-dim font-mono focus:outline-none focus:border-primary/60 resize-none leading-relaxed"
         />
         <button
           onClick={handleSave}
           className={cn(
-            'mt-2 w-full py-1.5 rounded text-[12px] transition-colors',
+            'mt-2 w-full py-1.5 rounded text-sm transition-colors',
             saved ? 'bg-green-500/10 text-green-400' : 'bg-primary/10 text-primary hover:bg-primary/20'
           )}
         >

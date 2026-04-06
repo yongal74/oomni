@@ -73,7 +73,7 @@ export function OpsLeftPanel({ agentId }: { agentId: string }) {
 }
 
 // CENTER: 운영 탭
-export function OpsCenterPanel({ agentId }: { agentId: string }) {
+export function OpsCenterPanel({ agentId, streamOutput, isRunning }: { agentId: string; streamOutput?: string; isRunning?: boolean }) {
   const [activeTab, setActiveTab] = useState('automation')
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
@@ -104,14 +104,20 @@ export function OpsCenterPanel({ agentId }: { agentId: string }) {
       </div>
 
       <div className="flex-1 overflow-y-auto p-5">
-        {!latest ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
-            <Zap size={36} className="text-muted/30" />
-            <p className="text-sm text-muted">하단 입력창에서 자동화를 지시하세요</p>
-            <p className="text-xs text-muted/60">"Slack 알림 자동화 워크플로우 만들어줘" 등</p>
-          </div>
+        {isRunning ? (
+          <pre className="text-base text-dim leading-relaxed whitespace-pre-wrap font-sans">{streamOutput || '자동화 구성 중...'}</pre>
+        ) : !latest ? (
+          streamOutput ? (
+            <pre className="text-base text-dim leading-relaxed whitespace-pre-wrap font-sans">{streamOutput}</pre>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
+              <Zap size={36} className="text-muted/30" />
+              <p className="text-base text-muted">하단 입력창에서 자동화를 지시하세요</p>
+              <p className="text-sm text-muted/60">"Slack 알림 자동화 워크플로우 만들어줘" 등</p>
+            </div>
+          )
         ) : (
-          <div className="text-sm text-dim leading-relaxed whitespace-pre-wrap">
+          <div className="text-base text-dim leading-relaxed whitespace-pre-wrap">
             {latest.content}
           </div>
         )}
@@ -181,14 +187,14 @@ export function OpsRightPanel({ agentId, nextBotName, onNextBot, onSkillSelect }
       </div>
       {/* 빠른 실행 */}
       <div>
-        <p className="text-[10px] text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
         <div className="flex flex-wrap gap-1.5">
           {OPS_SKILLS.map(skill => (
             <button
               key={skill.label}
               onClick={() => onSkillSelect?.(skill.prompt)}
               title={skill.prompt}
-              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-[11px] text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-xs text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
             >
               {skill.label}
             </button>

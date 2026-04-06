@@ -47,7 +47,7 @@ export function ContentLeftPanel({ missionId, selectedType, onTypeChange }: {
               <span className="text-base">{type.emoji}</span>
               <span className="text-sm">{type.label}</span>
               {type.key === 'shortform' && (
-                <span className="ml-auto text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold">
+                <span className="ml-auto text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold">
                   NEW
                 </span>
               )}
@@ -297,7 +297,7 @@ function ShortformVideoPanel() {
 }
 
 // CENTER: 생성된 콘텐츠 에디터
-export function ContentCenterPanel({ agentId, selectedType }: { agentId: string; selectedType?: string }) {
+export function ContentCenterPanel({ agentId, selectedType, streamOutput, isRunning }: { agentId: string; selectedType?: string; streamOutput?: string; isRunning?: boolean }) {
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
     queryFn: () => feedApi.list({ limit: 10 }),
@@ -312,13 +312,37 @@ export function ContentCenterPanel({ agentId, selectedType }: { agentId: string;
 
   const latest = feed[0]
 
-  if (!latest) return (
-    <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
-      <FileText size={36} className="text-muted/30" />
-      <p className="text-sm text-muted">하단 입력창에서 콘텐츠 생성을 지시하세요</p>
-      <p className="text-xs text-muted/60">"AI 트렌드 블로그 포스트 써줘" 등</p>
-    </div>
-  )
+  if (isRunning) {
+    return (
+      <div className="h-full flex flex-col overflow-hidden">
+        <div className="flex items-center gap-2 px-5 py-3 border-b border-border bg-surface shrink-0">
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <span className="text-sm text-muted">콘텐츠 생성 중...</span>
+        </div>
+        <div className="h-full overflow-y-auto p-5">
+          <pre className="text-base text-dim leading-relaxed whitespace-pre-wrap font-sans">{streamOutput || ''}</pre>
+        </div>
+      </div>
+    )
+  }
+
+  if (!latest) {
+    if (streamOutput) {
+      return (
+        <div className="h-full overflow-y-auto p-5">
+          <p className="text-xs text-muted mb-3 uppercase tracking-widest">마지막 실행 결과</p>
+          <pre className="text-base text-dim leading-relaxed whitespace-pre-wrap font-sans">{streamOutput}</pre>
+        </div>
+      )
+    }
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
+        <FileText size={36} className="text-muted/30" />
+        <p className="text-base text-muted">하단 입력창에서 콘텐츠 생성을 지시하세요</p>
+        <p className="text-sm text-muted/60">"AI 트렌드 블로그 포스트 써줘" 등</p>
+      </div>
+    )
+  }
 
   return (
     <div className="h-full overflow-y-auto p-5">
@@ -328,7 +352,7 @@ export function ContentCenterPanel({ agentId, selectedType }: { agentId: string;
         </span>
       </div>
       <div className="prose prose-invert max-w-none">
-        <div className="text-sm text-dim leading-relaxed whitespace-pre-wrap">
+        <div className="text-base text-dim leading-relaxed whitespace-pre-wrap">
           {latest.content}
         </div>
       </div>
@@ -406,14 +430,14 @@ export function ContentRightPanel({ agentId, nextBotName, onNextBot, onSkillSele
       </div>
       {/* 빠른 실행 */}
       <div>
-        <p className="text-[10px] text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
         <div className="flex flex-wrap gap-1.5">
           {CONTENT_SKILLS.map(skill => (
             <button
               key={skill.label}
               onClick={() => onSkillSelect?.(skill.prompt)}
               title={skill.prompt}
-              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-[11px] text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-xs text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
             >
               {skill.label}
             </button>
