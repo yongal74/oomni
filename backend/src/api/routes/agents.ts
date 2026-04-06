@@ -6,7 +6,7 @@ import * as path from 'path';
 import { ParallelExecutor, type ParallelResult } from '../../services/parallelExecutor';
 import { saveFeedItem } from '../../services/roleExecutors/base';
 import { ClaudeCodeService } from '../../services/claudeCodeService';
-import { researchExecutor } from '../../services/roleExecutors/research';
+import { routeToExecutor } from '../../services/roleExecutors';
 
 // ── Workspace file tree types ────────────────────────────────────────────────
 interface FileNode {
@@ -311,46 +311,14 @@ export function agentsRouter(db: DbClient): Router {
 
     send('start', { agentId: agentFull.id, task: taskStr });
 
-    if (agentFull.role === 'research') {
-      // Research: roleExecutor 직접 사용 (Anthropic API → DB 직접 저장, 신뢰성↑)
-      try {
-        await researchExecutor({ agent: agentFull, task: taskStr, db, send });
-        await saveFeedItem(db, agentFull.id, 'result', `태스크 완료: ${taskStr}`).catch(() => {});
-        send('done', { success: true });
-      } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`).catch(() => {});
-        send('error', { message: errMsg });
-      }
-    } else {
-      // 나머지 봇: ClaudeCodeService (Claude Code CLI)
-      const ccService = ClaudeCodeService.create(agentFull.id, agentFull.role);
-
-      // Stop execution if client disconnects
-      req.on('close', () => {
-        ccService.stop();
-      });
-
-      try {
-        let fullOutput = '';
-        await ccService.execute(taskStr, async (event, data) => {
-          send(event, data);
-          if (event === 'output') {
-            const d = data as { chunk?: string; text?: string };
-            fullOutput += d.chunk ?? d.text ?? '';
-          } else if (event === 'done') {
-            const saved = fullOutput.trim() || `태스크 완료: ${taskStr}`;
-            await saveFeedItem(db, agentFull.id, 'result', saved).catch(() => {});
-          } else if (event === 'error') {
-            const msg = (data as { message: string }).message ?? 'Unknown error';
-            await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${msg}`).catch(() => {});
-          }
-        });
-      } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`).catch(() => {});
-        send('error', { message: errMsg });
-      }
+    // 모든 봇: routeToExecutor (직접 Anthropic API) — 안정적, CLI 불필요
+    try {
+      await routeToExecutor({ agent: agentFull, task: taskStr, db, send });
+      send('done', { success: true });
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`).catch(() => {});
+      send('error', { message: errMsg });
     }
 
     res.end();

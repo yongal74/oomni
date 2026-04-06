@@ -122,7 +122,12 @@ function createWindow() {
         overrideBrowserWindowOptions: {
           width: 500,
           height: 650,
-          webPreferences: { contextIsolation: true, nodeIntegration: false },
+          webPreferences: {
+            contextIsolation: true,
+            nodeIntegration: false,
+            sandbox: false,              // postMessage 콜백을 위해 필요
+            webSecurity: false,          // file:// ↔ https:// 크로스오리진 통신 허용
+          },
         },
       }
     }

@@ -44,23 +44,25 @@ export function AppLayout() {
         {/* 봇 목록 */}
         <div className="flex-1 overflow-y-auto px-2 py-3">
           {/* CEO Bot — 최상단 특별 표시 */}
-          {agents.filter(a => a.role === 'ceo').map(agent => (
-            <NavLink
-              key={agent.id}
-              to={`/dashboard/bots/${agent.id}`}
-              className={({ isActive }) => cn(
-                'flex items-center gap-2 px-2 py-2 rounded-lg text-[13px] mb-1 border transition-colors',
-                isActive
-                  ? 'bg-primary/10 border-primary/40 text-primary'
-                  : 'border-primary/20 text-primary/70 hover:bg-primary/5 hover:text-primary hover:border-primary/30'
-              )}
-            >
-              <Crown size={13} className="shrink-0" />
-              <span className="truncate font-medium">{agent.name}</span>
-              <div className={cn('ml-auto w-1.5 h-1.5 rounded-full', agent.is_active ? 'bg-green-500' : 'bg-[#333]')} />
-            </NavLink>
-          ))}
-          <div className="border-t border-border/50 mt-1 mb-2" />
+          {agents.some(a => a.role === 'ceo') && (<>
+            {agents.filter(a => a.role === 'ceo').map(agent => (
+              <NavLink
+                key={agent.id}
+                to={`/dashboard/bots/${agent.id}`}
+                className={({ isActive }) => cn(
+                  'flex items-center gap-2 px-2 py-2 rounded-lg text-[13px] mb-1 border transition-colors',
+                  isActive
+                    ? 'bg-primary/10 border-primary/40 text-primary'
+                    : 'border-primary/20 text-primary/70 hover:bg-primary/5 hover:text-primary hover:border-primary/30'
+                )}
+              >
+                <Crown size={13} className="shrink-0" />
+                <span className="truncate font-medium">{agent.name}</span>
+                <div className={cn('ml-auto w-1.5 h-1.5 rounded-full', agent.is_active ? 'bg-green-500' : 'bg-[#333]')} />
+              </NavLink>
+            ))}
+            <div className="border-t border-border/50 mt-1 mb-2" />
+          </>)}
 
           <div className="text-[10px] text-muted uppercase tracking-widest px-2 mb-2">봇</div>
           {agents.filter(a => a.role !== 'ceo').map(agent => (

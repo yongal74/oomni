@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { researchApi, type ResearchItem } from '../../../lib/api'
-import { Check, Eye, X, FileText, Copy } from 'lucide-react'
+import { Check, Eye, X, FileText, Copy, Upload } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { ArchiveButton } from '../shared/ArchiveButton'
 import { NextBotDropdown } from '../shared/NextBotDropdown'
@@ -323,15 +323,17 @@ const RESEARCH_SKILLS = [
 ]
 
 // RIGHT: 클릭한 아이템 상세 + 다음봇 연결
-export function ResearchRightPanel({ item, onSkillSelect, agentId }: {
+export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload }: {
   item: ResearchItem | null
   nextBotName?: string
   onNextBot?: () => void
   onSkillSelect?: (prompt: string) => void
   agentId?: string
+  onFileUpload?: (content: string, filename: string) => void
 }) {
   const [converting, setConverting] = useState(false)
   const [output, setOutput] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleConvert = async (outputType: string) => {
     if (!item) return
@@ -342,6 +344,18 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId }: {
     } finally {
       setConverting(false)
     }
+  }
+
+  const handleFileRead = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const text = reader.result as string
+      onFileUpload?.(text, file.name)
+    }
+    reader.readAsText(file)
+    e.target.value = ''
   }
 
   if (!item) return (
@@ -361,6 +375,18 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId }: {
           ))}
         </div>
       </div>
+      {onFileUpload && (
+        <div>
+          <p className="text-xs text-muted uppercase tracking-widest mb-2">파일 업로드</p>
+          <input ref={fileInputRef} type="file" accept=".txt,.md,.pdf,.docx,.csv" className="hidden" onChange={handleFileRead} />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border text-xs text-muted hover:border-primary/40 hover:text-primary w-full transition-colors"
+          >
+            <Upload size={12} /> 파일을 업로드하여 리서치 분석
+          </button>
+        </div>
+      )}
       <div className="flex-1 flex items-center justify-center">
         <p className="text-xs text-muted/60 text-center">좌측 아이템 클릭 시<br />변환 옵션이 표시됩니다</p>
       </div>
@@ -408,11 +434,13 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId }: {
             { type: 'blog', label: '📝 블로그 포스트' },
             { type: 'newsletter', label: '📧 뉴스레터' },
             { type: 'report', label: '📊 분석 리포트' },
+            { type: 'prd', label: '📋 PRD (기획서)' },
+            { type: 'ppt', label: '🎤 PPT 스크립트' },
             { type: 'action_plan', label: '✅ 액션 플랜' },
           ].map(({ type, label }) => (
             <button
               key={type}
-              onClick={() => handleConvert(type === 'action_plan' ? 'prd' : type)}
+              onClick={() => handleConvert(type)}
               disabled={converting || !item}
               className="w-full text-left px-3 py-2 rounded border border-border text-sm text-dim hover:border-primary/40 hover:text-text transition-colors disabled:opacity-50"
             >
@@ -460,6 +488,19 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId }: {
           ))}
         </div>
       </div>
+
+      {onFileUpload && (
+        <div>
+          <p className="text-xs text-muted uppercase tracking-widest mb-2">파일 업로드</p>
+          <input ref={fileInputRef} type="file" accept=".txt,.md,.pdf,.docx,.csv" className="hidden" onChange={handleFileRead} />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border text-xs text-muted hover:border-primary/40 hover:text-primary w-full transition-colors"
+          >
+            <Upload size={12} /> 파일을 업로드하여 리서치 분석
+          </button>
+        </div>
+      )}
 
       {agentId && (
         <div className="pt-2 border-t border-border">

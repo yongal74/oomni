@@ -153,7 +153,12 @@ export default function BotDetailPage() {
       case 'research': return {
         left: <ResearchLeftPanel missionId={missionId ?? ''} />,
         center: <ResearchCenterPanel missionId={missionId ?? ''} onItemClick={setSelectedResearchItem} streamOutput={streamOutput} isRunning={isRunning} />,
-        right: <ResearchRightPanel item={selectedResearchItem} agentId={agent.id} onSkillSelect={(s: string) => setTask(s)} />,
+        right: <ResearchRightPanel
+          item={selectedResearchItem}
+          agentId={agent.id}
+          onSkillSelect={(s: string) => setTask(s)}
+          onFileUpload={(content, filename) => setTask(`다음 파일(${filename}) 내용을 분석하고 리서치 인사이트를 추출해줘:\n\n${content}`)}
+        />,
       }
       case 'build': return {
         left: <BuildLeftPanel
