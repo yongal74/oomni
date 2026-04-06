@@ -156,12 +156,14 @@ const CEO_SKILLS = [
 ]
 
 // RIGHT: 승인 대기 + 우선순위 TOP3 + 다음봇
-export function CeoRightPanel({ missionId, onSkillSelect, agentId }: {
+export function CeoRightPanel({ missionId, onSkillSelect, agentId, currentRole = 'ceo', content = '' }: {
   missionId: string
   nextBotName?: string
   onNextBot?: () => void
   onSkillSelect?: (prompt: string) => void
   agentId?: string
+  currentRole?: string
+  content?: string
 }) {
   const { data: allFeed = [] } = useQuery({
     queryKey: ['feed', missionId],
@@ -250,7 +252,7 @@ export function CeoRightPanel({ missionId, onSkillSelect, agentId }: {
       )}
 
       {/* NextBot dropdown */}
-      {agentId && <NextBotDropdown currentAgentId={agentId} />}
+      {agentId && <NextBotDropdown currentAgentId={agentId} currentRole={currentRole} content={content} />}
 
       {/* 빠른 실행 */}
       <div>

@@ -15,7 +15,7 @@ function setupCSP() {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self' file: data:; script-src 'self' 'unsafe-inline' file: https://*.firebaseapp.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: file:; connect-src 'self' http://localhost:3001 ws://localhost:3001 https://*.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com"
+          "default-src 'self' file: data:; script-src 'self' 'unsafe-inline' file: https://*.firebaseapp.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: file:; connect-src 'self' http://localhost:3001 ws://localhost:3001 https://*.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://apis.google.com; frame-src https://*.firebaseapp.com https://accounts.google.com https://apis.google.com"
         ],
       },
     })
@@ -114,7 +114,8 @@ function createWindow() {
     const isFirebaseAuth =
       url.includes('accounts.google.com') ||
       url.includes('firebaseapp.com/__/auth') ||
-      url.includes('solo-factory-os.firebaseapp.com')
+      url.includes('solo-factory-os.firebaseapp.com') ||
+      url.includes('apis.google.com/o/oauth2')
     if (isFirebaseAuth) {
       return {
         action: 'allow',

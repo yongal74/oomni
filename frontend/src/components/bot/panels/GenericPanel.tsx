@@ -15,9 +15,11 @@ interface RightPanelProps {
   agentId: string
   nextBotName?: string
   onNextBot?: () => void
+  currentRole?: string
+  content?: string
 }
 
-export function CommonRightPanel({ agentId }: RightPanelProps) {
+export function CommonRightPanel({ agentId, currentRole = '', content = '' }: RightPanelProps) {
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
     queryFn: () => agentsApi.runs(agentId),
@@ -47,7 +49,7 @@ export function CommonRightPanel({ agentId }: RightPanelProps) {
         tags={['OOMNI']}
       />
 
-      <NextBotDropdown currentAgentId={agentId} />
+      <NextBotDropdown currentAgentId={agentId} currentRole={currentRole} content={content} />
     </div>
   )
 }

@@ -434,11 +434,15 @@ function parseTasksFromContent(content: string): TaskItem[] {
 export function BuildRightPanel({
   agentId,
   onSkillSelect,
+  currentRole = 'build',
+  content = '',
 }: {
   agentId: string
   nextBotName?: string
   onNextBot?: () => void
   onSkillSelect?: (skill: string) => void
+  currentRole?: string
+  content?: string
 }) {
   const { data: feedData } = useQuery({
     queryKey: ['bot-feed', agentId],
@@ -529,7 +533,7 @@ export function BuildRightPanel({
       />
 
       {/* Next bot */}
-      <NextBotDropdown currentAgentId={agentId} />
+      <NextBotDropdown currentAgentId={agentId} currentRole={currentRole} content={content} />
     </div>
   )
 }

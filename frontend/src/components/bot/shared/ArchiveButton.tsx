@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Archive, Check, AlertCircle } from 'lucide-react'
-import { obsidianApi } from '../../../lib/api'
+import { Archive, Check, AlertCircle, FolderOpen, X } from 'lucide-react'
+import { obsidianApi, obsidianSettingsApi } from '../../../lib/api'
 
 interface Props {
   content: string
@@ -10,8 +10,19 @@ interface Props {
 }
 
 export function ArchiveButton({ content, title, botRole, tags }: Props) {
-  const [status, setStatus] = useState<'idle' | 'saving' | 'done' | 'error'>('idle')
+  const [status, setStatus] = useState<'idle' | 'saving' | 'done' | 'error' | 'setup'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const [vaultInput, setVaultInput] = useState('')
+  const [savingPath, setSavingPath] = useState(false)
+
+  const doArchive = async () => {
+    await obsidianApi.archive({
+      title: title ?? `${botRole} 결과 ${new Date().toLocaleDateString('ko-KR')}`,
+      content,
+      bot_role: botRole,
+      tags,
+    })
+  }
 
   const handleArchive = async () => {
     if (!content || status === 'saving') return
@@ -19,17 +30,11 @@ export function ArchiveButton({ content, title, botRole, tags }: Props) {
     try {
       const res = await obsidianApi.status()
       if (!res.configured) {
-        setErrorMsg('Obsidian vault 경로를 설정에서 입력해주세요')
-        setStatus('error')
-        setTimeout(() => setStatus('idle'), 3000)
+        setVaultInput(res.vault_path || '')
+        setStatus('setup')
         return
       }
-      await obsidianApi.archive({
-        title: title ?? `${botRole} 결과 ${new Date().toLocaleDateString('ko-KR')}`,
-        content,
-        bot_role: botRole,
-        tags,
-      })
+      await doArchive()
       setStatus('done')
       setTimeout(() => setStatus('idle'), 2500)
     } catch (err) {
@@ -37,6 +42,56 @@ export function ArchiveButton({ content, title, botRole, tags }: Props) {
       setStatus('error')
       setTimeout(() => setStatus('idle'), 3000)
     }
+  }
+
+  const handleSavePath = async () => {
+    if (!vaultInput.trim()) return
+    setSavingPath(true)
+    try {
+      await obsidianSettingsApi.save(vaultInput.trim())
+      await doArchive()
+      setStatus('done')
+      setTimeout(() => setStatus('idle'), 2500)
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : '경로 저장 실패')
+      setStatus('error')
+      setTimeout(() => setStatus('idle'), 3000)
+    } finally {
+      setSavingPath(false)
+    }
+  }
+
+  if (status === 'setup') {
+    return (
+      <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FolderOpen size={13} className="text-primary" />
+            <span className="text-xs text-primary font-medium">Obsidian Vault 경로 설정</span>
+          </div>
+          <button onClick={() => setStatus('idle')} className="text-muted hover:text-text">
+            <X size={12} />
+          </button>
+        </div>
+        <p className="text-[11px] text-muted">Vault 폴더의 절대 경로를 입력하세요</p>
+        <input
+          type="text"
+          value={vaultInput}
+          onChange={e => setVaultInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') handleSavePath() }}
+          placeholder="C:\Users\username\Documents\ObsidianVault"
+          className="w-full bg-bg border border-border rounded px-2.5 py-1.5 text-xs text-text placeholder-muted focus:outline-none focus:border-primary"
+          autoFocus
+        />
+        <button
+          onClick={handleSavePath}
+          disabled={!vaultInput.trim() || savingPath}
+          className="w-full py-1.5 rounded bg-primary text-white text-xs hover:bg-[#C5664A] disabled:opacity-50 transition-colors"
+        >
+          {savingPath ? '저장 중...' : '저장 후 아카이브'}
+        </button>
+      </div>
+    )
   }
 
   return (

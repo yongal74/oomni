@@ -58,6 +58,7 @@ export default function BotDetailPage() {
   const [designTemplate, setDesignTemplate] = useState('landing')
   const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null)
   const [streamOutput, setStreamOutput] = useState('')
+  const [lastOutput, setLastOutput] = useState('')  // 다음봇 전달용 최신 결과물
   const esRef = useRef<EventSource | null>(null)
 
   const { data: agent, isLoading } = useQuery<Agent>({
@@ -114,6 +115,7 @@ export default function BotDetailPage() {
     setIsRunning(false)
     qc.invalidateQueries({ queryKey: ['bot-feed', id] })
     qc.invalidateQueries({ queryKey: ['issues', missionId] })
+    if (streamOutput) setLastOutput(streamOutput)
     setTask('')
 
     if (agent?.role === 'research') {
@@ -170,37 +172,49 @@ export default function BotDetailPage() {
           nextBotName={nextBot?.name}
           onNextBot={handleNextBot}
           onSkillSelect={(skill: string) => setTask(skill)}
+          currentRole="build"
+          content={lastOutput}
         />,
       }
       case 'content': return {
-        left: <ContentLeftPanel missionId={missionId ?? ''} selectedType={contentType} onTypeChange={setContentType} />,
+        left: <ContentLeftPanel
+          missionId={missionId ?? ''}
+          selectedType={contentType}
+          onTypeChange={(type) => {
+            setContentType(type)
+            setTask(`${type} 형식으로 콘텐츠 초안을 작성해줘`)
+          }}
+          onItemSelect={(item) => {
+            setTask(`"${item.title}" 리서치 내용을 ${contentType} 형식으로 변환해서 콘텐츠 초안을 작성해줘`)
+          }}
+        />,
         center: <ContentCenterPanel agentId={agent.id} selectedType={contentType} streamOutput={streamOutput} isRunning={isRunning} />,
-        right: <ContentRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
+        right: <ContentRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} currentRole="content" content={lastOutput} />,
       }
       case 'growth': return {
         left: <GrowthLeftPanel />,
         center: <GrowthCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
-        right: <GrowthRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
+        right: <GrowthRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} currentRole="growth" content={lastOutput} />,
       }
       case 'ops': return {
         left: <OpsLeftPanel agentId={agent.id} />,
         center: <OpsCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
-        right: <OpsRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
+        right: <OpsRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} currentRole="ops" content={lastOutput} />,
       }
       case 'ceo': return {
         left: <CeoLeftPanel missionId={missionId ?? ''} />,
         center: <CeoCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
-        right: <CeoRightPanel missionId={missionId ?? ''} agentId={agent.id} onSkillSelect={(s: string) => setTask(s)} />,
+        right: <CeoRightPanel missionId={missionId ?? ''} agentId={agent.id} onSkillSelect={(s: string) => setTask(s)} currentRole="ceo" content={lastOutput} />,
       }
       case 'design': return {
         left: <DesignLeftPanel selectedTemplate={designTemplate} onTemplateChange={setDesignTemplate} />,
         center: <DesignCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
-        right: <DesignRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
+        right: <DesignRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} currentRole="design" content={lastOutput} />,
       }
       default: return {
         left: <CommonLeftPanel agent={agent} onUpdate={(d) => update.mutate(d as Partial<Agent>)} />,
         center: <CommonCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
-        right: <CommonRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+        right: <CommonRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} currentRole={agent.role} content={lastOutput} />,
       }
     }
   }

@@ -345,8 +345,30 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId }: {
   }
 
   if (!item) return (
-    <div className="flex items-center justify-center h-full px-4 text-center">
-      <p className="text-sm text-muted">아이템을 클릭하면<br />상세 내용이 표시됩니다</p>
+    <div className="p-4 h-full flex flex-col gap-4">
+      <div>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
+        <div className="flex flex-wrap gap-1.5">
+          {RESEARCH_SKILLS.map(skill => (
+            <button
+              key={skill.label}
+              onClick={() => onSkillSelect?.(skill.prompt)}
+              title={skill.prompt}
+              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-xs text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+            >
+              {skill.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-xs text-muted/60 text-center">좌측 아이템 클릭 시<br />변환 옵션이 표시됩니다</p>
+      </div>
+      {agentId && (
+        <div className="border-t border-border pt-4">
+          <NextBotDropdown currentAgentId={agentId} currentRole="research" />
+        </div>
+      )}
     </div>
   )
 
@@ -441,7 +463,7 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId }: {
 
       {agentId && (
         <div className="pt-2 border-t border-border">
-          <NextBotDropdown currentAgentId={agentId} />
+          <NextBotDropdown currentAgentId={agentId} currentRole="research" content={output || item?.summary || ''} />
         </div>
       )}
     </div>

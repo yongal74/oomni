@@ -329,11 +329,13 @@ const GROWTH_SKILLS = [
 ]
 
 // RIGHT: AI 추천 + 성장 영상 + 다음봇
-export function GrowthRightPanel({ agentId, onSkillSelect }: {
+export function GrowthRightPanel({ agentId, onSkillSelect, currentRole = 'growth', content = '' }: {
   agentId: string
   nextBotName?: string
   onNextBot?: () => void
   onSkillSelect?: (prompt: string) => void
+  currentRole?: string
+  content?: string
 }) {
   const [showVideoPanel, setShowVideoPanel] = useState(false)
   const { data: feed = [] } = useQuery({
@@ -418,7 +420,7 @@ export function GrowthRightPanel({ agentId, onSkillSelect }: {
         tags={['OOMNI', 'growth']}
       />
 
-      <NextBotDropdown currentAgentId={agentId} />
+      <NextBotDropdown currentAgentId={agentId} currentRole={currentRole} content={content} />
     </div>
   )
 }

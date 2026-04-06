@@ -119,11 +119,13 @@ const DESIGN_SKILLS = [
 ]
 
 // RIGHT: 내보내기 + 다음봇
-export function DesignRightPanel({ agentId, onSkillSelect }: {
+export function DesignRightPanel({ agentId, onSkillSelect, currentRole = 'design', content = '' }: {
   agentId?: string
   nextBotName?: string
   onNextBot?: () => void
   onSkillSelect?: (prompt: string) => void
+  currentRole?: string
+  content?: string
 }) {
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
@@ -172,7 +174,7 @@ export function DesignRightPanel({ agentId, onSkillSelect }: {
         tags={['OOMNI', 'design']}
       />
 
-      {agentId && <NextBotDropdown currentAgentId={agentId} />}
+      {agentId && <NextBotDropdown currentAgentId={agentId} currentRole={currentRole} content={content} />}
     </div>
   )
 }

@@ -434,11 +434,13 @@ const CONTENT_SKILLS = [
 ]
 
 // RIGHT: 발행 옵션 + 다음봇
-export function ContentRightPanel({ agentId, onSkillSelect }: {
+export function ContentRightPanel({ agentId, onSkillSelect, currentRole = 'content', content = '' }: {
   agentId: string
   nextBotName?: string
   onNextBot?: () => void
   onSkillSelect?: (prompt: string) => void
+  currentRole?: string
+  content?: string
 }) {
   const [copied, setCopied] = useState(false)
   const { data: feed = [] } = useQuery({
@@ -504,7 +506,7 @@ export function ContentRightPanel({ agentId, onSkillSelect }: {
         tags={['OOMNI', 'content']}
       />
 
-      <NextBotDropdown currentAgentId={agentId} />
+      <NextBotDropdown currentAgentId={agentId} currentRole={currentRole} content={content} />
     </div>
   )
 }

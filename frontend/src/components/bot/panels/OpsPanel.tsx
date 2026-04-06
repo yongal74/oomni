@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { agentsApi, type FeedItem } from '../../../lib/api'
 import { Zap, Download } from 'lucide-react'
@@ -22,6 +22,16 @@ const WORKFLOW_TEMPLATES = [
 
 // LEFT: n8n 워크플로우 목록
 export function OpsLeftPanel({ agentId }: { agentId: string }) {
+  const [n8nLocal, setN8nLocal] = useState<'checking' | 'online' | 'offline'>('checking')
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch('http://localhost:5678', { mode: 'no-cors', signal: controller.signal })
+      .then(() => setN8nLocal('online'))
+      .catch(() => setN8nLocal('offline'))
+    return () => controller.abort()
+  }, [])
+
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
     queryFn: () => agentsApi.runs(agentId),
@@ -35,15 +45,34 @@ export function OpsLeftPanel({ agentId }: { agentId: string }) {
   return (
     <div className="p-4 space-y-5">
       <div>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2">
           <p className="text-xs text-muted uppercase tracking-widest">n8n 워크플로우</p>
+          <div className="flex items-center gap-1">
+            <div className={cn('w-1.5 h-1.5 rounded-full', n8nLocal === 'online' ? 'bg-green-500' : n8nLocal === 'offline' ? 'bg-red-400' : 'bg-yellow-400 animate-pulse')} />
+            <span className="text-[10px] text-muted">{n8nLocal === 'online' ? '로컬 실행 중' : n8nLocal === 'offline' ? '미실행' : '확인 중'}</span>
+          </div>
+        </div>
+        <div className="flex gap-2 mb-3">
           <a
             href="http://localhost:5678"
             target="_blank"
             rel="noreferrer"
-            className="text-xs text-primary hover:text-primary-hover transition-colors"
+            className={cn(
+              'flex-1 text-center py-1.5 rounded text-xs border transition-colors',
+              n8nLocal === 'online'
+                ? 'border-green-500/40 text-green-400 hover:bg-green-500/10'
+                : 'border-border text-muted/40 pointer-events-none'
+            )}
           >
-            n8n 열기 ↗
+            로컬 열기
+          </a>
+          <a
+            href="https://n8n.cloud"
+            target="_blank"
+            rel="noreferrer"
+            className="flex-1 text-center py-1.5 rounded text-xs border border-primary/30 text-primary hover:bg-primary/5 transition-colors"
+          >
+            n8n.cloud ↗
           </a>
         </div>
         <div className="space-y-2">
@@ -137,11 +166,13 @@ const OPS_SKILLS = [
 ]
 
 // RIGHT: n8n import + 다음봇
-export function OpsRightPanel({ agentId, onSkillSelect }: {
+export function OpsRightPanel({ agentId, onSkillSelect, currentRole = 'ops', content = '' }: {
   agentId: string
   nextBotName?: string
   onNextBot?: () => void
   onSkillSelect?: (prompt: string) => void
+  currentRole?: string
+  content?: string
 }) {
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
@@ -211,7 +242,7 @@ export function OpsRightPanel({ agentId, onSkillSelect }: {
         tags={['OOMNI', 'ops']}
       />
 
-      <NextBotDropdown currentAgentId={agentId} />
+      <NextBotDropdown currentAgentId={agentId} currentRole={currentRole} content={content} />
     </div>
   )
 }
