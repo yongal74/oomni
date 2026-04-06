@@ -192,9 +192,8 @@ export default function PinPage() {
             </button>
           </form>
 
-          {/* Google / Firebase 로그인 버튼 */}
-          {!isSetup && (
-            <>
+          {/* Google / Firebase 로그인 버튼 — PIN 설정/로그인 모두 표시 */}
+          <>
               <div className="flex items-center gap-3 my-4">
                 <div className="flex-1 h-px bg-border" />
                 <span className="text-[11px] text-muted">또는</span>
@@ -242,8 +241,7 @@ export default function PinPage() {
                   ) : '서버 OAuth로 로그인'}
                 </button>
               )}
-            </>
-          )}
+          </>
         </div>
       </div>
     </div>

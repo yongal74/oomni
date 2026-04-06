@@ -15,7 +15,7 @@ function setupCSP() {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self' file: data:; script-src 'self' 'unsafe-inline' file:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: file:; connect-src 'self' http://localhost:3001 ws://localhost:3001"
+          "default-src 'self' file: data:; script-src 'self' 'unsafe-inline' file: https://*.firebaseapp.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: file:; connect-src 'self' http://localhost:3001 ws://localhost:3001 https://*.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com"
         ],
       },
     })
@@ -109,7 +109,22 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => mainWindow.show())
 
   // 외부 링크는 기본 브라우저에서 열기
+  // Firebase OAuth 팝업은 Electron 안에서 허용 (signInWithPopup 작동에 필요)
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    const isFirebaseAuth =
+      url.includes('accounts.google.com') ||
+      url.includes('firebaseapp.com/__/auth') ||
+      url.includes('solo-factory-os.firebaseapp.com')
+    if (isFirebaseAuth) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 500,
+          height: 650,
+          webPreferences: { contextIsolation: true, nodeIntegration: false },
+        },
+      }
+    }
     shell.openExternal(url)
     return { action: 'deny' }
   })
