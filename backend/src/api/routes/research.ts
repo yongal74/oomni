@@ -10,6 +10,9 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import { logger } from '../../logger';
 import { LLMProvider } from '../../agents/llm-provider';
 
@@ -246,6 +249,74 @@ ${sourceContext}
       res.status(201).json({ data: row });
     } catch (err) {
       logger.error('[research] POST /collect 오류', err);
+      res.status(500).json({ error: '서버 내부 오류' });
+    }
+  });
+
+  // POST /api/research/sync-files — disk JSON → DB
+  router.post('/sync-files', async (req: Request, res: Response) => {
+    try {
+      const { mission_id } = req.body as { mission_id?: string };
+      if (!mission_id) {
+        res.status(400).json({ error: 'mission_id는 필수입니다' });
+        return;
+      }
+
+      const dataRoot = process.platform === 'win32' ? 'C:/oomni-data' : path.join(os.homedir(), 'oomni-data');
+      const itemsDir = path.join(dataRoot, 'research', 'items');
+
+      if (!fs.existsSync(itemsDir)) {
+        res.json({ synced: 0 });
+        return;
+      }
+
+      const files = fs.readdirSync(itemsDir).filter(f => f.endsWith('.json'));
+      let synced = 0;
+
+      for (const file of files) {
+        try {
+          const raw = fs.readFileSync(path.join(itemsDir, file), 'utf-8');
+          const data = JSON.parse(raw) as {
+            title?: string;
+            summary?: string;
+            signal_score?: number;
+            source_url?: string | null;
+            tags?: string[];
+          };
+
+          if (!data.title) continue;
+
+          // Skip duplicates
+          const existing = await db.query(
+            'SELECT id FROM research_items WHERE mission_id = $1 AND title = $2',
+            [mission_id, data.title]
+          );
+          if ((existing.rows as unknown[]).length > 0) continue;
+
+          await db.query(
+            `INSERT INTO research_items (id, mission_id, source_type, source_url, title, summary, tags, signal_score, filter_decision)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+            [
+              uuidv4(),
+              mission_id,
+              'keyword',
+              data.source_url ?? null,
+              data.title,
+              data.summary ?? null,
+              JSON.stringify(data.tags ?? []),
+              data.signal_score ?? 0,
+              'pending',
+            ]
+          );
+          synced++;
+        } catch {
+          // skip malformed files
+        }
+      }
+
+      res.json({ synced });
+    } catch (err) {
+      logger.error('[research] POST /sync-files 오류', err);
       res.status(500).json({ error: '서버 내부 오류' });
     }
   });
