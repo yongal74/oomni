@@ -26,6 +26,7 @@ interface Settings {
   google_client_id?: string;
   google_client_secret?: string;
   preferred_ide?: string;
+  obsidian_vault_path?: string;
 }
 
 // ── 암호화 유틸 ────────────────────────────────────────────
@@ -164,6 +165,7 @@ export function readSettings(): Settings {
   }
   // Non-sensitive fields — return as-is
   if (raw.preferred_ide) result.preferred_ide = raw.preferred_ide;
+  if (raw.obsidian_vault_path) result.obsidian_vault_path = raw.obsidian_vault_path;
   return result;
 }
 

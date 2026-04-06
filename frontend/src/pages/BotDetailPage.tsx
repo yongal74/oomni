@@ -151,7 +151,7 @@ export default function BotDetailPage() {
       case 'research': return {
         left: <ResearchLeftPanel missionId={missionId ?? ''} />,
         center: <ResearchCenterPanel missionId={missionId ?? ''} onItemClick={setSelectedResearchItem} streamOutput={streamOutput} isRunning={isRunning} />,
-        right: <ResearchRightPanel item={selectedResearchItem} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
+        right: <ResearchRightPanel item={selectedResearchItem} agentId={agent.id} onSkillSelect={(s: string) => setTask(s)} />,
       }
       case 'build': return {
         left: <BuildLeftPanel
@@ -190,7 +190,7 @@ export default function BotDetailPage() {
       case 'ceo': return {
         left: <CeoLeftPanel missionId={missionId ?? ''} />,
         center: <CeoCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
-        right: <CeoRightPanel missionId={missionId ?? ''} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
+        right: <CeoRightPanel missionId={missionId ?? ''} agentId={agent.id} onSkillSelect={(s: string) => setTask(s)} />,
       }
       case 'design': return {
         left: <DesignLeftPanel selectedTemplate={designTemplate} onTemplateChange={setDesignTemplate} />,

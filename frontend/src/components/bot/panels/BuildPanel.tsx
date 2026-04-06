@@ -6,6 +6,8 @@ import {
   Copy, Check, Code2, ClipboardCheck, Layers
 } from 'lucide-react'
 import { cn } from '../../../lib/utils'
+import { ArchiveButton } from '../shared/ArchiveButton'
+import { NextBotDropdown } from '../shared/NextBotDropdown'
 
 // ── Category tab definitions ─────────────────────────────────────────────────
 type Category = 'all' | 'frontend' | 'backend' | 'payment' | 'db' | 'security' | 'marketing'
@@ -431,8 +433,6 @@ function parseTasksFromContent(content: string): TaskItem[] {
 
 export function BuildRightPanel({
   agentId,
-  nextBotName,
-  onNextBot,
   onSkillSelect,
 }: {
   agentId: string
@@ -520,18 +520,16 @@ export function BuildRightPanel({
         </div>
       </div>
 
+      {/* Obsidian archive */}
+      <ArchiveButton
+        content={feed.filter(f => f.type === 'result')[0]?.content ?? ''}
+        title="Build 결과"
+        botRole="build"
+        tags={['OOMNI', 'build']}
+      />
+
       {/* Next bot */}
-      {nextBotName && (
-        <div className="mt-auto pt-3 border-t border-border">
-          <button
-            onClick={onNextBot}
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 transition-colors"
-          >
-            <span className="text-sm">{nextBotName}으로 이어서</span>
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      )}
+      <NextBotDropdown currentAgentId={agentId} />
     </div>
   )
 }

@@ -4,9 +4,11 @@
  */
 import { useQuery } from '@tanstack/react-query'
 import { agentsApi, type FeedItem } from '../../../lib/api'
-import { ChevronRight, Copy, Check } from 'lucide-react'
+import { Copy, Check } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { useState } from 'react'
+import { ArchiveButton } from '../shared/ArchiveButton'
+import { NextBotDropdown } from '../shared/NextBotDropdown'
 
 // ─── Right 패널: 결과 피드 + 다음봇 연결 ─────────────────────────────
 interface RightPanelProps {
@@ -15,7 +17,7 @@ interface RightPanelProps {
   onNextBot?: () => void
 }
 
-export function CommonRightPanel({ agentId, nextBotName, onNextBot }: RightPanelProps) {
+export function CommonRightPanel({ agentId }: RightPanelProps) {
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
     queryFn: () => agentsApi.runs(agentId),
@@ -38,17 +40,14 @@ export function CommonRightPanel({ agentId, nextBotName, onNextBot }: RightPanel
         )}
       </div>
 
-      {nextBotName && (
-        <div className="border-t border-border pt-3">
-          <button
-            onClick={onNextBot}
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded border border-primary/30 text-primary hover:bg-primary/5 transition-colors"
-          >
-            <span className="text-sm">{nextBotName}으로 이어서</span>
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      )}
+      <ArchiveButton
+        content={results[0]?.content ?? ''}
+        title={results[0]?.content?.slice(0, 50)}
+        botRole="agent"
+        tags={['OOMNI']}
+      />
+
+      <NextBotDropdown currentAgentId={agentId} />
     </div>
   )
 }

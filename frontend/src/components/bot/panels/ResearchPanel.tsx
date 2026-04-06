@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { researchApi, type ResearchItem } from '../../../lib/api'
-import { Check, Eye, X, ChevronRight, FileText } from 'lucide-react'
+import { Check, Eye, X, FileText, Copy } from 'lucide-react'
 import { cn } from '../../../lib/utils'
+import { ArchiveButton } from '../shared/ArchiveButton'
+import { NextBotDropdown } from '../shared/NextBotDropdown'
 
 interface Props {
   missionId: string
@@ -321,11 +323,12 @@ const RESEARCH_SKILLS = [
 ]
 
 // RIGHT: 클릭한 아이템 상세 + 다음봇 연결
-export function ResearchRightPanel({ item, nextBotName, onNextBot, onSkillSelect }: {
+export function ResearchRightPanel({ item, onSkillSelect, agentId }: {
   item: ResearchItem | null
   nextBotName?: string
   onNextBot?: () => void
   onSkillSelect?: (prompt: string) => void
+  agentId?: string
 }) {
   const [converting, setConverting] = useState(false)
   const [output, setOutput] = useState('')
@@ -378,24 +381,45 @@ export function ResearchRightPanel({ item, nextBotName, onNextBot, onSkillSelect
       <div>
         <p className="text-xs text-muted uppercase tracking-widest mb-2">산출물로 변환</p>
         <div className="space-y-1.5">
-          {['trend_report', 'action_plan', 'newsletter'].map(type => (
+          {[
+            { type: 'linkedin', label: '💼 LinkedIn 포스트' },
+            { type: 'blog', label: '📝 블로그 포스트' },
+            { type: 'newsletter', label: '📧 뉴스레터' },
+            { type: 'report', label: '📊 분석 리포트' },
+            { type: 'action_plan', label: '✅ 액션 플랜' },
+          ].map(({ type, label }) => (
             <button
               key={type}
-              onClick={() => handleConvert(type)}
-              disabled={converting}
-              className="w-full text-left px-3 py-2 rounded border border-border text-sm text-dim hover:border-primary/40 hover:text-text transition-colors"
+              onClick={() => handleConvert(type === 'action_plan' ? 'prd' : type)}
+              disabled={converting || !item}
+              className="w-full text-left px-3 py-2 rounded border border-border text-sm text-dim hover:border-primary/40 hover:text-text transition-colors disabled:opacity-50"
             >
-              {type === 'trend_report' ? '트렌드 리포트' :
-               type === 'action_plan' ? '액션 플랜' : '뉴스레터'}
+              {converting ? '변환 중...' : label}
             </button>
           ))}
         </div>
       </div>
 
       {output && (
-        <div className="bg-bg rounded-lg border border-border p-3">
-          <p className="text-xs text-dim leading-relaxed whitespace-pre-wrap">{output}</p>
+        <div className="bg-bg rounded-lg border border-border p-3 relative">
+          <button
+            onClick={() => navigator.clipboard.writeText(output)}
+            className="absolute top-2 right-2 text-muted hover:text-text"
+            title="복사"
+          >
+            <Copy size={12} />
+          </button>
+          <p className="text-xs text-dim leading-relaxed whitespace-pre-wrap pr-4">{output}</p>
         </div>
+      )}
+
+      {output && (
+        <ArchiveButton
+          content={output}
+          title={item?.title}
+          botRole="research"
+          tags={['OOMNI', 'research', ...(item?.tags ? (Array.isArray(item.tags) ? item.tags : []) : [])]}
+        />
       )}
 
       {/* 빠른 실행 */}
@@ -415,15 +439,9 @@ export function ResearchRightPanel({ item, nextBotName, onNextBot, onSkillSelect
         </div>
       </div>
 
-      {nextBotName && (
+      {agentId && (
         <div className="pt-2 border-t border-border">
-          <button
-            onClick={onNextBot}
-            className="w-full flex items-center justify-between px-3 py-2 rounded border border-primary/30 text-primary hover:bg-primary/5 transition-colors"
-          >
-            <span className="text-sm">{nextBotName}으로 이어서</span>
-            <ChevronRight size={14} />
-          </button>
+          <NextBotDropdown currentAgentId={agentId} />
         </div>
       )}
     </div>

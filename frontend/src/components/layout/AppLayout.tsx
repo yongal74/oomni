@@ -44,7 +44,10 @@ export function AppLayout() {
         {/* 봇 목록 */}
         <div className="flex-1 overflow-y-auto px-2 py-3">
           <div className="text-[10px] text-muted uppercase tracking-widest px-2 mb-2">봇</div>
-          {agents.map(agent => (
+          {[
+            ...agents.filter(a => a.role === 'ceo'),
+            ...agents.filter(a => a.role !== 'ceo'),
+          ].map(agent => (
             <NavLink
               key={agent.id}
               to={`/dashboard/bots/${agent.id}`}

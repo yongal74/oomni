@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentsApi, researchApi, videoApi, type FeedItem, type ResearchItem, type ShortFormScript } from '../../../lib/api'
-import { ChevronRight, Copy, Check, FileText, Video, Download, Film } from 'lucide-react'
+import { Copy, Check, FileText, Video, Download, Film, Upload, X } from 'lucide-react'
 import { cn } from '../../../lib/utils'
+import { ArchiveButton } from '../shared/ArchiveButton'
+import { NextBotDropdown } from '../shared/NextBotDropdown'
 import { Player } from '@remotion/player'
 import { ShortFormVideo } from '../../video/ShortFormVideo'
 
@@ -16,11 +18,14 @@ const CONTENT_TYPES = [
 ]
 
 // LEFT: 콘텐츠 타입 + 리서치 연결
-export function ContentLeftPanel({ missionId, selectedType, onTypeChange }: {
+export function ContentLeftPanel({ missionId, selectedType, onTypeChange, onItemSelect }: {
   missionId: string
   selectedType: string
   onTypeChange: (type: string) => void
+  onItemSelect?: (item: ResearchItem) => void
 }) {
+  const [uploadedFile, setUploadedFile] = useState<{ name: string; content: string } | null>(null)
+
   const { data: keptItems = [] } = useQuery<ResearchItem[]>({
     queryKey: ['research', missionId],
     queryFn: () => researchApi.list(missionId),
@@ -65,12 +70,45 @@ export function ContentLeftPanel({ missionId, selectedType, onTypeChange }: {
         ) : (
           <div className="space-y-1.5">
             {keptItems.slice(0, 5).map(item => (
-              <div key={item.id} className="flex items-start gap-2 px-2 py-1.5 rounded bg-bg">
+              <button
+                key={item.id}
+                onClick={() => onItemSelect?.(item)}
+                className="w-full flex items-start gap-2 px-2 py-1.5 rounded bg-bg hover:bg-primary/5 hover:border-primary/20 border border-transparent transition-colors text-left"
+              >
                 <span className="text-green-400 text-xs mt-0.5 shrink-0">✓</span>
                 <span className="text-xs text-dim leading-snug line-clamp-2">{item.title}</span>
-              </div>
+              </button>
             ))}
           </div>
+        )}
+      </div>
+
+      <div>
+        <p className="text-xs text-muted uppercase tracking-widest mb-3">파일 업로드</p>
+        {uploadedFile ? (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-bg border border-green-500/30">
+            <FileText size={12} className="text-green-400 shrink-0" />
+            <span className="text-xs text-dim truncate flex-1">{uploadedFile.name}</span>
+            <button onClick={() => setUploadedFile(null)} className="text-muted hover:text-red-400">
+              <X size={10} />
+            </button>
+          </div>
+        ) : (
+          <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border text-dim hover:border-primary/40 hover:text-text cursor-pointer transition-colors">
+            <Upload size={13} />
+            <span className="text-xs">파일 선택 (.txt, .md)</span>
+            <input
+              type="file"
+              accept=".txt,.md,.csv"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                const text = await file.text()
+                setUploadedFile({ name: file.name, content: text })
+              }}
+            />
+          </label>
         )}
       </div>
     </div>
@@ -335,11 +373,25 @@ export function ContentCenterPanel({ agentId, selectedType, streamOutput, isRunn
         </div>
       )
     }
+    const typeLabels: Record<string, string> = {
+      blog: '블로그 포스트',
+      newsletter: '뉴스레터',
+      twitter: '트위터 스레드',
+      linkedin: 'LinkedIn',
+      youtube_script: '유튜브 스크립트',
+    }
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
         <FileText size={36} className="text-muted/30" />
-        <p className="text-base text-muted">하단 입력창에서 콘텐츠 생성을 지시하세요</p>
-        <p className="text-sm text-muted/60">"AI 트렌드 블로그 포스트 써줘" 등</p>
+        <p className="text-base text-muted">
+          {selectedType ? `${typeLabels[selectedType] ?? selectedType} 생성을 지시하세요` : '하단 입력창에서 콘텐츠 생성을 지시하세요'}
+        </p>
+        <p className="text-sm text-muted/60">
+          {selectedType === 'blog' ? '"AI 트렌드 블로그 포스트 작성해줘"' :
+           selectedType === 'linkedin' ? '"LinkedIn 포스트 작성해줘"' :
+           selectedType === 'newsletter' ? '"이번 주 뉴스레터 작성해줘"' :
+           '"콘텐츠 생성을 지시하세요"'}
+        </p>
       </div>
     )
   }
@@ -382,7 +434,7 @@ const CONTENT_SKILLS = [
 ]
 
 // RIGHT: 발행 옵션 + 다음봇
-export function ContentRightPanel({ agentId, nextBotName, onNextBot, onSkillSelect }: {
+export function ContentRightPanel({ agentId, onSkillSelect }: {
   agentId: string
   nextBotName?: string
   onNextBot?: () => void
@@ -445,17 +497,14 @@ export function ContentRightPanel({ agentId, nextBotName, onNextBot, onSkillSele
         </div>
       </div>
 
-      {nextBotName && (
-        <div className="mt-auto pt-3 border-t border-border">
-          <button
-            onClick={onNextBot}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 transition-colors"
-          >
-            <span className="text-sm">{nextBotName}으로 이어서</span>
-            <ChevronRight size={15} />
-          </button>
-        </div>
-      )}
+      <ArchiveButton
+        content={latest?.content ?? ''}
+        title={latest?.content?.slice(0, 50)}
+        botRole="content"
+        tags={['OOMNI', 'content']}
+      />
+
+      <NextBotDropdown currentAgentId={agentId} />
     </div>
   )
 }

@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { agentsApi, type FeedItem } from '../../../lib/api'
-import { ChevronRight, Zap, Download } from 'lucide-react'
+import { Zap, Download } from 'lucide-react'
 import { cn } from '../../../lib/utils'
+import { ArchiveButton } from '../shared/ArchiveButton'
+import { NextBotDropdown } from '../shared/NextBotDropdown'
 
 const OPS_TABS = [
   { key: 'automation', label: '자동화' },
@@ -135,7 +137,7 @@ const OPS_SKILLS = [
 ]
 
 // RIGHT: n8n import + 다음봇
-export function OpsRightPanel({ agentId, nextBotName, onNextBot, onSkillSelect }: {
+export function OpsRightPanel({ agentId, onSkillSelect }: {
   agentId: string
   nextBotName?: string
   onNextBot?: () => void
@@ -202,17 +204,14 @@ export function OpsRightPanel({ agentId, nextBotName, onNextBot, onSkillSelect }
         </div>
       </div>
 
-      {nextBotName && (
-        <div className="pt-3 border-t border-border">
-          <button
-            onClick={onNextBot}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 transition-colors"
-          >
-            <span className="text-sm">{nextBotName}으로 이어서</span>
-            <ChevronRight size={15} />
-          </button>
-        </div>
-      )}
+      <ArchiveButton
+        content={feed[0]?.content ?? ''}
+        title={feed[0]?.content?.slice(0, 50)}
+        botRole="ops"
+        tags={['OOMNI', 'ops']}
+      />
+
+      <NextBotDropdown currentAgentId={agentId} />
     </div>
   )
 }

@@ -25,6 +25,7 @@ import { devtoolsRouter } from './routes/devtools';
 import { ceoRouter } from './routes/ceo';
 import { templatesRouter } from './routes/templates';
 import { videoRouter } from './routes/video';
+import { obsidianRouter } from './routes/obsidian';
 import { logger } from '../logger';
 
 interface AppOptions {
@@ -146,6 +147,7 @@ export function createApp(options: AppOptions): Application {
   app.use('/api/ceo', ceoRouter(options.db));
   app.use('/api/templates', templatesRouter(options.db));
   app.use('/api/video', videoRouter());
+  app.use('/api/obsidian', obsidianRouter());
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });

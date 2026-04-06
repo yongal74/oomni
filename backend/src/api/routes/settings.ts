@@ -56,5 +56,22 @@ export function settingsRouter(): Router {
     res.json({ api_key_set: isSet });
   });
 
+  // GET /api/settings/obsidian — Obsidian vault path 반환
+  router.get('/obsidian', (_req: Request, res: Response) => {
+    const settings = readSettings();
+    res.json({ vault_path: settings.obsidian_vault_path ?? '' });
+  });
+
+  // POST /api/settings/obsidian — Obsidian vault path 저장
+  router.post('/obsidian', (req: Request, res: Response) => {
+    const { vault_path } = req.body as { vault_path?: string };
+    if (typeof vault_path !== 'string') {
+      res.status(400).json({ error: 'vault_path is required' });
+      return;
+    }
+    saveSettings({ obsidian_vault_path: vault_path });
+    res.json({ success: true });
+  });
+
   return router;
 }

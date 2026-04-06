@@ -10,7 +10,7 @@ import { useAppStore } from '../store/app.store'
 import { oomniWs } from '../lib/ws'
 import {
   Play, Plus, X, Check, XCircle, Loader2,
-  ArrowRight, Layers,
+  ArrowRight, Layers, Archive,
 } from 'lucide-react'
 import { BotRunModal } from '../components/BotRunModal'
 import { formatDistanceToNow } from 'date-fns'
@@ -78,6 +78,15 @@ const DASH_TABS: { key: DashTab; label: string }[] = [
   { key: 'report', label: '리포트' },
 ]
 
+// TODO item type
+interface TodoItem {
+  id: string
+  text: string
+  agent_id?: string
+  created_at: string
+  done_at?: string
+}
+
 export default function DashboardPage() {
   const qc = useQueryClient()
   const { currentMission, agents, setAgents, setPendingApprovals } = useAppStore()
@@ -87,6 +96,16 @@ export default function DashboardPage() {
   const [creatingRole, setCreatingRole] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<DashTab>('feed')
   const [runModalAgent, setRunModalAgent] = useState<Agent | null>(null)
+
+  // TODO/DONE state
+  const [todoItems, setTodoItems] = useState<TodoItem[]>(() => {
+    try { return JSON.parse(localStorage.getItem('oomni_todos') ?? '[]') } catch { return [] }
+  })
+  const [doneItems, setDoneItems] = useState<TodoItem[]>(() => {
+    try { return JSON.parse(localStorage.getItem('oomni_dones') ?? '[]') } catch { return [] }
+  })
+  const [showAddTodo, setShowAddTodo] = useState(false)
+  const [newTodoText, setNewTodoText] = useState('')
 
   const missionId = currentMission?.id
 
@@ -200,11 +219,58 @@ export default function DashboardPage() {
 
   // KPI 계산
   const runningBots = agents.filter(a => a.is_active).length
-  const todayCompleted = feedItems.filter(f => {
-    const d = new Date(f.created_at)
-    return d.toDateString() === new Date().toDateString() && f.type === 'result'
-  }).length
   const totalCost = (costData?.data as Record<string, unknown>)?.total_cost_usd as number ?? 0
+
+  // TODO/DONE helpers
+  const saveTodos = (items: TodoItem[]) => {
+    setTodoItems(items)
+    localStorage.setItem('oomni_todos', JSON.stringify(items))
+  }
+  const saveDones = (items: TodoItem[]) => {
+    setDoneItems(items)
+    localStorage.setItem('oomni_dones', JSON.stringify(items))
+  }
+
+  const addTodoItem = () => {
+    if (!newTodoText.trim()) return
+    const item: TodoItem = { id: crypto.randomUUID(), text: newTodoText.trim(), created_at: new Date().toISOString() }
+    saveTodos([item, ...todoItems])
+    setNewTodoText('')
+    setShowAddTodo(false)
+  }
+
+  const moveItemToDone = (id: string) => {
+    const item = todoItems.find(i => i.id === id)
+    if (!item) return
+    saveTodos(todoItems.filter(i => i.id !== id))
+    saveDones([{ ...item, done_at: new Date().toISOString() }, ...doneItems])
+  }
+
+  const moveItemToTodo = (id: string) => {
+    const item = doneItems.find(i => i.id === id)
+    if (!item) return
+    saveDones(doneItems.filter(i => i.id !== id))
+    saveTodos([{ ...item, done_at: undefined }, ...todoItems])
+  }
+
+  const deleteTodoItem = (id: string) => {
+    saveTodos(todoItems.filter(i => i.id !== id))
+  }
+
+  const handleArchiveTodo = async (item: TodoItem) => {
+    try {
+      const { obsidianApi } = await import('../lib/api')
+      const status = await obsidianApi.status()
+      if (status.configured) {
+        await obsidianApi.archive({
+          title: item.text,
+          content: `# ${item.text}\n\n완료일: ${item.done_at ? new Date(item.done_at).toLocaleString('ko-KR') : ''}\n생성일: ${new Date(item.created_at).toLocaleString('ko-KR')}`,
+          bot_role: 'todo',
+          tags: ['OOMNI', 'todo', 'done'],
+        })
+      }
+    } catch {}
+  }
 
   if (!missionId) {
     return (
@@ -244,36 +310,30 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI 카드 */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
-        <KpiCard title="활성 봇" value={runningBots} suffix="개" color="text-green-400" icon="🤖" />
-        <KpiCard title="오늘 완료" value={todayCompleted} suffix="건" color="text-blue-400" icon="✅" />
-        <KpiCard title="승인 대기" value={approvalData?.length ?? 0} suffix="건" color="text-yellow-400" icon="⏳" />
-        <KpiCard title="이번 달 비용" value={`$${totalCost.toFixed(2)}`} color="text-primary" icon="💰" />
-      </div>
-
-      {/* 봇 목록 + 피드 */}
+      {/* 3단 메인 레이아웃 */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        {/* 봇 목록 (1/3) */}
+        {/* 봇 현황 */}
         <div className="bg-surface border border-border rounded-lg p-4">
-          <h3 className="text-[13px] font-medium text-text mb-3">봇 현황</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[13px] font-medium text-text">봇 현황</h3>
+          </div>
           <div className="space-y-2">
             {agents.map(agent => (
-              <div key={agent.id} className="flex items-center gap-2 p-2 rounded hover:bg-surface">
-                <span className="text-base">{BOT_TEMPLATES.find(t => t.role === agent.role)?.emoji ?? '🤖'}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[12px] text-text truncate">{agent.name}</div>
-                  <div className="text-[11px] text-muted">{agent.schedule}</div>
+              <Link key={agent.id} to={`/dashboard/bots/${agent.id}`}>
+                <div className="flex items-center gap-2 p-2 rounded hover:bg-bg transition-colors cursor-pointer">
+                  <span className="text-base">{BOT_TEMPLATES.find(t => t.role === agent.role)?.emoji ?? '🤖'}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[12px] text-text truncate">{agent.name}</div>
+                  </div>
+                  <button
+                    onClick={e => { e.preventDefault(); setRunModalAgent(agent) }}
+                    className="p-1 text-muted hover:text-primary rounded"
+                  >
+                    <Play size={12} />
+                  </button>
+                  <div className={`w-2 h-2 rounded-full ${agent.is_active ? 'bg-green-500' : 'bg-[#444]'}`} />
                 </div>
-                <button
-                  onClick={() => setRunModalAgent(agent)}
-                  className="p-1 text-muted hover:text-primary rounded"
-                  title="즉시 실행"
-                >
-                  <Play size={12} />
-                </button>
-                <div className={`w-2 h-2 rounded-full ${agent.is_active ? 'bg-green-500' : 'bg-[#444]'}`} />
-              </div>
+              </Link>
             ))}
             {agents.length === 0 && (
               <div className="space-y-3">
@@ -305,25 +365,71 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+          {/* mini KPIs */}
+          <div className="mt-4 pt-3 border-t border-border grid grid-cols-3 gap-2">
+            <div className="text-center">
+              <div className="text-lg font-bold text-green-400">{runningBots}</div>
+              <div className="text-[10px] text-muted">활성 봇</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-yellow-400">{approvalData?.length ?? 0}</div>
+              <div className="text-[10px] text-muted">승인 대기</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-primary">${totalCost.toFixed(2)}</div>
+              <div className="text-[10px] text-muted">이번 달</div>
+            </div>
+          </div>
         </div>
 
-        {/* 실시간 피드 (2/3) */}
-        <div className="col-span-2 bg-surface border border-border rounded-lg p-4">
-          <h3 className="text-[13px] font-medium text-text mb-3">실시간 피드</h3>
-          <div className="space-y-2 max-h-[calc(100vh-380px)] overflow-y-auto">
-            {feedItems.length === 0 && (
-              <div className="text-center text-muted text-[12px] py-8">
-                아직 봇 활동이 없습니다<br />봇을 실행해보세요
-              </div>
-            )}
-            {feedItems.slice(0, 10).map(item => (
-              <FeedCard
-                key={item.id}
-                item={item}
-                onApprove={() => approve.mutate(item.id)}
-                onReject={() => reject.mutate(item.id)}
-              />
+        {/* TODO */}
+        <div className="bg-surface border border-border rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[13px] font-medium text-text">📌 TODO</h3>
+            <span className="text-[11px] text-muted">{todoItems.length}개</span>
+          </div>
+          <div className="space-y-2 max-h-80 overflow-y-auto">
+            {todoItems.map(item => (
+              <TodoCard key={item.id} item={item} onDone={() => moveItemToDone(item.id)} onDelete={() => deleteTodoItem(item.id)} />
             ))}
+            {todoItems.length === 0 && (
+              <p className="text-[12px] text-muted/60 text-center py-4">오늘의 할일을 추가하세요</p>
+            )}
+          </div>
+          {showAddTodo && (
+            <div className="mt-2 flex gap-2">
+              <input
+                autoFocus
+                value={newTodoText}
+                onChange={e => setNewTodoText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') addTodoItem(); if (e.key === 'Escape') setShowAddTodo(false) }}
+                placeholder="할일 입력..."
+                className="flex-1 bg-bg border border-border rounded px-2.5 py-1.5 text-[12px] text-text placeholder-muted focus:outline-none focus:border-primary"
+              />
+              <button onClick={addTodoItem} className="px-2.5 py-1.5 bg-primary text-white rounded text-[12px]">추가</button>
+            </div>
+          )}
+          <button
+            onClick={() => setShowAddTodo(true)}
+            className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 border border-dashed border-border text-muted hover:border-primary/40 hover:text-primary rounded text-[12px] transition-colors"
+          >
+            <Plus size={12} /> 태스크 추가
+          </button>
+        </div>
+
+        {/* DONE */}
+        <div className="bg-surface border border-border rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[13px] font-medium text-text">✅ DONE</h3>
+            <span className="text-[11px] text-muted">{doneItems.length}개</span>
+          </div>
+          <div className="space-y-2 max-h-80 overflow-y-auto">
+            {doneItems.map(item => (
+              <DoneCard key={item.id} item={item} onUndo={() => moveItemToTodo(item.id)} onArchive={() => handleArchiveTodo(item)} />
+            ))}
+            {doneItems.length === 0 && (
+              <p className="text-[12px] text-muted/60 text-center py-4">완료된 항목이 여기 표시됩니다</p>
+            )}
           </div>
         </div>
       </div>
@@ -533,24 +639,30 @@ export default function DashboardPage() {
   )
 }
 
-function KpiCard({
-  title, value, suffix, color, icon,
-}: {
-  title: string
-  value: string | number
-  suffix?: string
-  color: string
-  icon: string
-}) {
+function TodoCard({ item, onDone, onDelete }: { item: TodoItem; onDone: () => void; onDelete: () => void }) {
   return (
-    <div className="bg-surface border border-border rounded-lg p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-base">{icon}</span>
-        <span className="text-[12px] text-muted">{title}</span>
-      </div>
-      <div className={`text-2xl font-bold ${color}`}>
-        {value}{suffix && <span className="text-sm font-normal text-muted ml-1">{suffix}</span>}
-      </div>
+    <div className="flex items-start gap-2 p-2.5 rounded-lg border border-border bg-bg group">
+      <button onClick={onDone} className="mt-0.5 w-4 h-4 rounded border border-border hover:border-green-500 hover:bg-green-500/10 flex items-center justify-center shrink-0 transition-colors">
+        <Check size={10} className="text-transparent group-hover:text-green-400" />
+      </button>
+      <span className="text-[12px] text-text flex-1 leading-relaxed">{item.text}</span>
+      <button onClick={onDelete} className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-400 transition-all shrink-0">
+        <X size={12} />
+      </button>
+    </div>
+  )
+}
+
+function DoneCard({ item, onUndo, onArchive }: { item: TodoItem; onUndo: () => void; onArchive: () => void }) {
+  return (
+    <div className="flex items-start gap-2 p-2.5 rounded-lg border border-border/50 bg-bg/50 group">
+      <button onClick={onUndo} className="mt-0.5 w-4 h-4 rounded bg-green-500/20 border border-green-500/40 flex items-center justify-center shrink-0">
+        <Check size={10} className="text-green-400" />
+      </button>
+      <span className="text-[12px] text-muted line-through flex-1 leading-relaxed">{item.text}</span>
+      <button onClick={onArchive} title="Obsidian 아카이브" className="opacity-0 group-hover:opacity-100 text-muted hover:text-primary transition-all shrink-0">
+        <Archive size={11} />
+      </button>
     </div>
   )
 }
@@ -602,4 +714,3 @@ function FeedCard({
     </div>
   )
 }
-

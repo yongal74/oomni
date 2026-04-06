@@ -1,8 +1,10 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { agentsApi, type FeedItem } from '../../../lib/api'
-import { ChevronRight, Palette, Layout } from 'lucide-react'
+import { Palette, Layout } from 'lucide-react'
 import { cn } from '../../../lib/utils'
+import { ArchiveButton } from '../shared/ArchiveButton'
+import { NextBotDropdown } from '../shared/NextBotDropdown'
 
 const TEMPLATES = [
   { key: 'landing', label: '랜딩 히어로', emoji: '🏠' },
@@ -117,12 +119,20 @@ const DESIGN_SKILLS = [
 ]
 
 // RIGHT: 내보내기 + 다음봇
-export function DesignRightPanel({ nextBotName, onNextBot, onSkillSelect }: {
+export function DesignRightPanel({ agentId, onSkillSelect }: {
   agentId?: string
   nextBotName?: string
   onNextBot?: () => void
   onSkillSelect?: (prompt: string) => void
 }) {
+  const { data: feed = [] } = useQuery({
+    queryKey: ['bot-feed', agentId],
+    queryFn: () => agentId ? agentsApi.runs(agentId) : Promise.resolve([]),
+    select: (data: FeedItem[]) => data.filter(f => f.type === 'result'),
+    enabled: !!agentId,
+  })
+  const latest = feed[0]
+
   return (
     <div className="p-4 h-full flex flex-col gap-4">
       <div className="flex-1">
@@ -155,17 +165,14 @@ export function DesignRightPanel({ nextBotName, onNextBot, onSkillSelect }: {
         </div>
       </div>
 
-      {nextBotName && (
-        <div className="pt-3 border-t border-border">
-          <button
-            onClick={onNextBot}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 transition-colors"
-          >
-            <span className="text-sm">{nextBotName}으로 이어서</span>
-            <ChevronRight size={15} />
-          </button>
-        </div>
-      )}
+      <ArchiveButton
+        content={latest?.content ?? ''}
+        title={latest?.content?.slice(0, 50)}
+        botRole="design"
+        tags={['OOMNI', 'design']}
+      />
+
+      {agentId && <NextBotDropdown currentAgentId={agentId} />}
     </div>
   )
 }

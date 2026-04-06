@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { integrationsApi } from '../lib/api'
+import { integrationsApi, obsidianSettingsApi } from '../lib/api'
 import { useAppStore } from '../store/app.store'
-import { Trash2, CheckCircle, X } from 'lucide-react'
+import { Trash2, CheckCircle, X, FolderOpen } from 'lucide-react'
 
 interface ProviderField {
   key: string
@@ -79,6 +79,20 @@ export default function IntegrationsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['integrations'] }),
   })
 
+  const [vaultPath, setVaultPath] = useState('')
+  const [vaultSaved, setVaultSaved] = useState(false)
+
+  useQuery({
+    queryKey: ['obsidian-settings'],
+    queryFn: obsidianSettingsApi.get,
+    onSuccess: (data: { vault_path: string }) => { if (data.vault_path) setVaultPath(data.vault_path) },
+  } as any)
+
+  const saveVault = useMutation({
+    mutationFn: () => obsidianSettingsApi.save(vaultPath),
+    onSuccess: () => { setVaultSaved(true); setTimeout(() => setVaultSaved(false), 2000) },
+  })
+
   const connectedIds = new Set(integrations.map((i: Integration) => i.provider))
 
   // Compute which categories exist among providers
@@ -109,6 +123,34 @@ export default function IntegrationsPage() {
     <div className="p-6 max-w-4xl mx-auto">
       <h1 className="text-xl font-semibold text-text mb-1">서비스 연동</h1>
       <p className="text-muted text-[13px] mb-6">연결한 서비스를 봇들이 자동으로 활용합니다</p>
+
+      {/* Obsidian Vault 경로 설정 */}
+      <div className="mb-6 p-4 bg-surface border border-border rounded-xl">
+        <div className="flex items-center gap-2 mb-3">
+          <FolderOpen size={15} className="text-primary" />
+          <span className="text-[13px] font-medium text-text">Obsidian Vault 경로</span>
+          <span className="text-[10px] text-muted bg-bg border border-border px-2 py-0.5 rounded-full">로컬 연동</span>
+        </div>
+        <p className="text-[11px] text-muted mb-3">봇 결과물을 자동으로 Obsidian에 아카이빙합니다. Vault 폴더의 절대 경로를 입력하세요.</p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={vaultPath}
+            onChange={e => setVaultPath(e.target.value)}
+            placeholder="예: C:\Users\username\Documents\ObsidianVault"
+            className="flex-1 bg-bg border border-border rounded px-2.5 py-1.5 text-[12px] text-text placeholder-muted focus:outline-none focus:border-primary"
+          />
+          <button
+            onClick={() => saveVault.mutate()}
+            disabled={!vaultPath || saveVault.isPending}
+            className={`px-4 py-1.5 rounded text-[12px] transition-colors disabled:opacity-50 ${
+              vaultSaved ? 'bg-green-900/20 text-green-400 border border-green-800/30' : 'bg-primary text-white hover:bg-[#C5664A]'
+            }`}
+          >
+            {vaultSaved ? '저장됨 ✓' : '저장'}
+          </button>
+        </div>
+      </div>
 
       {success && (
         <div className="mb-4 p-3 bg-green-900/20 border border-green-800/30 rounded text-green-400 text-[13px]">

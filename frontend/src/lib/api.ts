@@ -168,6 +168,22 @@ export const settingsApi = {
     settingsAxios.get('/api/settings').then(r => r.data),
 }
 
+// Obsidian vault 경로 설정
+export const obsidianSettingsApi = {
+  get: (): Promise<{ vault_path: string }> =>
+    api.get('/api/settings/obsidian').then(r => r.data),
+  save: (vault_path: string): Promise<{ success: boolean }> =>
+    api.post('/api/settings/obsidian', { vault_path }).then(r => r.data),
+}
+
+// Obsidian 아카이브
+export const obsidianApi = {
+  status: (): Promise<{ configured: boolean; vault_path: string }> =>
+    api.get('/api/obsidian/status').then(r => r.data),
+  archive: (data: { title: string; content: string; bot_role: string; tags?: string[] }) =>
+    api.post<{ success: boolean; file_path: string; file_name: string }>('/api/obsidian/archive', data).then(r => r.data),
+}
+
 // 개발 환경
 export const devtoolsApi = {
   status: (): Promise<{ claude_code: boolean; vscode: boolean; cursor: boolean; antigravity: boolean }> =>

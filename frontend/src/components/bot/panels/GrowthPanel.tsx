@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { agentsApi, videoApi, type FeedItem } from '../../../lib/api'
-import { ChevronRight, TrendingUp, Users, MessageSquare, BarChart2, Video, Film } from 'lucide-react'
+import { TrendingUp, Users, MessageSquare, BarChart2, Video, Film } from 'lucide-react'
 import { cn } from '../../../lib/utils'
+import { ArchiveButton } from '../shared/ArchiveButton'
+import { NextBotDropdown } from '../shared/NextBotDropdown'
 import { Player } from '@remotion/player'
 import { GrowthStoryVideo, type GrowthStoryProps, type MetricType } from '../../video/GrowthStoryVideo'
 
@@ -327,7 +329,7 @@ const GROWTH_SKILLS = [
 ]
 
 // RIGHT: AI 추천 + 성장 영상 + 다음봇
-export function GrowthRightPanel({ agentId, nextBotName, onNextBot, onSkillSelect }: {
+export function GrowthRightPanel({ agentId, onSkillSelect }: {
   agentId: string
   nextBotName?: string
   onNextBot?: () => void
@@ -409,17 +411,14 @@ export function GrowthRightPanel({ agentId, nextBotName, onNextBot, onSkillSelec
         </div>
       </div>
 
-      {nextBotName && (
-        <div className="pt-3 border-t border-border shrink-0">
-          <button
-            onClick={onNextBot}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 transition-colors"
-          >
-            <span className="text-sm">{nextBotName}으로 이어서</span>
-            <ChevronRight size={15} />
-          </button>
-        </div>
-      )}
+      <ArchiveButton
+        content={feed[0]?.content ?? ''}
+        title={feed[0]?.content?.slice(0, 50)}
+        botRole="growth"
+        tags={['OOMNI', 'growth']}
+      />
+
+      <NextBotDropdown currentAgentId={agentId} />
     </div>
   )
 }
