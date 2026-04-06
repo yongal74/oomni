@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useRef, useEffect } from 'react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentsApi, type Agent } from '../lib/api'
 import { useAppStore } from '../store/app.store'
@@ -44,6 +44,7 @@ const PLACEHOLDER: Record<string, string> = {
 export default function BotDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const qc = useQueryClient()
   const { currentMission, agents: allAgents } = useAppStore()
   const missionId = currentMission?.id
@@ -76,6 +77,23 @@ export default function BotDetailPage() {
     mutationFn: () => agentsApi.delete(id!),
     onSuccess: () => navigate('/dashboard'),
   })
+
+  // ?autorun= URL 파라미터 처리 — 대시보드 프리셋 클릭 시 자동 실행
+  useEffect(() => {
+    const autorun = searchParams.get('autorun')
+    if (!autorun || !agent || isRunning) return
+    const decoded = decodeURIComponent(autorun)
+    setSearchParams({}, { replace: true }) // URL에서 파라미터 제거
+    setTask(decoded)
+    // 상태 업데이트 후 실행 — requestAnimationFrame으로 다음 렌더 사이클에 실행
+    requestAnimationFrame(() => {
+      const stages = ROLE_STAGES[agent.role] ?? ROLE_STAGES.default
+      setCurrentStage(stages[0].key)
+      setBuildStreamContent('')
+      setIsRunning(true)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agent])
 
   const handleRun = () => {
     if (!task.trim() || isRunning) return

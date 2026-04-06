@@ -135,14 +135,15 @@ describe('ClaudeCodeService', () => {
       expect(events).toContain('done');
     });
 
-    test('calls spawn with node and cli args', async () => {
+    test('calls spawn with process.execPath and cli args', async () => {
       emitCliOutput([]);
 
       const service = ClaudeCodeService.create('agent-1', 'ops');
       await service.execute('run workflow', () => {});
 
+      // process.execPath used instead of bare 'node' — works in packaged Electron too
       expect(mockSpawn).toHaveBeenCalledWith(
-        'node',
+        process.execPath,
         expect.arrayContaining(['--print', '--output-format', 'stream-json']),
         expect.any(Object)
       );

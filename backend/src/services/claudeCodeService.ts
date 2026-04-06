@@ -3,6 +3,7 @@
  *
  * 핵심 설계:
  * - node_modules/@anthropic-ai/claude-code/cli.js 절대경로 직접 실행 (PATH 불필요)
+ * - 패키징된 Electron 앱에서도 동작: process.execPath + ELECTRON_RUN_AS_NODE=1
  * - 역할별 MCP 서버 자동 연결 (Design→Pencil, Ops→n8n)
  * - stream-json 포맷 실시간 SSE 스트리밍
  * - 역할별 모델 라우팅 (Haiku/Sonnet/Opus) — 토큰 비용 최적화
@@ -32,6 +33,26 @@ function getCliPath(): string {
   return candidates.find(p => fs.existsSync(p)) ?? candidates[candidates.length - 1];
 }
 
+/**
+ * Node.js 실행 경로 — 패키징 환경에서도 안전하게 동작
+ *
+ * - 개발 환경: process.execPath = node 바이너리
+ * - 패키징된 Electron: process.execPath = Electron.exe
+ *   → ELECTRON_RUN_AS_NODE=1 환경변수 설정 시 Node.js로 동작
+ */
+function getNodeExecutable(): { execPath: string; extraEnv: Record<string, string> } {
+  const isElectron = process.versions && 'electron' in process.versions;
+  if (isElectron) {
+    // 패키징된 Electron: execPath는 Electron.exe지만 ELECTRON_RUN_AS_NODE=1로 node 역할 수행
+    return {
+      execPath: process.execPath,
+      extraEnv: { ELECTRON_RUN_AS_NODE: '1' },
+    };
+  }
+  // 개발/테스트 환경: 실제 node 바이너리 사용
+  return { execPath: process.execPath, extraEnv: {} };
+}
+
 function getSkillsSrc(): string {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const resourcesPath: string | undefined = (process as any).resourcesPath;
@@ -43,7 +64,10 @@ function getSkillsSrc(): string {
 }
 
 // ── 데이터 경로 ──────────────────────────────────────────────
-export const DATA_ROOT      = 'C:/oomni-data';
+// 플랫폼 독립적 데이터 루트: Windows→C:/oomni-data, macOS/Linux→~/oomni-data
+export const DATA_ROOT = process.platform === 'win32'
+  ? 'C:/oomni-data'
+  : path.join(os.homedir(), 'oomni-data');
 export const WORKSPACE_ROOT = path.join(DATA_ROOT, 'workspaces');
 export const CLAUDE_DIR     = path.join(DATA_ROOT, '.claude');
 export const SKILLS_DEST    = path.join(CLAUDE_DIR, 'commands');
@@ -68,14 +92,57 @@ interface McpServer {
   env?: Record<string, string>;
 }
 
+/**
+ * Pencil MCP 실행파일 경로 탐색
+ * 우선순위: 환경변수 → 사용자 홈 디렉토리 내 antigravity 확장
+ */
+function findPencilMcpExe(): string | null {
+  if (process.env.PENCIL_MCP_PATH && fs.existsSync(process.env.PENCIL_MCP_PATH)) {
+    return process.env.PENCIL_MCP_PATH;
+  }
+  const homeDir = os.homedir();
+  const antigravityBase = path.join(homeDir, '.antigravity', 'extensions');
+  if (!fs.existsSync(antigravityBase)) return null;
+
+  // 버전에 상관없이 pencildev 확장 탐색
+  try {
+    const entries = fs.readdirSync(antigravityBase);
+    const pencilExt = entries.find(e => e.startsWith('highagency.pencildev'));
+    if (!pencilExt) return null;
+    const exeName = process.platform === 'win32'
+      ? 'mcp-server-windows-x64.exe'
+      : process.platform === 'darwin'
+        ? 'mcp-server-macos-arm64'
+        : 'mcp-server-linux-x64';
+    const exePath = path.join(antigravityBase, pencilExt, 'out', exeName);
+    return fs.existsSync(exePath) ? exePath : null;
+  } catch { return null; }
+}
+
+/**
+ * n8n-mcp 스크립트 경로 탐색
+ * 우선순위: 환경변수 → 글로벌 npm → npx 캐시
+ */
+function findN8nMcpScript(): string | null {
+  if (process.env.N8N_MCP_PATH && fs.existsSync(process.env.N8N_MCP_PATH)) {
+    return process.env.N8N_MCP_PATH;
+  }
+  const candidates = [
+    // Windows global npm
+    path.join(os.homedir(), 'AppData', 'Roaming', 'npm', 'node_modules', 'n8n-mcp', 'dist', 'mcp', 'index.js'),
+    // macOS/Linux global npm
+    path.join('/usr', 'local', 'lib', 'node_modules', 'n8n-mcp', 'dist', 'mcp', 'index.js'),
+    path.join(os.homedir(), '.npm-global', 'lib', 'node_modules', 'n8n-mcp', 'dist', 'mcp', 'index.js'),
+  ];
+  return candidates.find(p => fs.existsSync(p)) ?? null;
+}
+
 function getRoleMcpConfig(role: string): Record<string, McpServer> | null {
-  // Pencil MCP (Design Bot)
-  const pencilExe = 'c:\\Users\\장우경\\.antigravity\\extensions\\highagency.pencildev-0.6.39-universal\\out\\mcp-server-windows-x64.exe';
+  const { execPath: nodeExec, extraEnv: nodeEnv } = getNodeExecutable();
 
-  // n8n MCP (Ops Bot)
-  const n8nMcp = 'C:\\Users\\장우경\\AppData\\Roaming\\npm\\node_modules\\n8n-mcp\\dist\\mcp\\index.js';
-
-  if (role === 'design' && fs.existsSync(pencilExe)) {
+  if (role === 'design') {
+    const pencilExe = findPencilMcpExe();
+    if (!pencilExe) return null;
     return {
       pencil: {
         command: pencilExe,
@@ -85,16 +152,19 @@ function getRoleMcpConfig(role: string): Record<string, McpServer> | null {
     };
   }
 
-  if ((role === 'ops' || role === 'n8n') && fs.existsSync(n8nMcp)) {
+  if (role === 'ops' || role === 'n8n') {
+    const n8nMcp = findN8nMcpScript();
+    if (!n8nMcp) return null;
     return {
       'n8n-mcp': {
-        command: 'node',
+        command: nodeExec,   // process.execPath — PATH 불필요
         args: [n8nMcp],
         env: {
+          ...nodeEnv,        // ELECTRON_RUN_AS_NODE=1 (패키징 환경)
           MCP_MODE: 'stdio',
           LOG_LEVEL: 'error',
           DISABLE_CONSOLE_OUTPUT: 'true',
-          N8N_API_URL: process.env.N8N_API_URL ?? 'https://yongal74.app.n8n.cloud/api/v1',
+          N8N_API_URL: process.env.N8N_API_URL ?? '',
           N8N_API_KEY: process.env.N8N_API_KEY ?? '',
         },
       },
@@ -104,30 +174,33 @@ function getRoleMcpConfig(role: string): Record<string, McpServer> | null {
   return null;
 }
 
-// ── 역할별 시스템 프롬프트 ─────────────────────────────────────
-const ROLE_PROMPTS: Record<string, string> = {
-  research: `당신은 AI/스타트업 트렌드 리서치 에이전트입니다.
-신호 강도 0-100 채점, 근거 명시. 결과: C:/oomni-data/research/ 저장.`,
+// ── 역할별 시스템 프롬프트 (DATA_ROOT 동적 참조) ──────────────
+function buildRolePrompts(): Record<string, string> {
+  return {
+    research: `당신은 AI/스타트업 트렌드 리서치 에이전트입니다.
+신호 강도 0-100 채점, 근거 명시. 결과: ${DATA_ROOT}/research/ 저장.`,
 
-  content: `당신은 한국 솔로 창업자를 위한 콘텐츠 작가 에이전트입니다.
+    content: `당신은 한국 솔로 창업자를 위한 콘텐츠 작가 에이전트입니다.
 숏폼: Hook(0-3s)→Problem(3-8s)→Solution(8-25s)→Proof(25-50s)→CTA(50-60s).
-결과: C:/oomni-data/content/ 저장.`,
+결과: ${DATA_ROOT}/content/ 저장.`,
 
-  build: `당신은 풀스택 개발 에이전트입니다. TypeScript/React/Node.js/Tailwind.
+    build: `당신은 풀스택 개발 에이전트입니다. TypeScript/React/Node.js/Tailwind.
 파일은 현재 작업 디렉토리에 저장. 타입 정의 + 에러 처리 필수.`,
 
-  design: `당신은 UI/UX 디자인 에이전트입니다. 다크 테마, 오렌지 액센트 #D4763B.
-Pencil MCP로 실제 디자인 생성. 결과: C:/oomni-data/design/ 저장.`,
+    design: `당신은 UI/UX 디자인 에이전트입니다. 다크 테마, 오렌지 액센트 #D4763B.
+Pencil MCP로 실제 디자인 생성. 결과: ${DATA_ROOT}/design/ 저장.`,
 
-  growth: `당신은 그로스 해킹 에이전트입니다. KPI + 실행 액션 아이템 제시.
-결과: C:/oomni-data/growth/ 저장.`,
+    growth: `당신은 그로스 해킹 에이전트입니다. KPI + 실행 액션 아이템 제시.
+결과: ${DATA_ROOT}/growth/ 저장.`,
 
-  ops: `당신은 운영 자동화 에이전트입니다. n8n MCP로 워크플로우 직접 생성/배포.
-결과: C:/oomni-data/ops/ 저장.`,
+    ops: `당신은 운영 자동화 에이전트입니다. n8n MCP로 워크플로우 직접 생성/배포.
+결과: ${DATA_ROOT}/ops/ 저장.`,
 
-  ceo: `당신은 CEO 의사결정 지원 에이전트입니다. 전략적 분석, 최고 품질 판단.
-승인 필요 항목: [REQUIRES_APPROVAL] 태그. 결과: C:/oomni-data/ceo/ 저장.`,
-};
+    ceo: `당신은 CEO 의사결정 지원 에이전트입니다. 전략적 분석, 최고 품질 판단.
+승인 필요 항목: [REQUIRES_APPROVAL] 태그. 결과: ${DATA_ROOT}/ceo/ 저장.`,
+  };
+}
+const ROLE_PROMPTS = buildRolePrompts();
 
 // ── 타입 ─────────────────────────────────────────────────────
 export type SendFn = (event: string, data: unknown) => void;
@@ -291,10 +364,16 @@ export class ClaudeCodeService {
 
     send('start', { agentId: this.agentId, role: this.role, model, task });
 
+    const { execPath: nodeExec, extraEnv: nodeEnv } = getNodeExecutable();
+
     return new Promise<void>((resolve) => {
-      this.proc = spawn('node', args, {
+      this.proc = spawn(nodeExec, args, {
         cwd: wsPath,
-        env: { ...process.env, ANTHROPIC_API_KEY: apiKey },
+        env: {
+          ...process.env,
+          ...nodeEnv,              // ELECTRON_RUN_AS_NODE=1 (패키징 환경에서 Electron을 Node로 실행)
+          ANTHROPIC_API_KEY: apiKey,
+        },
         stdio: ['ignore', 'pipe', 'pipe'],
       });
 
