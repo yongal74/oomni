@@ -85,11 +85,20 @@ export function CeoCenterPanel({ agentId }: { agentId: string }) {
   )
 }
 
+const CEO_SKILLS = [
+  { label: '주간 브리핑', prompt: '/weekly-brief 이번 주 전체 봇 활동 결과를 종합해서 CEO 주간 브리핑을 작성해줘' },
+  { label: '우선순위 매트릭스', prompt: '/priority-matrix 현재 진행 중인 이니셔티브들을 Impact x Effort 매트릭스로 분석하고 이번 주 TOP 3를 알려줘' },
+  { label: 'OKR 점검', prompt: '/okr-check 이번 분기 OKR 달성률을 점검하고 위험 항목의 회복 방안을 제시해줘' },
+  { label: '투자자 업데이트', prompt: '/investor-update 이번 달 투자자/멘토 업데이트 레터를 작성해줘' },
+  { label: '의사결정 기록', prompt: '/decision-log 오늘의 주요 비즈니스 결정을 배경, 대안, 예상 결과와 함께 기록해줘' },
+]
+
 // RIGHT: 승인 대기 + 다음봇
-export function CeoRightPanel({ missionId, nextBotName, onNextBot }: {
+export function CeoRightPanel({ missionId, nextBotName, onNextBot, onSkillSelect }: {
   missionId: string
   nextBotName?: string
   onNextBot?: () => void
+  onSkillSelect?: (prompt: string) => void
 }) {
   const { data: allFeed = [] } = useQuery({
     queryKey: ['feed', missionId],
@@ -136,6 +145,23 @@ export function CeoRightPanel({ missionId, nextBotName, onNextBot }: {
           </div>
         )}
       </div>
+      {/* 빠른 실행 */}
+      <div>
+        <p className="text-[10px] text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
+        <div className="flex flex-wrap gap-1.5">
+          {CEO_SKILLS.map(skill => (
+            <button
+              key={skill.label}
+              onClick={() => onSkillSelect?.(skill.prompt)}
+              title={skill.prompt}
+              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-[11px] text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+            >
+              {skill.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {nextBotName && (
         <div className="pt-3 border-t border-border">
           <button

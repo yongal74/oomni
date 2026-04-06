@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { X, Play, Loader2 } from 'lucide-react'
-import { agentsApi, type Agent } from '../lib/api'
+import { type Agent } from '../lib/api'
 
 const BOT_EMOJI: Record<string, string> = {
   research: '🔬', build: '🔨', design: '🎨', content: '✍️',
@@ -81,23 +82,23 @@ interface BotRunModalProps {
 
 export function BotRunModal({ agent, onClose, onSuccess }: BotRunModalProps) {
   const [task, setTask] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const navigate = useNavigate()
 
   const examples = EXAMPLE_PROMPTS[agent.role] ?? []
   const emoji = BOT_EMOJI[agent.role] ?? '🤖'
 
+  // 봇 상세 페이지로 이동하며 task를 URL 파라미터로 전달 → 자동 실행
   const handleSubmit = async () => {
-    if (isLoading) return
-    setIsLoading(true)
-    try {
-      await agentsApi.trigger(agent.id, task || undefined)
-      onSuccess?.()
-      onClose()
-    } catch {
-      // stay open on error
-    } finally {
-      setIsLoading(false)
-    }
+    if (!task.trim()) return
+    onClose()
+    navigate(`/dashboard/bots/${agent.id}?autorun=${encodeURIComponent(task.trim())}`)
+    onSuccess?.()
+  }
+
+  // 예시 프롬프트 클릭 시 바로 이동
+  const handleExampleClick = (prompt: string) => {
+    onClose()
+    navigate(`/dashboard/bots/${agent.id}?autorun=${encodeURIComponent(prompt)}`)
   }
 
   return (
@@ -142,7 +143,7 @@ export function BotRunModal({ agent, onClose, onSuccess }: BotRunModalProps) {
                 {examples.map(prompt => (
                   <button
                     key={prompt}
-                    onClick={() => setTask(prompt)}
+                    onClick={() => handleExampleClick(prompt)}
                     className="text-[12px] px-3 py-1.5 rounded-full bg-bg border border-border text-muted hover:border-primary hover:text-text transition-colors text-left"
                   >
                     {prompt}
@@ -157,17 +158,17 @@ export function BotRunModal({ agent, onClose, onSuccess }: BotRunModalProps) {
         <div className="flex items-center justify-end gap-3 px-5 pb-5">
           <button
             onClick={onClose}
-            disabled={isLoading}
+            disabled={false}
             className="px-4 py-2 text-[13px] text-muted hover:text-text border border-border rounded-lg transition-colors disabled:opacity-50"
           >
             취소
           </button>
           <button
             onClick={handleSubmit}
-            disabled={isLoading}
+            disabled={false}
             className="flex items-center gap-2 px-5 py-2 bg-primary text-white rounded-lg text-[13px] hover:bg-[#C5664A] disabled:opacity-50 transition-colors"
           >
-            {isLoading ? (
+            {false ? (
               <>
                 <Loader2 size={13} className="animate-spin" />
                 실행 중

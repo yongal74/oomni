@@ -143,15 +143,16 @@ function SyntaxLine({ line }: { line: string }) {
 }
 
 // ── SKILLS ────────────────────────────────────────────────────────────────────
+// label: 버튼에 보이는 텍스트 / prompt: 클릭 시 입력창에 채워지는 완성 프롬프트
 const BUILD_SKILLS = [
-  { command: '/new-component', label: '컴포넌트 생성' },
-  { command: '/new-api', label: 'API 라우트' },
-  { command: '/add-payment', label: '결제 연동' },
-  { command: '/setup-db', label: 'DB 설정' },
-  { command: '/security-audit', label: '보안 감사' },
-  { command: '/write-tests', label: '테스트 작성' },
-  { command: '/setup-auth', label: '인증 설정' },
-  { command: '/deploy-prep', label: '배포 준비' },
+  { label: '컴포넌트 생성', prompt: '/new-component 재사용 가능한 React 컴포넌트를 TypeScript + Tailwind CSS로 만들어줘. Props 타입 정의와 기본 스타일 포함.' },
+  { label: 'API 라우트 추가', prompt: '/new-api-route 새로운 REST API 라우트를 Zod 검증과 에러 처리 포함해서 만들어줘.' },
+  { label: '결제 연동', prompt: '/add-payment Toss Payments로 결제 기능을 구현해줘. 결제 요청, 성공/실패 처리, DB 저장까지 포함.' },
+  { label: 'DB 스키마 설정', prompt: '/setup-db 새로운 데이터베이스 테이블 스키마를 설계하고 마이그레이션 파일을 만들어줘.' },
+  { label: '보안 감사', prompt: '/security-audit 현재 코드베이스의 OWASP Top 10 기준 보안 취약점을 점검하고 수정 방법을 알려줘.' },
+  { label: '코드 리뷰', prompt: '/code-review 현재 워크스페이스 코드를 리뷰하고 버그, 성능 문제, 개선 포인트를 알려줘.' },
+  { label: '인증 설정', prompt: '/setup-auth Google OAuth + 세션 기반 인증을 구현해줘. 로그인/로그아웃/세션 유지 포함.' },
+  { label: '애널리틱스 추가', prompt: '/add-analytics PostHog를 연동해서 주요 사용자 행동을 트래킹하는 코드를 추가해줘.' },
 ]
 
 // ── FileTreeNode (recursive) ──────────────────────────────────────────────────
@@ -505,25 +506,14 @@ export function BuildRightPanel({
 
       {/* Skills */}
       <div>
-        <p className="text-[10px] text-muted uppercase tracking-widest mb-2.5">Skills</p>
+        <p className="text-[10px] text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
         <div className="flex flex-wrap gap-1.5">
           {BUILD_SKILLS.map(skill => (
             <button
-              key={skill.command}
-              onClick={() => onSkillSelect?.(skill.command)}
-              title={skill.command}
-              className="px-2.5 py-1 rounded-lg border border-border bg-bg text-xs text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors font-mono"
-            >
-              {skill.command}
-            </button>
-          ))}
-        </div>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {BUILD_SKILLS.map(skill => (
-            <button
-              key={skill.command + '-label'}
-              onClick={() => onSkillSelect?.(skill.command)}
-              className="px-2 py-0.5 rounded text-[10px] text-muted hover:text-primary transition-colors"
+              key={skill.label}
+              onClick={() => onSkillSelect?.(skill.prompt)}
+              title={skill.prompt}
+              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-[11px] text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
             >
               {skill.label}
             </button>

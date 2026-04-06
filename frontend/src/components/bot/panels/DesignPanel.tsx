@@ -84,11 +84,20 @@ export function DesignCenterPanel({ agentId }: { agentId: string }) {
   )
 }
 
+const DESIGN_SKILLS = [
+  { label: '랜딩 페이지', prompt: '/design-landing 전환율 최적화된 SaaS 랜딩 페이지를 다크 테마, 오렌지 액센트로 디자인해줘' },
+  { label: '대시보드 UI', prompt: '/design-dashboard 메인 대시보드 화면을 사이드바, 차트, 카드 컴포넌트로 디자인해줘' },
+  { label: '모바일 UI', prompt: '/design-mobile 현재 화면을 모바일 반응형으로 최적화하고 PWA 설정을 추가해줘' },
+  { label: '이메일 템플릿', prompt: '/design-email 온보딩 웰컴 이메일 템플릿을 React Email로 만들어줘' },
+  { label: 'CSS 내보내기', prompt: '/export-css 현재 디자인 토큰을 CSS 변수와 Tailwind 설정 파일로 내보내줘' },
+]
+
 // RIGHT: 내보내기 + 다음봇
-export function DesignRightPanel({ nextBotName, onNextBot }: {
+export function DesignRightPanel({ nextBotName, onNextBot, onSkillSelect }: {
   agentId?: string
   nextBotName?: string
   onNextBot?: () => void
+  onSkillSelect?: (prompt: string) => void
 }) {
   return (
     <div className="p-4 h-full flex flex-col gap-4">
@@ -105,6 +114,23 @@ export function DesignRightPanel({ nextBotName, onNextBot }: {
           ))}
         </div>
       </div>
+      {/* 빠른 실행 */}
+      <div>
+        <p className="text-[10px] text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
+        <div className="flex flex-wrap gap-1.5">
+          {DESIGN_SKILLS.map(skill => (
+            <button
+              key={skill.label}
+              onClick={() => onSkillSelect?.(skill.prompt)}
+              title={skill.prompt}
+              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-[11px] text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+            >
+              {skill.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {nextBotName && (
         <div className="pt-3 border-t border-border">
           <button

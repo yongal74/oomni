@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { createHashRouter, Navigate, useNavigate } from 'react-router-dom'
+import { createHashRouter, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AppLayout } from './components/layout/AppLayout'
 import { authApi } from './lib/api'
 
@@ -18,6 +18,16 @@ const ResearchPage = React.lazy(() => import('./pages/ResearchPage'))
 const DevToolsPage = React.lazy(() => import('./pages/DevToolsPage'))
 const PipelinePage = React.lazy(() => import('./pages/PipelinePage'))
 const CeoBotPage = React.lazy(() => import('./pages/CeoBotPage'))
+
+// 봇 이동 시 컴포넌트 remount — key={id}로 상태 초기화
+function BotDetailPageWrapper() {
+  const { id } = useParams<{ id: string }>()
+  return (
+    <React.Suspense fallback={<Loader />}>
+      <BotDetailPage key={id} />
+    </React.Suspense>
+  )
+}
 
 const Loader = () => (
   <div className="flex-1 flex items-center justify-center h-64">
@@ -85,7 +95,7 @@ export const router = createHashRouter([
       { path: 'cost', element: <React.Suspense fallback={<Loader />}><CostPage /></React.Suspense> },
       { path: 'integrations', element: <React.Suspense fallback={<Loader />}><IntegrationsPage /></React.Suspense> },
       { path: 'n8n', element: <React.Suspense fallback={<Loader />}><N8nPage /></React.Suspense> },
-      { path: 'bots/:id', element: <React.Suspense fallback={<Loader />}><BotDetailPage /></React.Suspense> },
+      { path: 'bots/:id', element: <BotDetailPageWrapper /> },
       { path: 'issues', element: <React.Suspense fallback={<Loader />}><IssuesPage /></React.Suspense> },
       { path: 'schedules', element: <React.Suspense fallback={<Loader />}><SchedulePage /></React.Suspense> },
       { path: 'reports', element: <React.Suspense fallback={<Loader />}><ReportPage /></React.Suspense> },

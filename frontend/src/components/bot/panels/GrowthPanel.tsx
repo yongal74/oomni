@@ -310,11 +310,20 @@ function GrowthVideoPanel() {
   )
 }
 
+const GROWTH_SKILLS = [
+  { label: '주간 성장 보고서', prompt: '/weekly-report 이번 주 사용자 증가, 전환율, 이탈률 지표를 분석하고 개선 방안을 제시해줘' },
+  { label: '사용자 세그먼트', prompt: '/segment-users RFM 분석으로 사용자를 세그먼트하고 각 그룹별 액션 플랜을 만들어줘' },
+  { label: '캠페인 기획', prompt: '/campaign-plan 다음 달 성장 캠페인을 채널별 실행 계획과 KPI와 함께 기획해줘' },
+  { label: 'A/B 테스트', prompt: '/ab-test 온보딩 전환율을 높이기 위한 A/B 테스트를 설계하고 PostHog Feature Flag 코드를 작성해줘' },
+  { label: '퍼널 분석', prompt: '/funnel-analysis 현재 전환 퍼널의 병목 구간을 찾고 ICE 스코어로 개선 우선순위를 정해줘' },
+]
+
 // RIGHT: AI 추천 + 성장 영상 + 다음봇
-export function GrowthRightPanel({ agentId, nextBotName, onNextBot }: {
+export function GrowthRightPanel({ agentId, nextBotName, onNextBot, onSkillSelect }: {
   agentId: string
   nextBotName?: string
   onNextBot?: () => void
+  onSkillSelect?: (prompt: string) => void
 }) {
   const [showVideoPanel, setShowVideoPanel] = useState(false)
   const { data: feed = [] } = useQuery({
@@ -374,6 +383,23 @@ export function GrowthRightPanel({ agentId, nextBotName, onNextBot }: {
           )}
         </div>
       )}
+
+      {/* 빠른 실행 */}
+      <div className="shrink-0">
+        <p className="text-[10px] text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
+        <div className="flex flex-wrap gap-1.5">
+          {GROWTH_SKILLS.map(skill => (
+            <button
+              key={skill.label}
+              onClick={() => onSkillSelect?.(skill.prompt)}
+              title={skill.prompt}
+              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-[11px] text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+            >
+              {skill.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {nextBotName && (
         <div className="pt-3 border-t border-border shrink-0">

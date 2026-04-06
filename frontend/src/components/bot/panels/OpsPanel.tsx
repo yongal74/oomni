@@ -120,11 +120,20 @@ export function OpsCenterPanel({ agentId }: { agentId: string }) {
   )
 }
 
+const OPS_SKILLS = [
+  { label: 'n8n 워크플로우', prompt: '/new-n8n-workflow Slack 메시지가 오면 자동으로 이슈를 생성하는 n8n 워크플로우를 만들어줘' },
+  { label: '월간 재무', prompt: '/monthly-finance 이번 달 수입/지출 현황을 정리하고 MRR, 순이익, API 비용을 분석해줘' },
+  { label: '비용 감사', prompt: '/audit-costs 현재 모든 구독 서비스와 API 비용을 감사하고 절감 방안을 제시해줘' },
+  { label: '장애 보고서', prompt: '/incident-report 오늘 발생한 장애의 원인, 영향, 재발 방지 방안을 정리해줘' },
+  { label: '세금 준비', prompt: '/tax-prep 이번 분기 세금 신고를 위한 수입/지출 데이터를 정리해줘' },
+]
+
 // RIGHT: n8n import + 다음봇
-export function OpsRightPanel({ agentId, nextBotName, onNextBot }: {
+export function OpsRightPanel({ agentId, nextBotName, onNextBot, onSkillSelect }: {
   agentId: string
   nextBotName?: string
   onNextBot?: () => void
+  onSkillSelect?: (prompt: string) => void
 }) {
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
@@ -170,6 +179,23 @@ export function OpsRightPanel({ agentId, nextBotName, onNextBot }: {
           </div>
         )}
       </div>
+      {/* 빠른 실행 */}
+      <div>
+        <p className="text-[10px] text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
+        <div className="flex flex-wrap gap-1.5">
+          {OPS_SKILLS.map(skill => (
+            <button
+              key={skill.label}
+              onClick={() => onSkillSelect?.(skill.prompt)}
+              title={skill.prompt}
+              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-[11px] text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+            >
+              {skill.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {nextBotName && (
         <div className="pt-3 border-t border-border">
           <button

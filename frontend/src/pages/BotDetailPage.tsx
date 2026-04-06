@@ -128,7 +128,7 @@ export default function BotDetailPage() {
       case 'research': return {
         left: <ResearchLeftPanel missionId={missionId ?? ''} />,
         center: <ResearchCenterPanel missionId={missionId ?? ''} onItemClick={setSelectedResearchItem} />,
-        right: <ResearchRightPanel item={selectedResearchItem} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+        right: <ResearchRightPanel item={selectedResearchItem} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
       }
       case 'build': return {
         left: <BuildLeftPanel
@@ -152,27 +152,27 @@ export default function BotDetailPage() {
       case 'content': return {
         left: <ContentLeftPanel missionId={missionId ?? ''} selectedType={contentType} onTypeChange={setContentType} />,
         center: <ContentCenterPanel agentId={agent.id} selectedType={contentType} />,
-        right: <ContentRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+        right: <ContentRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
       }
       case 'growth': return {
         left: <GrowthLeftPanel />,
         center: <GrowthCenterPanel agentId={agent.id} />,
-        right: <GrowthRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+        right: <GrowthRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
       }
       case 'ops': return {
         left: <OpsLeftPanel agentId={agent.id} />,
         center: <OpsCenterPanel agentId={agent.id} />,
-        right: <OpsRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+        right: <OpsRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
       }
       case 'ceo': return {
         left: <CeoLeftPanel missionId={missionId ?? ''} />,
         center: <CeoCenterPanel agentId={agent.id} />,
-        right: <CeoRightPanel missionId={missionId ?? ''} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+        right: <CeoRightPanel missionId={missionId ?? ''} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
       }
       case 'design': return {
         left: <DesignLeftPanel selectedTemplate={designTemplate} onTemplateChange={setDesignTemplate} />,
         center: <DesignCenterPanel agentId={agent.id} />,
-        right: <DesignRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
+        right: <DesignRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} />,
       }
       default: return {
         left: <CommonLeftPanel agent={agent} onUpdate={(d) => update.mutate(d as Partial<Agent>)} />,

@@ -286,11 +286,20 @@ function ResearchCard({
   )
 }
 
+const RESEARCH_SKILLS = [
+  { label: 'AI 트렌드 수집', prompt: '/collect 이번 주 AI/스타트업 트렌드 수집하고 신호강도 채점해줘' },
+  { label: '경쟁사 분석', prompt: '/collect 주요 경쟁 서비스 분석 리포트 작성해줘' },
+  { label: '신호강도 채점', prompt: '/score 수집된 리서치 아이템들을 신호강도 0-100으로 채점해줘' },
+  { label: '보고서 변환', prompt: '/convert-report 리서치 결과를 구조화된 인사이트 보고서로 변환해줘' },
+  { label: '주간 다이제스트', prompt: '/weekly-digest 이번 주 리서치 결과를 요약한 주간 다이제스트를 작성해줘' },
+]
+
 // RIGHT: 클릭한 아이템 상세 + 다음봇 연결
-export function ResearchRightPanel({ item, nextBotName, onNextBot }: {
+export function ResearchRightPanel({ item, nextBotName, onNextBot, onSkillSelect }: {
   item: ResearchItem | null
   nextBotName?: string
   onNextBot?: () => void
+  onSkillSelect?: (prompt: string) => void
 }) {
   const [converting, setConverting] = useState(false)
   const [output, setOutput] = useState('')
@@ -362,6 +371,23 @@ export function ResearchRightPanel({ item, nextBotName, onNextBot }: {
           <p className="text-[11px] text-dim leading-relaxed whitespace-pre-wrap">{output}</p>
         </div>
       )}
+
+      {/* 빠른 실행 */}
+      <div>
+        <p className="text-[10px] text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
+        <div className="flex flex-wrap gap-1.5">
+          {RESEARCH_SKILLS.map(skill => (
+            <button
+              key={skill.label}
+              onClick={() => onSkillSelect?.(skill.prompt)}
+              title={skill.prompt}
+              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-[11px] text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+            >
+              {skill.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {nextBotName && (
         <div className="pt-2 border-t border-border">

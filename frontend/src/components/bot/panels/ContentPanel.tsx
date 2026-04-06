@@ -349,11 +349,20 @@ export function ContentCenterPanel({ agentId, selectedType }: { agentId: string;
   )
 }
 
+const CONTENT_SKILLS = [
+  { label: '블로그 포스트', prompt: '/blog-post AI/스타트업 트렌드를 주제로 SEO 최적화된 블로그 포스트를 작성해줘' },
+  { label: '숏폼 스크립트', prompt: '/short-form-script 솔로 창업자를 위한 60초 숏폼 영상 스크립트를 훅 3가지 변형으로 작성해줘' },
+  { label: '소셜 패키지', prompt: '/social-pack 최신 블로그 포스트를 트위터/LinkedIn/인스타 포맷으로 변환해줘' },
+  { label: '뉴스레터', prompt: '/newsletter 이번 주 주요 인사이트를 담은 뉴스레터를 작성해줘' },
+  { label: '트위터 스레드', prompt: '/thread-twitter 핵심 인사이트를 8-12개 트윗 스레드로 작성해줘' },
+]
+
 // RIGHT: 발행 옵션 + 다음봇
-export function ContentRightPanel({ agentId, nextBotName, onNextBot }: {
+export function ContentRightPanel({ agentId, nextBotName, onNextBot, onSkillSelect }: {
   agentId: string
   nextBotName?: string
   onNextBot?: () => void
+  onSkillSelect?: (prompt: string) => void
 }) {
   const [copied, setCopied] = useState(false)
   const { data: feed = [] } = useQuery({
@@ -395,6 +404,23 @@ export function ContentRightPanel({ agentId, nextBotName, onNextBot }: {
           ))}
         </div>
       </div>
+      {/* 빠른 실행 */}
+      <div>
+        <p className="text-[10px] text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
+        <div className="flex flex-wrap gap-1.5">
+          {CONTENT_SKILLS.map(skill => (
+            <button
+              key={skill.label}
+              onClick={() => onSkillSelect?.(skill.prompt)}
+              title={skill.prompt}
+              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-[11px] text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+            >
+              {skill.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {nextBotName && (
         <div className="mt-auto pt-3 border-t border-border">
           <button
