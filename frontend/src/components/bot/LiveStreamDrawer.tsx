@@ -38,6 +38,7 @@ export function LiveStreamDrawer({
     if (!isRunning) return
     setLines([])
     setStatus('running')
+    const errorHandled = { current: false }
 
     const url = `http://localhost:3001/api/agents/${agentId}/stream?task=${encodeURIComponent(task)}`
     const es = new EventSource(url)
@@ -69,18 +70,32 @@ export function LiveStreamDrawer({
       onDone?.()
     })
     es.addEventListener('error', (e) => {
-      const msg = (e as MessageEvent).data ? JSON.parse((e as MessageEvent).data) : {}
-      setStatus('error')
-      addLine('error', msg.message || '오류 발생')
-      es.close()
-      esRef.current = null
-      onError?.(msg.message || '오류 발생')
+      // 커스텀 서버 error 이벤트 (data 있음) vs 연결 오류 (data 없음) 구분
+      const rawData = (e as MessageEvent).data
+      if (!rawData) return // 연결 오류는 onerror에서 처리
+      errorHandled.current = true
+      try {
+        const msg = JSON.parse(rawData)
+        setStatus('error')
+        addLine('error', msg.message || '실행 오류')
+        es.close()
+        esRef.current = null
+        onError?.(msg.message || '실행 오류')
+      } catch {
+        setStatus('error')
+        addLine('error', rawData)
+        es.close()
+        esRef.current = null
+        onError?.(rawData)
+      }
     })
     es.onerror = () => {
+      if (errorHandled.current) return // 이미 커스텀 에러로 처리됨
       setStatus('error')
-      addLine('error', '연결 오류')
+      addLine('error', '서버 연결 실패 — API 키를 확인하거나 앱을 재시작하세요')
       es.close()
       esRef.current = null
+      onError?.('연결 오류')
     }
 
     return () => {

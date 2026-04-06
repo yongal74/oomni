@@ -115,8 +115,15 @@ export function createApp(options: AppOptions): Application {
       next();
       return;
     }
-    // 헬스체크 및 auth/settings 경로는 인증 제외
-    if (req.path === '/health' || req.path.startsWith('/auth') || req.path.startsWith('/settings')) {
+    // EventSource는 헤더 설정 불가 → SSE 스트림 엔드포인트 인증 제외
+    // 헬스체크, auth, settings, SSE stream 경로는 인증 제외
+    const isPublicPath =
+      req.path === '/health' ||
+      req.path.startsWith('/auth') ||
+      req.path.startsWith('/settings') ||
+      /^\/agents\/[^/]+\/stream$/.test(req.path); // SSE: EventSource cannot set headers
+
+    if (isPublicPath) {
       next();
       return;
     }
