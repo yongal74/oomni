@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { feedApi, videoApi, type FeedItem } from '../../../lib/api'
+import { agentsApi, videoApi, type FeedItem } from '../../../lib/api'
 import { ChevronRight, TrendingUp, Users, MessageSquare, BarChart2, Video, Film } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { Player } from '@remotion/player'
@@ -63,8 +63,8 @@ export function GrowthCenterPanel({ agentId, streamOutput, isRunning }: { agentI
   const [activeTab, setActiveTab] = useState('marketing')
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
-    queryFn: () => feedApi.list({ limit: 20 }),
-    select: (data: FeedItem[]) => data.filter(f => f.agent_id === agentId && f.type === 'result'),
+    queryFn: () => agentsApi.runs(agentId),
+    select: (data: FeedItem[]) => data.filter(f => f.type === 'result'),
     refetchInterval: 3000,
   })
 
@@ -336,8 +336,8 @@ export function GrowthRightPanel({ agentId, nextBotName, onNextBot, onSkillSelec
   const [showVideoPanel, setShowVideoPanel] = useState(false)
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
-    queryFn: () => feedApi.list({ limit: 5 }),
-    select: (data: FeedItem[]) => data.filter(f => f.agent_id === agentId && f.type === 'result'),
+    queryFn: () => agentsApi.runs(agentId),
+    select: (data: FeedItem[]) => data.filter(f => f.type === 'result'),
     refetchInterval: 3000,
   })
 

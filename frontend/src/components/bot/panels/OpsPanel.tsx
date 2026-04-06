@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { feedApi, type FeedItem } from '../../../lib/api'
+import { agentsApi, type FeedItem } from '../../../lib/api'
 import { ChevronRight, Zap, Download } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 
@@ -22,8 +22,8 @@ const WORKFLOW_TEMPLATES = [
 export function OpsLeftPanel({ agentId }: { agentId: string }) {
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
-    queryFn: () => feedApi.list({ limit: 10 }),
-    select: (data: FeedItem[]) => data.filter(f => f.agent_id === agentId && f.type === 'result'),
+    queryFn: () => agentsApi.runs(agentId),
+    select: (data: FeedItem[]) => data.filter(f => f.type === 'result'),
     refetchInterval: 5000,
   })
 
@@ -77,8 +77,8 @@ export function OpsCenterPanel({ agentId, streamOutput, isRunning }: { agentId: 
   const [activeTab, setActiveTab] = useState('automation')
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
-    queryFn: () => feedApi.list({ limit: 20 }),
-    select: (data: FeedItem[]) => data.filter(f => f.agent_id === agentId && f.type === 'result'),
+    queryFn: () => agentsApi.runs(agentId),
+    select: (data: FeedItem[]) => data.filter(f => f.type === 'result'),
     refetchInterval: 3000,
   })
 
@@ -143,8 +143,8 @@ export function OpsRightPanel({ agentId, nextBotName, onNextBot, onSkillSelect }
 }) {
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
-    queryFn: () => feedApi.list({ limit: 5 }),
-    select: (data: FeedItem[]) => data.filter(f => f.agent_id === agentId && f.type === 'result'),
+    queryFn: () => agentsApi.runs(agentId),
+    select: (data: FeedItem[]) => data.filter(f => f.type === 'result'),
     refetchInterval: 3000,
   })
 

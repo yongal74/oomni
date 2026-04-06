@@ -442,9 +442,8 @@ export function BuildRightPanel({
 }) {
   const { data: feedData } = useQuery({
     queryKey: ['bot-feed', agentId],
-    queryFn: () => import('../../../lib/api').then(m => m.feedApi.list({ limit: 30 })),
-    select: (items: import('../../../lib/api').FeedItem[]) =>
-      items.filter(f => f.agent_id === agentId),
+    queryFn: () => import('../../../lib/api').then(m => m.agentsApi.runs(agentId)),
+    select: (items: import('../../../lib/api').FeedItem[]) => items,
     refetchInterval: 3000,
   })
 

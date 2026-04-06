@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { feedApi, researchApi, videoApi, type FeedItem, type ResearchItem, type ShortFormScript } from '../../../lib/api'
+import { agentsApi, researchApi, videoApi, type FeedItem, type ResearchItem, type ShortFormScript } from '../../../lib/api'
 import { ChevronRight, Copy, Check, FileText, Video, Download, Film } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { Player } from '@remotion/player'
@@ -300,8 +300,8 @@ function ShortformVideoPanel() {
 export function ContentCenterPanel({ agentId, selectedType, streamOutput, isRunning }: { agentId: string; selectedType?: string; streamOutput?: string; isRunning?: boolean }) {
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
-    queryFn: () => feedApi.list({ limit: 10 }),
-    select: (data: FeedItem[]) => data.filter(f => f.agent_id === agentId && f.type === 'result'),
+    queryFn: () => agentsApi.runs(agentId),
+    select: (data: FeedItem[]) => data.filter(f => f.type === 'result'),
     refetchInterval: 3000,
   })
 
@@ -391,8 +391,8 @@ export function ContentRightPanel({ agentId, nextBotName, onNextBot, onSkillSele
   const [copied, setCopied] = useState(false)
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
-    queryFn: () => feedApi.list({ limit: 5 }),
-    select: (data: FeedItem[]) => data.filter(f => f.agent_id === agentId && f.type === 'result'),
+    queryFn: () => agentsApi.runs(agentId),
+    select: (data: FeedItem[]) => data.filter(f => f.type === 'result'),
     refetchInterval: 3000,
   })
   const latest = feed[0]

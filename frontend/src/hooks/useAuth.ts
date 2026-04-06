@@ -78,6 +78,7 @@ export function useAuth(): UseAuthReturn {
       const msg =
         err instanceof Error ? err.message : '로그인에 실패했습니다'
       setError(msg)
+      throw err
     } finally {
       setLoading(false)
     }

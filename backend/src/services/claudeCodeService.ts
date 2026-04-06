@@ -176,9 +176,28 @@ function getRoleMcpConfig(role: string): Record<string, McpServer> | null {
 
 // ── 역할별 시스템 프롬프트 (DATA_ROOT 동적 참조) ──────────────
 function buildRolePrompts(): Record<string, string> {
+  const researchItemsDir = path.join(DATA_ROOT, 'research', 'items').replace(/\\/g, '/');
   return {
     research: `당신은 AI/스타트업 트렌드 리서치 에이전트입니다.
-신호 강도 0-100 채점, 근거 명시. 결과: ${DATA_ROOT}/research/ 저장.`,
+신호 강도 0-100 채점, 근거 명시.
+
+## 결과 저장 규칙 (필수!)
+각 리서치 아이템을 반드시 ${researchItemsDir}/ 폴더에 JSON 파일로 저장하세요.
+파일명: item_${Date.now()}_${Math.random().toString(36).slice(2,7)}.json (타임스탬프+랜덤)
+실제로는 item_TIMESTAMP_RANDOM.json 형식으로 유니크하게 저장.
+
+JSON 형식 (정확히 이 구조 사용):
+{
+  "title": "아이템 제목 (100자 이내)",
+  "summary": "핵심 요약 (300자 이내, 한국어)",
+  "signal_score": 75,
+  "source_url": null,
+  "source_type": "keyword",
+  "tags": ["AI", "스타트업"],
+  "content": "상세 내용 (선택사항)"
+}
+
+폴더가 없으면 먼저 생성하세요. 각 아이템마다 별도 JSON 파일로 저장하세요.`,
 
     content: `당신은 한국 솔로 창업자를 위한 콘텐츠 작가 에이전트입니다.
 숏폼: Hook(0-3s)→Problem(3-8s)→Solution(8-25s)→Proof(25-50s)→CTA(50-60s).

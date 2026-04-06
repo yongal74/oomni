@@ -62,6 +62,8 @@ export const agentsApi = {
   trigger: (id: string, task?: string) =>
     api.post(`/api/agents/${id}/trigger`, task ? { task } : {}).then(r => r.data),
   delete: (id: string) => api.delete(`/api/agents/${id}`),
+  runs: (id: string) =>
+    api.get<ApiResponse<FeedItem[]>>(`/api/agents/${id}/runs`).then(r => r.data.data),
 }
 
 // 워크스페이스 파일

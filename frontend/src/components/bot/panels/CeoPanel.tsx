@@ -43,8 +43,8 @@ export function CeoLeftPanel({ missionId }: { missionId: string }) {
 export function CeoCenterPanel({ agentId, streamOutput, isRunning }: { agentId: string; streamOutput?: string; isRunning?: boolean }) {
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
-    queryFn: () => feedApi.list({ limit: 10 }),
-    select: (data: FeedItem[]) => data.filter(f => f.agent_id === agentId && f.type === 'result'),
+    queryFn: () => agentsApi.runs(agentId),
+    select: (data: FeedItem[]) => data.filter(f => f.type === 'result'),
     refetchInterval: 5000,
   })
 

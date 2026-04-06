@@ -332,10 +332,15 @@ export function agentsRouter(db: DbClient): Router {
       });
 
       try {
+        let fullOutput = '';
         await ccService.execute(taskStr, async (event, data) => {
           send(event, data);
-          if (event === 'done') {
-            await saveFeedItem(db, agentFull.id, 'result', `태스크 완료: ${taskStr}`).catch(() => {});
+          if (event === 'output') {
+            const d = data as { chunk?: string; text?: string };
+            fullOutput += d.chunk ?? d.text ?? '';
+          } else if (event === 'done') {
+            const saved = fullOutput.trim() || `태스크 완료: ${taskStr}`;
+            await saveFeedItem(db, agentFull.id, 'result', saved).catch(() => {});
           } else if (event === 'error') {
             const msg = (data as { message: string }).message ?? 'Unknown error';
             await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${msg}`).catch(() => {});

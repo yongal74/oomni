@@ -3,7 +3,7 @@
  * Content / Build / Growth / Ops / CEO / Design / Integration 봇 공통
  */
 import { useQuery } from '@tanstack/react-query'
-import { feedApi, type FeedItem } from '../../../lib/api'
+import { agentsApi, type FeedItem } from '../../../lib/api'
 import { ChevronRight, Copy, Check } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { useState } from 'react'
@@ -18,8 +18,8 @@ interface RightPanelProps {
 export function CommonRightPanel({ agentId, nextBotName, onNextBot }: RightPanelProps) {
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
-    queryFn: () => feedApi.list({ limit: 20 }),
-    select: (data: FeedItem[]) => data.filter(f => f.agent_id === agentId),
+    queryFn: () => agentsApi.runs(agentId),
+    select: (data: FeedItem[]) => data,
     refetchInterval: 3000,
   })
 
@@ -85,8 +85,8 @@ function ResultCard({ item }: { item: FeedItem }) {
 export function CommonCenterPanel({ agentId, streamOutput, isRunning }: { agentId: string; streamOutput?: string; isRunning?: boolean }) {
   const { data: feed = [], isLoading } = useQuery({
     queryKey: ['bot-feed', agentId],
-    queryFn: () => feedApi.list({ limit: 30 }),
-    select: (data: FeedItem[]) => data.filter(f => f.agent_id === agentId),
+    queryFn: () => agentsApi.runs(agentId),
+    select: (data: FeedItem[]) => data,
     refetchInterval: 3000,
   })
 
