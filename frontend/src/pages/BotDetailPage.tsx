@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { agentsApi, api, type Agent } from '../lib/api'
+import { agentsApi, type Agent } from '../lib/api'
 import { useAppStore } from '../store/app.store'
 import { Trash2, Settings, ArrowLeft, Send } from 'lucide-react'
 import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
@@ -116,15 +116,12 @@ export default function BotDetailPage() {
     qc.invalidateQueries({ queryKey: ['issues', missionId] })
     setTask('')
 
-    if (agent?.role === 'research' && missionId) {
+    if (agent?.role === 'research') {
       setCurrentStage('sorting')
-      api.post('/api/research/sync-files', { mission_id: missionId })
-        .then(() => qc.invalidateQueries({ queryKey: ['research', missionId] }))
-        .catch(() => {})
     } else {
       setCurrentStage('done')
-      qc.invalidateQueries({ queryKey: ['research', missionId] })
     }
+    qc.invalidateQueries({ queryKey: ['research', missionId] })
   }
 
   const handleNextBot = () => {

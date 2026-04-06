@@ -53,7 +53,7 @@ export function LiveStreamDrawer({
     })
     es.addEventListener('output', (e) => {
       const data = JSON.parse(e.data)
-      const chunk = data.chunk || ''
+      const chunk = data.chunk || data.text || ''
       addLine('output', chunk)
       onOutputChunk?.(chunk)
     })

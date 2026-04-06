@@ -6,6 +6,7 @@ import * as path from 'path';
 import { ParallelExecutor, type ParallelResult } from '../../services/parallelExecutor';
 import { saveFeedItem } from '../../services/roleExecutors/base';
 import { ClaudeCodeService } from '../../services/claudeCodeService';
+import { researchExecutor } from '../../services/roleExecutors/research';
 
 // ── Workspace file tree types ────────────────────────────────────────────────
 interface FileNode {
@@ -310,29 +311,41 @@ export function agentsRouter(db: DbClient): Router {
 
     send('start', { agentId: agentFull.id, task: taskStr });
 
-    // ClaudeCodeService로 실행
-    const ccService = ClaudeCodeService.create(agentFull.id, agentFull.role);
+    if (agentFull.role === 'research') {
+      // Research: roleExecutor 직접 사용 (Anthropic API → DB 직접 저장, 신뢰성↑)
+      try {
+        await researchExecutor({ agent: agentFull, task: taskStr, db, send });
+        await saveFeedItem(db, agentFull.id, 'result', `태스크 완료: ${taskStr}`).catch(() => {});
+        send('done', { success: true });
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`).catch(() => {});
+        send('error', { message: errMsg });
+      }
+    } else {
+      // 나머지 봇: ClaudeCodeService (Claude Code CLI)
+      const ccService = ClaudeCodeService.create(agentFull.id, agentFull.role);
 
-    // Stop execution if client disconnects
-    req.on('close', () => {
-      ccService.stop();
-    });
-
-    try {
-      await ccService.execute(taskStr, async (event, data) => {
-        send(event, data);
-        // Persist result/error to DB
-        if (event === 'done') {
-          await saveFeedItem(db, agentFull.id, 'result', `태스크 완료: ${taskStr}`).catch(() => {});
-        } else if (event === 'error') {
-          const msg = (data as { message: string }).message ?? 'Unknown error';
-          await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${msg}`).catch(() => {});
-        }
+      // Stop execution if client disconnects
+      req.on('close', () => {
+        ccService.stop();
       });
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`).catch(() => {});
-      send('error', { message: errMsg });
+
+      try {
+        await ccService.execute(taskStr, async (event, data) => {
+          send(event, data);
+          if (event === 'done') {
+            await saveFeedItem(db, agentFull.id, 'result', `태스크 완료: ${taskStr}`).catch(() => {});
+          } else if (event === 'error') {
+            const msg = (data as { message: string }).message ?? 'Unknown error';
+            await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${msg}`).catch(() => {});
+          }
+        });
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`).catch(() => {});
+        send('error', { message: errMsg });
+      }
     }
 
     res.end();
