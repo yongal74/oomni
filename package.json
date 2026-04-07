@@ -1,6 +1,6 @@
 {
   "name": "oomni",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "OOMNI — 딸깍 하나로 AI 팀이 일한다",
   "main": "electron/main.js",
   "scripts": {
@@ -61,7 +61,9 @@
       {
         "from": "skills",
         "to": "skills",
-        "filter": ["**/*.md"]
+        "filter": [
+          "**/*.md"
+        ]
       }
     ],
     "compression": "maximum",

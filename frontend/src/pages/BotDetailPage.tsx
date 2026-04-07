@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentsApi, type Agent } from '../lib/api'
 import { useAppStore } from '../store/app.store'
-import { Trash2, Settings, ArrowLeft, Send } from 'lucide-react'
+import { Trash2, Settings, ArrowLeft, Send, Square, RotateCcw } from 'lucide-react'
 import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
 import { LiveStreamDrawer } from '../components/bot/LiveStreamDrawer'
 import { ResearchLeftPanel, ResearchCenterPanel, ResearchRightPanel } from '../components/bot/panels/ResearchPanel'
@@ -102,6 +102,34 @@ export default function BotDetailPage() {
     setCurrentStage(stages[0].key) // 첫 단계 즉시 활성화
     setStreamOutput('') // reset stream for new run
     setIsRunning(true)
+  }
+
+  // 빠른 실행 버튼: prompt를 task에 설정하고 즉시 실행
+  const handleSkillRun = (prompt: string) => {
+    if (isRunning) return
+    setTask(prompt)
+    const stages = ROLE_STAGES[agent?.role ?? 'default'] ?? ROLE_STAGES.default
+    setCurrentStage(stages[0].key)
+    setStreamOutput('')
+    setIsRunning(true)
+  }
+
+  // 실행 취소
+  const handleCancel = () => {
+    esRef.current?.close()
+    esRef.current = null
+    setIsRunning(false)
+    setCurrentStage(null)
+  }
+
+  // 결과/대화 초기화
+  const handleReset = () => {
+    if (isRunning) handleCancel()
+    setTask('')
+    setStreamOutput('')
+    setLastOutput('')
+    setCurrentStage(null)
+    qc.invalidateQueries({ queryKey: ['bot-feed', id] })
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -214,7 +242,7 @@ export default function BotDetailPage() {
       case 'design': return {
         left: <DesignLeftPanel selectedTemplate={designTemplate} onTemplateChange={setDesignTemplate} />,
         center: <DesignCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
-        right: <DesignRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} currentRole="design" content={lastOutput} />,
+        right: <DesignRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="design" content={lastOutput} />,
       }
       default: return {
         left: <CommonLeftPanel agent={agent} onUpdate={(d) => update.mutate(d as Partial<Agent>)} />,
@@ -325,18 +353,40 @@ export default function BotDetailPage() {
               }}
             />
           </div>
+
+          {/* Reset 버튼 — 항상 표시 */}
           <button
-            onClick={handleRun}
-            disabled={!task.trim() || isRunning}
-            className={cn(
-              'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors shrink-0',
-              'bg-primary text-white hover:bg-primary-hover',
-              'disabled:opacity-40 disabled:cursor-not-allowed'
-            )}
+            onClick={handleReset}
+            title="결과 초기화"
+            className="flex items-center gap-1.5 px-3 py-3 rounded-xl text-sm transition-colors shrink-0 text-muted hover:text-text hover:bg-surface border border-border"
           >
-            <Send size={14} />
-            실행
+            <RotateCcw size={14} />
+            Reset
           </button>
+
+          {/* 실행 중: 취소 버튼 / 대기 중: 실행 버튼 */}
+          {isRunning ? (
+            <button
+              onClick={handleCancel}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors shrink-0 bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30"
+            >
+              <Square size={14} />
+              취소
+            </button>
+          ) : (
+            <button
+              onClick={handleRun}
+              disabled={!task.trim()}
+              className={cn(
+                'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors shrink-0',
+                'bg-primary text-white hover:bg-primary-hover',
+                'disabled:opacity-40 disabled:cursor-not-allowed'
+              )}
+            >
+              <Send size={14} />
+              실행
+            </button>
+          )}
         </div>
       </div>
     </div>

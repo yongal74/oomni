@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { researchApi, type ResearchItem } from '../../../lib/api'
-import { Check, Eye, X, FileText, Copy, Upload } from 'lucide-react'
+import { Check, Eye, X, FileText, Copy, Upload, Download } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { ArchiveButton } from '../shared/ArchiveButton'
 import { NextBotDropdown } from '../shared/NextBotDropdown'
@@ -331,19 +331,35 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
   agentId?: string
   onFileUpload?: (content: string, filename: string) => void
 }) {
-  const [converting, setConverting] = useState(false)
-  const [output, setOutput] = useState('')
+  // 산출물별 개별 로딩 + 결과 관리
+  const [convertingType, setConvertingType] = useState<string | null>(null)
+  const [outputs, setOutputs] = useState<Record<string, string>>({})
+  const [expandedType, setExpandedType] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleConvert = async (outputType: string) => {
-    if (!item) return
-    setConverting(true)
+    if (!item || convertingType) return
+    setConvertingType(outputType)
     try {
       const result = await researchApi.convert(item.id, outputType)
-      setOutput(result.content)
+      setOutputs(prev => ({ ...prev, [outputType]: result.content }))
+      setExpandedType(outputType)
     } finally {
-      setConverting(false)
+      setConvertingType(null)
     }
+  }
+
+  const handleDownload = (type: string, content: string) => {
+    const typeLabels: Record<string, string> = {
+      linkedin: 'linkedin', blog: 'blog', newsletter: 'newsletter',
+      report: 'report', prd: 'prd', ppt: 'ppt', action_plan: 'action_plan',
+    }
+    const filename = `${item?.title?.slice(0, 30).replace(/[^\w가-힣]/g, '_') ?? 'output'}_${typeLabels[type] ?? type}.md`
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = filename; a.click()
+    URL.revokeObjectURL(url)
   }
 
   const handleFileRead = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -438,34 +454,47 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
             { type: 'ppt', label: '🎤 PPT 스크립트' },
             { type: 'action_plan', label: '✅ 액션 플랜' },
           ].map(({ type, label }) => (
-            <button
-              key={type}
-              onClick={() => handleConvert(type)}
-              disabled={converting || !item}
-              className="w-full text-left px-3 py-2 rounded border border-border text-sm text-dim hover:border-primary/40 hover:text-text transition-colors disabled:opacity-50"
-            >
-              {converting ? '변환 중...' : label}
-            </button>
+            <div key={type}>
+              <button
+                onClick={() => outputs[type] ? setExpandedType(expandedType === type ? null : type) : handleConvert(type)}
+                disabled={convertingType !== null && convertingType !== type}
+                className="w-full text-left px-3 py-2 rounded border border-border text-sm text-dim hover:border-primary/40 hover:text-text transition-colors disabled:opacity-40 flex items-center justify-between"
+              >
+                <span>{convertingType === type ? '⏳ 변환 중...' : label}</span>
+                {outputs[type] && (
+                  <span className="text-xs text-primary/60">{expandedType === type ? '▲' : '▼'}</span>
+                )}
+              </button>
+
+              {expandedType === type && outputs[type] && (
+                <div className="mt-1 bg-bg rounded-lg border border-border p-3 relative">
+                  <div className="flex items-center gap-1.5 absolute top-2 right-2">
+                    <button
+                      onClick={() => navigator.clipboard.writeText(outputs[type])}
+                      className="text-muted hover:text-text p-1 rounded hover:bg-border/30"
+                      title="클립보드 복사"
+                    >
+                      <Copy size={12} />
+                    </button>
+                    <button
+                      onClick={() => handleDownload(type, outputs[type])}
+                      className="text-muted hover:text-text p-1 rounded hover:bg-border/30"
+                      title="파일 저장"
+                    >
+                      <Download size={12} />
+                    </button>
+                  </div>
+                  <p className="text-xs text-dim leading-relaxed whitespace-pre-wrap pr-12 max-h-48 overflow-y-auto">{outputs[type]}</p>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </div>
 
-      {output && (
-        <div className="bg-bg rounded-lg border border-border p-3 relative">
-          <button
-            onClick={() => navigator.clipboard.writeText(output)}
-            className="absolute top-2 right-2 text-muted hover:text-text"
-            title="복사"
-          >
-            <Copy size={12} />
-          </button>
-          <p className="text-xs text-dim leading-relaxed whitespace-pre-wrap pr-4">{output}</p>
-        </div>
-      )}
-
-      {output && (
+      {Object.keys(outputs).length > 0 && (
         <ArchiveButton
-          content={output}
+          content={outputs[expandedType ?? Object.keys(outputs)[0]] ?? ''}
           title={item?.title}
           botRole="research"
           tags={['OOMNI', 'research', ...(item?.tags ? (Array.isArray(item.tags) ? item.tags : []) : [])]}
@@ -504,7 +533,7 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
 
       {agentId && (
         <div className="pt-2 border-t border-border">
-          <NextBotDropdown currentAgentId={agentId} currentRole="research" content={output || item?.summary || ''} />
+          <NextBotDropdown currentAgentId={agentId} currentRole="research" content={(expandedType ? outputs[expandedType] : undefined) || item?.summary || ''} />
         </div>
       )}
     </div>

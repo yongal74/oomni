@@ -38,16 +38,19 @@ export function obsidianRouter(): Router {
       const vaultPath = (settings.obsidian_vault_path as string) ?? '';
 
       if (!vaultPath) {
-        res.status(422).json({ error: 'Obsidian vault 경로가 설정되지 않았습니다. 설정에서 경로를 입력해주세요.' });
+        res.status(400).json({ error: 'Obsidian vault 경로가 설정되지 않았습니다. 설정에서 경로를 입력해주세요.' });
+        return;
+      }
+
+      if (!fs.existsSync(vaultPath)) {
+        res.status(400).json({ error: `Obsidian vault 경로가 존재하지 않습니다: ${vaultPath}` });
         return;
       }
 
       // OOMNI 전용 폴더 생성
       const oomniDir = path.join(vaultPath, 'OOMNI');
       const botDir = path.join(oomniDir, bot_role ?? 'general');
-      if (!fs.existsSync(botDir)) {
-        fs.mkdirSync(botDir, { recursive: true });
-      }
+      fs.mkdirSync(botDir, { recursive: true });
 
       // 파일명: YYYY-MM-DD_title.md
       const dateStr = new Date().toISOString().slice(0, 10);

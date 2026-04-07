@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { agentsApi, type FeedItem } from '../../../lib/api'
-import { Zap, Download } from 'lucide-react'
+import { agentsApi, schedulesApi, type FeedItem, type Schedule } from '../../../lib/api'
+import { Zap, Download, ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { ArchiveButton } from '../shared/ArchiveButton'
 import { NextBotDropdown } from '../shared/NextBotDropdown'
@@ -13,16 +13,120 @@ const OPS_TABS = [
   { key: 'hr', label: '인사' },
 ]
 
-const WORKFLOW_TEMPLATES = [
-  { name: 'Slack → 이슈 자동 생성', status: 'active' },
-  { name: '일일 리포트 자동화', status: 'active' },
-  { name: '주간 비용 정산', status: 'inactive' },
-  { name: '신규 가입 환영 메일', status: 'inactive' },
+// ── 카테고리별 자동화 프리셋 정의 ────────────────────────────────────────────
+interface AutomationPreset {
+  name: string
+  /** schedules API에 POST할 기본값 */
+  triggerType: 'interval' | 'cron'
+  triggerValue: string
+}
+
+interface AutomationCategory {
+  id: string
+  label: string
+  presets: AutomationPreset[]
+}
+
+const AUTOMATION_CATEGORIES: AutomationCategory[] = [
+  {
+    id: 'general',
+    label: '일반',
+    presets: [
+      { name: '이슈 자동생성', triggerType: 'cron', triggerValue: '0 9 * * 1-5' },
+      { name: '일일 리포트 자동화', triggerType: 'cron', triggerValue: '0 18 * * 1-5' },
+      { name: '주간 비용 정산', triggerType: 'cron', triggerValue: '0 10 * * 1' },
+    ],
+  },
+  {
+    id: 'finance',
+    label: '재무',
+    presets: [
+      { name: '월별 손익계산서 자동생성', triggerType: 'cron', triggerValue: '0 9 1 * *' },
+      { name: 'Stripe 매출 집계', triggerType: 'cron', triggerValue: '0 8 * * 1' },
+      { name: '미수금 알림', triggerType: 'cron', triggerValue: '0 10 * * 3' },
+    ],
+  },
+  {
+    id: 'tax',
+    label: '세무',
+    presets: [
+      { name: '분기별 부가세 정리', triggerType: 'cron', triggerValue: '0 9 1 1,4,7,10 *' },
+      { name: '영수증 수집/분류', triggerType: 'cron', triggerValue: '0 9 * * 1' },
+    ],
+  },
+  {
+    id: 'hr',
+    label: '인사',
+    presets: [
+      { name: '주간 업무일지', triggerType: 'cron', triggerValue: '0 17 * * 5' },
+      { name: '월간 성과 정리', triggerType: 'cron', triggerValue: '0 9 28 * *' },
+    ],
+  },
 ]
 
-// LEFT: n8n 워크플로우 목록
+// ── CategoryAccordion ─────────────────────────────────────────────────────────
+function CategoryAccordion({
+  category,
+  activeScheduleNames,
+  onPresetClick,
+}: {
+  category: AutomationCategory
+  activeScheduleNames: Set<string>
+  onPresetClick: (preset: AutomationPreset) => void
+}) {
+  const [open, setOpen] = useState(true)
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden">
+      {/* Header */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center justify-between w-full px-3 py-2 bg-surface hover:bg-border/30 transition-colors"
+      >
+        <span className="text-xs font-medium text-dim">{category.label}</span>
+        {open
+          ? <ChevronDown size={12} className="text-muted" />
+          : <ChevronRight size={12} className="text-muted" />}
+      </button>
+
+      {/* Presets */}
+      {open && (
+        <div className="divide-y divide-border/50">
+          {category.presets.map(preset => {
+            const isActive = activeScheduleNames.has(preset.name)
+            return (
+              <button
+                key={preset.name}
+                onClick={() => onPresetClick(preset)}
+                title={isActive ? '활성 자동화 스케줄 — 클릭하여 관리' : '클릭하여 자동화 스케줄 생성'}
+                className="flex items-center gap-2.5 w-full px-3 py-2.5 bg-bg hover:bg-surface/60 transition-colors text-left group"
+              >
+                {/* 파란 불 (활성 표시) */}
+                <div
+                  className={cn(
+                    'w-2 h-2 rounded-full shrink-0 transition-colors',
+                    isActive
+                      ? 'bg-blue-500 shadow-[0_0_4px_1px_rgba(59,130,246,0.5)]'
+                      : 'bg-border group-hover:bg-border/80'
+                  )}
+                />
+                <span className="text-sm text-dim flex-1 leading-snug">{preset.name}</span>
+                {isActive && (
+                  <span className="text-[10px] text-blue-400 shrink-0">활성</span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// LEFT: 카테고리별 자동화 프리셋 + n8n 상태
 export function OpsLeftPanel({ agentId }: { agentId: string }) {
   const [n8nLocal, setN8nLocal] = useState<'checking' | 'online' | 'offline'>('checking')
+  const [creatingPreset, setCreatingPreset] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -32,27 +136,63 @@ export function OpsLeftPanel({ agentId }: { agentId: string }) {
     return () => controller.abort()
   }, [])
 
-  const { data: feed = [] } = useQuery({
-    queryKey: ['bot-feed', agentId],
-    queryFn: () => agentsApi.runs(agentId),
-    select: (data: FeedItem[]) => data.filter(f => f.type === 'result'),
-    refetchInterval: 5000,
+  // 현재 agentId에 연결된 스케줄 목록 조회
+  const { data: schedulesData, refetch: refetchSchedules } = useQuery({
+    queryKey: ['schedules', agentId],
+    queryFn: () => schedulesApi.list({ agent_id: agentId }),
+    refetchInterval: 10000,
+    staleTime: 5000,
   })
 
-  // Extract n8n workflows from results
-  const workflows = feed.filter(f => f.content.includes('"nodes"'))
+  const activeScheduleNames = new Set<string>(
+    ((schedulesData ?? []) as Schedule[])
+      .filter(s => s.is_active)
+      .map(s => s.name)
+  )
+
+  // 프리셋 클릭: 스케줄 즉시 생성 (이미 활성이면 아무 동작 없음)
+  const handlePresetClick = async (preset: AutomationPreset) => {
+    if (activeScheduleNames.has(preset.name)) return // 이미 활성
+    setCreatingPreset(preset.name)
+    try {
+      // mission_id는 agentId와 동일 prefix가 아닐 수 있으므로 agent 정보를 미리 알 수 없어
+      // schedules API에 agent_id만 넘기고 mission_id를 agent_id로 대체합니다.
+      // (실제 mission_id가 필요하다면 상위 컴포넌트에서 prop으로 전달해야 합니다.)
+      await schedulesApi.create({
+        agent_id: agentId,
+        mission_id: agentId, // fallback; 실제 mission_id는 상위에서 주입 필요
+        name: preset.name,
+        trigger_type: preset.triggerType,
+        trigger_value: preset.triggerValue,
+      })
+      await refetchSchedules()
+    } catch {
+      // 생성 실패 시 조용히 무시 (사용자에게 콘솔 외 피드백 없음)
+    } finally {
+      setCreatingPreset(null)
+    }
+  }
 
   return (
-    <div className="p-4 space-y-5">
+    <div className="p-4 space-y-4 overflow-y-auto h-full">
+      {/* n8n 상태 */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-muted uppercase tracking-widest">n8n 워크플로우</p>
+          <p className="text-xs text-muted uppercase tracking-widest">n8n 연동</p>
           <div className="flex items-center gap-1">
-            <div className={cn('w-1.5 h-1.5 rounded-full', n8nLocal === 'online' ? 'bg-green-500' : n8nLocal === 'offline' ? 'bg-red-400' : 'bg-yellow-400 animate-pulse')} />
-            <span className="text-[10px] text-muted">{n8nLocal === 'online' ? '로컬 실행 중' : n8nLocal === 'offline' ? '미실행' : '확인 중'}</span>
+            <div className={cn(
+              'w-1.5 h-1.5 rounded-full',
+              n8nLocal === 'online' ? 'bg-green-500' :
+              n8nLocal === 'offline' ? 'bg-red-400' :
+              'bg-yellow-400 animate-pulse'
+            )} />
+            <span className="text-[10px] text-muted">
+              {n8nLocal === 'online' ? '로컬 실행 중' :
+               n8nLocal === 'offline' ? '미실행' : '확인 중'}
+            </span>
           </div>
         </div>
-        <div className="flex gap-2 mb-3">
+        <div className="flex gap-2">
           <a
             href="http://localhost:5678"
             target="_blank"
@@ -75,29 +215,30 @@ export function OpsLeftPanel({ agentId }: { agentId: string }) {
             n8n.cloud ↗
           </a>
         </div>
-        <div className="space-y-2">
-          {WORKFLOW_TEMPLATES.map(wf => (
-            <div key={wf.name} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-bg border border-border">
-              <div className={cn(
-                'w-2 h-2 rounded-full shrink-0',
-                wf.status === 'active' ? 'bg-green-500' : 'bg-border'
-              )} />
-              <span className="text-sm text-dim leading-snug">{wf.name}</span>
-            </div>
-          ))}
-        </div>
       </div>
 
-      {workflows.length > 0 && (
-        <div>
-          <p className="text-xs text-muted uppercase tracking-widest mb-3">생성된 워크플로우</p>
-          {workflows.map((wf, i) => (
-            <div key={wf.id} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-primary/5 border border-primary/20 mb-2">
-              <Zap size={13} className="text-primary shrink-0" />
-              <span className="text-sm text-dim">워크플로우 #{i + 1}</span>
-            </div>
-          ))}
-        </div>
+      {/* 범례 */}
+      <div className="flex items-center gap-1.5 px-1">
+        <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_4px_1px_rgba(59,130,246,0.5)]" />
+        <span className="text-[10px] text-muted">활성화된 자동화 스케줄</span>
+      </div>
+
+      {/* 카테고리별 자동화 프리셋 */}
+      <div className="space-y-2">
+        {AUTOMATION_CATEGORIES.map(cat => (
+          <CategoryAccordion
+            key={cat.id}
+            category={cat}
+            activeScheduleNames={activeScheduleNames}
+            onPresetClick={handlePresetClick}
+          />
+        ))}
+      </div>
+
+      {creatingPreset && (
+        <p className="text-[10px] text-muted text-center animate-pulse">
+          "{creatingPreset}" 스케줄 생성 중...
+        </p>
       )}
     </div>
   )
@@ -183,9 +324,9 @@ export function OpsRightPanel({ agentId, onSkillSelect, currentRole = 'ops', con
 
   const workflowResults = feed.filter(f => f.content.includes('"nodes"'))
 
-  const handleDownloadWorkflow = (content: string) => {
-    const jsonMatch = content.match(/```json\n([\s\S]+?)\n```/)
-    const json = jsonMatch ? jsonMatch[1] : content
+  const handleDownloadWorkflow = (wfContent: string) => {
+    const jsonMatch = wfContent.match(/```json\n([\s\S]+?)\n```/)
+    const json = jsonMatch ? jsonMatch[1] : wfContent
     const blob = new Blob([json], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')

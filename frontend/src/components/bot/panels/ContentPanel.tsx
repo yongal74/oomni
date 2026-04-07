@@ -455,7 +455,21 @@ export function ContentRightPanel({ agentId, onSkillSelect, currentRole = 'conte
     if (!latest) return
     await navigator.clipboard.writeText(latest.content)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  const handleDownload = () => {
+    if (!latest) return
+    const dateStr = new Date().toISOString().slice(0, 10)
+    const safeTitle = latest.content.slice(0, 40).replace(/[\\/:*?"<>|\n]/g, '_').trim()
+    const fileName = `${dateStr}_${safeTitle}.md`
+    const blob = new Blob([latest.content], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -471,15 +485,14 @@ export function ContentRightPanel({ agentId, onSkillSelect, currentRole = 'conte
             {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
             <span className="text-sm">{copied ? '복사됨!' : '클립보드 복사'}</span>
           </button>
-          {['Notion에 저장', '이메일로 보내기', '슬랙 공유'].map(label => (
-            <button
-              key={label}
-              disabled={!latest}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-border text-dim hover:border-primary/40 hover:text-text transition-colors disabled:opacity-40"
-            >
-              <span className="text-sm">{label}</span>
-            </button>
-          ))}
+          <button
+            onClick={handleDownload}
+            disabled={!latest}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-border text-dim hover:border-primary/40 hover:text-text transition-colors disabled:opacity-40"
+          >
+            <Download size={14} />
+            <span className="text-sm">파일 다운로드 (.md)</span>
+          </button>
         </div>
       </div>
       {/* 빠른 실행 */}

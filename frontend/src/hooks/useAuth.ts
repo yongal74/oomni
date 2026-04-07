@@ -75,10 +75,11 @@ export function useAuth(): UseAuthReturn {
         photoURL: firebaseUser.photoURL,
       })
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : '로그인에 실패했습니다'
+      // firebase.ts에서 이미 사용자 친화적 메시지로 변환된 Error를 그대로 사용
+      const msg = err instanceof Error ? err.message : '로그인에 실패했습니다'
       setError(msg)
-      throw err
+      // OnboardingPage에서 별도 처리할 수 있도록 re-throw
+      throw new Error(msg)
     } finally {
       setLoading(false)
     }

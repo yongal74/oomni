@@ -17,7 +17,6 @@ const NAV = [
   { to: '/dashboard/n8n', icon: Zap, label: 'n8n 자동화' },
   { to: '/dashboard/devtools', icon: Wrench, label: '개발 환경' },
   { to: '/dashboard/pipeline', icon: GitBranch, label: '파이프라인' },
-  { to: '/dashboard/ceo', icon: Crown, label: 'CEO 대시보드' },
 ]
 
 export function AppLayout() {
@@ -43,26 +42,36 @@ export function AppLayout() {
 
         {/* 봇 목록 */}
         <div className="flex-1 overflow-y-auto px-2 py-3">
-          {/* CEO Bot — 최상단 특별 표시 */}
-          {agents.some(a => a.role === 'ceo') && (<>
+          {/* CEO Bot — 최상단 고정 */}
+          {agents.some(a => a.role === 'ceo') ? (<>
             {agents.filter(a => a.role === 'ceo').map(agent => (
               <NavLink
                 key={agent.id}
                 to={`/dashboard/bots/${agent.id}`}
                 className={({ isActive }) => cn(
-                  'flex items-center gap-2 px-2 py-2 rounded-lg text-[13px] mb-1 border transition-colors',
+                  'flex items-center gap-2 px-2 py-2 rounded-lg text-[13px] mb-0.5 border transition-colors',
                   isActive
                     ? 'bg-primary/10 border-primary/40 text-primary'
                     : 'border-primary/20 text-primary/70 hover:bg-primary/5 hover:text-primary hover:border-primary/30'
                 )}
               >
-                <Crown size={13} className="shrink-0" />
-                <span className="truncate font-medium">{agent.name}</span>
+                <Crown size={13} className="shrink-0 text-amber-400" />
+                <span className="truncate font-semibold">{agent.name}</span>
                 <div className={cn('ml-auto w-1.5 h-1.5 rounded-full', agent.is_active ? 'bg-green-500' : 'bg-[#333]')} />
               </NavLink>
             ))}
-            <div className="border-t border-border/50 mt-1 mb-2" />
-          </>)}
+            <NavLink
+              to="/dashboard/ceo"
+              className={({ isActive }) => cn(
+                'flex items-center gap-2 px-2 py-1 rounded text-[11px] mb-1 ml-1 transition-colors',
+                isActive ? 'text-primary' : 'text-muted hover:text-primary/70'
+              )}
+            >
+              <Crown size={10} className="shrink-0" />
+              <span>CEO 대시보드</span>
+            </NavLink>
+            <div className="border-t border-border/50 mt-0.5 mb-2" />
+          </>) : null}
 
           <div className="text-[10px] text-muted uppercase tracking-widest px-2 mb-2">봇</div>
           {agents.filter(a => a.role !== 'ceo').map(agent => (

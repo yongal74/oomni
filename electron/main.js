@@ -15,7 +15,7 @@ function setupCSP() {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self' file: data:; script-src 'self' 'unsafe-inline' file: https://*.firebaseapp.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: file:; connect-src 'self' http://localhost:3001 ws://localhost:3001 https://*.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://apis.google.com; frame-src https://*.firebaseapp.com https://accounts.google.com https://apis.google.com"
+          "default-src 'self' file: data:; script-src 'self' 'unsafe-inline' file: https://*.firebaseapp.com https://apis.google.com https://www.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: file:; connect-src 'self' http://localhost:3001 ws://localhost:3001 https://*.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://apis.google.com https://firestore.googleapis.com; frame-src https://*.firebaseapp.com https://accounts.google.com https://apis.google.com https://www.google.com"
         ],
       },
     })

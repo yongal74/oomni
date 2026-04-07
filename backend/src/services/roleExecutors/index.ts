@@ -4,6 +4,7 @@ import { buildExecutor } from './build'
 import { growthExecutor } from './growth'
 import { opsExecutor } from './ops'
 import { ceoExecutor } from './ceo'
+import { designExecutor } from './design'
 import { streamClaude, saveFeedItem, type ExecutorContext } from './base'
 
 const DEFAULT_SYSTEM = `당신은 유능한 AI 어시스턴트입니다. 주어진 태스크를 최선을 다해 완료하세요.`
@@ -25,6 +26,7 @@ export async function routeToExecutor(ctx: ExecutorContext): Promise<void> {
     case 'growth': return growthExecutor(ctx)
     case 'ops': return opsExecutor(ctx)
     case 'ceo': return ceoExecutor(ctx)
+    case 'design': return designExecutor(ctx)
     default: return genericExecutor(ctx)
   }
 }
