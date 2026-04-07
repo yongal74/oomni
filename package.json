@@ -1,6 +1,6 @@
 {
   "name": "oomni",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "OOMNI — 딸깍 하나로 AI 팀이 일한다",
   "main": "electron/main.js",
   "scripts": {
@@ -9,7 +9,8 @@
     "dev:vite": "cd frontend && npm run dev",
     "dev:electron": "wait-on http://localhost:5174 http://localhost:3001/api/health && cross-env ELECTRON_IS_DEV=true electron .",
     "build": "cd frontend && npm run build && cd ../backend && npm run build",
-    "package": "npm run build && electron-builder",
+    "rebuild-native": "electron-rebuild -f -w better-sqlite3 --module-dir backend",
+    "package": "npm run build && npm run rebuild-native && electron-builder",
     "test": "cd backend && npm test"
   },
   "build": {
