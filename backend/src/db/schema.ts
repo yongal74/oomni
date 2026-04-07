@@ -10,6 +10,8 @@ export const TABLES = [
   'research_items',
   'token_usage',
   'sessions',
+  'subscriptions',
+  'payment_logs',
 ] as const;
 
 // SQLite 스키마 (PostgreSQL 호환 제거: TIMESTAMPTZ→TEXT, BOOLEAN→INTEGER, JSONB→TEXT, NUMERIC→REAL)
@@ -221,6 +223,45 @@ const MIGRATIONS: Migration[] = [
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`,
+  },
+  {
+    version: 3,
+    description: 'subscriptions + payment_logs 테이블 생성',
+    sql: `
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      plan TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free','personal','team')),
+      billing_key TEXT,
+      status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','cancelled','expired','pending')),
+      current_period_start TEXT,
+      current_period_end TEXT,
+      cancel_at_period_end INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS payment_logs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      subscription_id TEXT REFERENCES subscriptions(id),
+      payment_key TEXT,
+      order_id TEXT NOT NULL,
+      order_name TEXT NOT NULL,
+      amount INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','done','failed','cancelled')),
+      method TEXT,
+      paid_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_payment_logs_user_id ON payment_logs(user_id);
+    CREATE INDEX IF NOT EXISTS idx_payment_logs_order_id ON payment_logs(order_id);
+  `
+  },
+  {
+    version: 4,
+    description: 'users 테이블 display_name 컬럼 추가',
+    sql: `ALTER TABLE users ADD COLUMN display_name TEXT;`
   },
 ];
 

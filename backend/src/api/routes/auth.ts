@@ -462,6 +462,75 @@ export function authRouter(): Router {
     }
   });
 
+  // PATCH /api/auth/profile — 프로필 업데이트 (display_name)
+  router.patch('/profile', async (req: Request, res: Response): Promise<void> => {
+    try {
+      const token = req.headers.authorization?.replace('Bearer ', '') || req.query.token as string
+      if (!token) { res.status(401).json({ error: 'Unauthorized' }); return }
+
+      const db = getDb()
+      const sessionResult = await db.query(
+        `SELECT user_id FROM sessions WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))`,
+        [token]
+      )
+      if (!sessionResult.rows.length) { res.status(401).json({ error: 'Invalid session' }); return }
+
+      const session = sessionResult.rows[0] as { user_id?: string }
+      const userId = session.user_id
+      if (!userId) { res.status(400).json({ error: 'No user linked to session' }); return }
+
+      const { display_name } = req.body as { display_name?: string }
+      if (!display_name?.trim()) { res.status(400).json({ error: 'display_name is required' }); return }
+
+      await db.query(
+        `UPDATE users SET display_name = ? WHERE id = ?`,
+        [display_name.trim(), userId]
+      )
+      res.json({ data: { success: true } })
+    } catch {
+      res.status(500).json({ error: 'Failed to update profile' })
+    }
+  })
+
+  // POST /api/auth/license/activate — 라이선스 키 활성화
+  router.post('/license/activate', async (req: Request, res: Response): Promise<void> => {
+    try {
+      const token = req.headers.authorization?.replace('Bearer ', '') || req.query.token as string
+      if (!token) { res.status(401).json({ error: 'Unauthorized' }); return }
+
+      const { license_key } = req.body as { license_key?: string }
+      if (!license_key?.trim()) { res.status(400).json({ error: 'license_key is required' }); return }
+
+      const db = getDb()
+      const sessionResult = await db.query(
+        `SELECT user_id FROM sessions WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))`,
+        [token]
+      )
+      if (!sessionResult.rows.length) { res.status(401).json({ error: 'Invalid session' }); return }
+
+      const session = sessionResult.rows[0] as { user_id?: string }
+      const userId = session.user_id
+      if (!userId) { res.status(400).json({ error: 'No user linked to session' }); return }
+
+      const keyPattern = /^OOMNI-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/
+      if (!keyPattern.test(license_key.trim())) {
+        res.status(400).json({ error: '유효하지 않은 라이선스 키 형식입니다.' }); return
+      }
+
+      const validUntil = new Date()
+      validUntil.setFullYear(validUntil.getFullYear() + 1)
+
+      await db.query(
+        `UPDATE users SET license_key = ?, license_valid_until = ? WHERE id = ?`,
+        [license_key.trim(), validUntil.toISOString(), userId]
+      )
+
+      res.json({ data: { success: true, license_valid_until: validUntil.toISOString() } })
+    } catch {
+      res.status(500).json({ error: 'Failed to activate license' })
+    }
+  })
+
   // GET /api/auth/license/status — 라이선스 상태 확인
   // 개발자 모드(OOMNI_DEV_MODE=true) 또는 admin 역할이면 무제한 사용
   // 향후 Toss Payments 연동 예정

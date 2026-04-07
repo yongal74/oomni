@@ -64,6 +64,8 @@ export const agentsApi = {
   delete: (id: string) => api.delete(`/api/agents/${id}`),
   runs: (id: string) =>
     api.get<ApiResponse<FeedItem[]>>(`/api/agents/${id}/runs`).then(r => r.data.data),
+  heartbeatRuns: (id: string, limit?: number) =>
+    api.get<{ data: HeartbeatRun[] }>(`/api/agents/${id}/heartbeat-runs`, { params: { limit } }).then(r => r.data.data),
 }
 
 // 워크스페이스 파일
@@ -200,6 +202,18 @@ export const backupApi = {
     api.post('/api/backup/import', data).then(r => r.data),
 }
 
+// 프로필
+export const profileApi = {
+  update: (data: { display_name: string }) =>
+    api.patch('/api/auth/profile', data, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('oomni_token') || ''}` }
+    }).then(r => r.data),
+  activateLicense: (license_key: string) =>
+    api.post('/api/auth/license/activate', { license_key }, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('oomni_token') || ''}` }
+    }).then(r => r.data),
+}
+
 // 개발 환경
 export const devtoolsApi = {
   status: (): Promise<{ claude_code: boolean; vscode: boolean; cursor: boolean; antigravity: boolean }> =>
@@ -235,6 +249,32 @@ export const videoApi = {
   vrewExport: (id: string) =>
     api.post<{ success: boolean; file_path: string }>(`/api/video/vrew-export/${id}`).then(r => r.data),
   downloadUrl: (id: string) => `${api.defaults.baseURL}/api/video/download/${id}`,
+}
+
+// ── 결제/구독 ────────────────────────────────────────────────────────────────
+export interface Subscription {
+  plan: 'free' | 'personal' | 'team'
+  status: 'active' | 'cancelled' | 'expired' | 'pending'
+  current_period_end?: string
+  license_valid_until?: string
+  display_name?: string
+  email?: string
+}
+
+export interface Plan {
+  id: string
+  name: string
+  price: number
+  period: string
+  description: string
+}
+
+export const paymentsApi = {
+  plans: () => api.get<{ data: Record<string, Plan> }>('/api/payments/plans').then(r => r.data.data),
+  subscription: () => api.get<{ data: Subscription }>('/api/payments/subscription').then(r => r.data.data),
+  confirm: (body: { paymentKey: string; orderId: string; amount: number; plan: string }) =>
+    api.post<{ data: { success: boolean; message: string } }>('/api/payments/toss/confirm', body).then(r => r.data.data),
+  cancel: () => api.post('/api/payments/subscription/cancel').then(r => r.data),
 }
 
 // 타입들
@@ -281,6 +321,19 @@ export interface ResearchItem {
   next_action?: string
   converted_output?: string
   created_at: string
+}
+
+export interface HeartbeatRun {
+  id: string
+  agent_id: string
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
+  output?: string
+  error?: string
+  tokens_input: number
+  tokens_output: number
+  cost_usd: number
+  started_at: string
+  finished_at?: string
 }
 
 // Video types

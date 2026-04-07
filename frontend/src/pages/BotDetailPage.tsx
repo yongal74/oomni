@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { agentsApi, type Agent } from '../lib/api'
+import { agentsApi, type Agent, type HeartbeatRun } from '../lib/api'
 import { useAppStore } from '../store/app.store'
-import { Trash2, Settings, ArrowLeft, Send, Square, RotateCcw } from 'lucide-react'
+import { Trash2, Settings, ArrowLeft, Send, Square, RotateCcw, Clock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
 import { LiveStreamDrawer } from '../components/bot/LiveStreamDrawer'
 import { ResearchLeftPanel, ResearchCenterPanel, ResearchRightPanel } from '../components/bot/panels/ResearchPanel'
@@ -49,6 +49,10 @@ export default function BotDetailPage() {
   const { currentMission, agents: allAgents } = useAppStore()
   const missionId = currentMission?.id
 
+  const [activeTab, setActiveTab] = useState<'main' | 'history'>('main')
+  const [historyLimit, setHistoryLimit] = useState(20)
+  const [expandedRuns, setExpandedRuns] = useState<Set<string>>(new Set())
+
   const [task, setTask] = useState('')
   const [isRunning, setIsRunning] = useState(false)
   const [currentStage, setCurrentStage] = useState<string | null>(null)
@@ -65,6 +69,12 @@ export default function BotDetailPage() {
     queryKey: ['agent', id],
     queryFn: () => agentsApi.list().then(list => list.find((a: Agent) => a.id === id)!),
     enabled: !!id,
+  })
+
+  const { data: historyRuns, isLoading: historyLoading } = useQuery<HeartbeatRun[]>({
+    queryKey: ['heartbeat-runs', id, historyLimit],
+    queryFn: () => agentsApi.heartbeatRuns(id!, historyLimit),
+    enabled: !!id && activeTab === 'history',
   })
 
   const nextBot = allAgents.find(a => a.mission_id === missionId && a.id !== id)
@@ -167,6 +177,128 @@ export default function BotDetailPage() {
 
   const stages = ROLE_STAGES[agent.role] ?? ROLE_STAGES.default
   const placeholder = PLACEHOLDER[agent.role] ?? PLACEHOLDER.default
+
+  // 실행 기록 탭 렌더러
+  const renderHistory = () => {
+    const statusBadge = (status: HeartbeatRun['status']) => {
+      const map: Record<HeartbeatRun['status'], { label: string; className: string }> = {
+        completed: { label: '완료', className: 'bg-green-500/15 text-green-400' },
+        failed:    { label: '실패', className: 'bg-red-500/15 text-red-400' },
+        running:   { label: '실행 중', className: 'bg-blue-500/15 text-blue-400' },
+        pending:   { label: '대기', className: 'bg-border text-muted' },
+        skipped:   { label: '건너뜀', className: 'bg-border text-muted' },
+      }
+      const s = map[status] ?? { label: status, className: 'bg-border text-muted' }
+      return (
+        <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', s.className)}>
+          {s.label}
+        </span>
+      )
+    }
+
+    const statusIcon = (status: HeartbeatRun['status']) => {
+      if (status === 'completed') return <CheckCircle2 size={14} className="text-green-400 shrink-0" />
+      if (status === 'failed') return <XCircle size={14} className="text-red-400 shrink-0" />
+      if (status === 'running') return <Loader2 size={14} className="text-blue-400 animate-spin shrink-0" />
+      return <Clock size={14} className="text-muted shrink-0" />
+    }
+
+    const duration = (run: HeartbeatRun) => {
+      if (!run.finished_at) return null
+      const secs = ((new Date(run.finished_at).getTime() - new Date(run.started_at).getTime()) / 1000).toFixed(1)
+      return `${secs}s`
+    }
+
+    const toggleExpand = (runId: string) => {
+      setExpandedRuns(prev => {
+        const next = new Set(prev)
+        if (next.has(runId)) next.delete(runId)
+        else next.add(runId)
+        return next
+      })
+    }
+
+    if (historyLoading) {
+      return (
+        <div className="flex items-center justify-center h-48 gap-2 text-muted">
+          <Loader2 size={18} className="animate-spin" />
+          <span className="text-sm">불러오는 중...</span>
+        </div>
+      )
+    }
+
+    if (!historyRuns || historyRuns.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-48 gap-2 text-muted">
+          <Clock size={32} className="opacity-30" />
+          <p className="text-sm">아직 실행 기록이 없습니다. 봇을 실행해보세요.</p>
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex flex-col gap-3 p-6">
+        {historyRuns.map(run => {
+          const isExpanded = expandedRuns.has(run.id)
+          const totalTokens = (run.tokens_input ?? 0) + (run.tokens_output ?? 0)
+          const dur = duration(run)
+          return (
+            <div key={run.id} className="border border-border rounded-xl bg-surface/50 overflow-hidden">
+              {/* 헤더 행 */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                {statusIcon(run.status)}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {statusBadge(run.status)}
+                    <span className="text-xs text-muted">
+                      {new Date(run.started_at).toLocaleString('ko-KR')}
+                    </span>
+                    {dur && <span className="text-xs text-muted">· {dur}</span>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-xs text-muted shrink-0">
+                  {totalTokens > 0 && <span>{totalTokens.toLocaleString()} tokens</span>}
+                  <span className="font-medium text-text">${(run.cost_usd ?? 0).toFixed(4)}</span>
+                  {(run.output || run.error) && (
+                    <button
+                      onClick={() => toggleExpand(run.id)}
+                      className="text-muted hover:text-text transition-colors"
+                    >
+                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </button>
+                  )}
+                </div>
+              </div>
+              {/* 펼쳐진 상세 */}
+              {isExpanded && (
+                <div className="border-t border-border px-4 py-3 space-y-2">
+                  {run.error && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-xs text-red-400 font-mono whitespace-pre-wrap break-all">
+                      {run.error}
+                    </div>
+                  )}
+                  {run.output && (
+                    <div className="text-xs text-muted whitespace-pre-wrap break-all leading-relaxed">
+                      {run.output.length > 200 ? run.output.slice(0, 200) + '...' : run.output}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+        {/* 더 보기 버튼 */}
+        {historyRuns.length >= historyLimit && (
+          <button
+            onClick={() => setHistoryLimit(50)}
+            className="mt-2 w-full py-2 rounded-xl border border-border text-sm text-muted hover:text-text hover:bg-surface transition-colors"
+          >
+            더 보기 (50개까지 조회)
+          </button>
+        )}
+      </div>
+    )
+  }
 
   // 역할별 Left/Center/Right 패널
   const renderPanels = () => {
@@ -301,6 +433,40 @@ export default function BotDetailPage() {
       {/* ── 파이프라인 바 ─────────────────────────────────── */}
       <PipelineBar stages={stages} currentStage={currentStage} />
 
+      {/* ── 탭 바 ─────────────────────────────────────────── */}
+      <div className="flex items-center gap-1 px-4 border-b border-border bg-surface shrink-0">
+        <button
+          onClick={() => setActiveTab('main')}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors',
+            activeTab === 'main'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted hover:text-text'
+          )}
+        >
+          실행
+        </button>
+        <button
+          onClick={() => setActiveTab('history')}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors',
+            activeTab === 'history'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted hover:text-text'
+          )}
+        >
+          <Clock size={13} />
+          실행 기록
+        </button>
+      </div>
+
+      {activeTab === 'history' ? (
+        /* ── 실행 기록 탭 ────────────────────────────────── */
+        <div className="flex-1 overflow-y-auto">
+          {renderHistory()}
+        </div>
+      ) : (
+        <>
       {/* ── 메인 3패널 ────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
         {/* LEFT */}
@@ -389,6 +555,8 @@ export default function BotDetailPage() {
           )}
         </div>
       </div>
+        </>
+      )}
     </div>
   )
 }

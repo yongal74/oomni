@@ -340,6 +340,25 @@ export function agentsRouter(db: DbClient): Router {
     res.end();
   });
 
+  // GET /api/agents/:id/heartbeat-runs — heartbeat_runs 테이블 실행 기록 조회
+  router.get('/:id/heartbeat-runs', async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params
+      const limit = parseInt(req.query.limit as string) || 20
+      const result = await db.query(
+        `SELECT id, agent_id, status, output, error, tokens_input, tokens_output, cost_usd, started_at, finished_at
+         FROM heartbeat_runs
+         WHERE agent_id = $1
+         ORDER BY started_at DESC
+         LIMIT $2`,
+        [id, limit]
+      )
+      res.json({ data: result.rows })
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to fetch runs' })
+    }
+  });
+
   // GET /api/agents/:id/runs — 최근 피드 아이템 조회
   router.get('/:id/runs', async (req: Request, res: Response) => {
     const result = await db.query(
