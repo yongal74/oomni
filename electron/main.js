@@ -81,6 +81,8 @@ function startBackend() {
 }
 
 function launchBackend(backendPath, done) {
+  // 인-프로세스 모드 표시 — 백엔드가 process.exit() 호출하지 않도록
+  process.env.OOMNI_IN_PROCESS = 'true'
   try {
     require(path.join(backendPath, 'dist', 'index.js'))
     console.log('[Backend] 인-프로세스 시작 완료')
@@ -113,6 +115,18 @@ function createWindow() {
 
   // 로드 완료 후 표시 (흰 화면 방지)
   mainWindow.once('ready-to-show', () => mainWindow.show())
+  // 폴백: 10초 후에도 ready-to-show가 안오면 강제 표시
+  setTimeout(() => { if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) mainWindow.show() }, 10000)
+
+  // 렌더러 크래시 감지
+  mainWindow.webContents.on('render-process-gone', (_, details) => {
+    const { dialog } = require('electron')
+    dialog.showErrorBox('OOMNI 렌더러 오류', `렌더러 프로세스 종료: ${details.reason}`)
+  })
+  mainWindow.webContents.on('did-fail-load', (_, errorCode, errorDesc) => {
+    const { dialog } = require('electron')
+    dialog.showErrorBox('OOMNI 로드 오류', `페이지 로드 실패: ${errorDesc} (${errorCode})`)
+  })
 
   // 외부 링크는 기본 브라우저에서 열기
   // Firebase OAuth 팝업은 Electron 안에서 허용 (signInWithPopup 작동에 필요)
@@ -219,12 +233,20 @@ async function checkLicense() {
   }
 }
 
-// 未처리 예외를 다이얼로그로 표시 (디버깅용)
+// 未처리 예외/거부를 다이얼로그로 표시 (디버깅용)
 process.on('uncaughtException', (err) => {
   const { dialog } = require('electron')
   console.error('[CRASH]', err)
   try {
     dialog.showErrorBox('OOMNI 오류', `오류가 발생했습니다:\n\n${err.message}\n\n${err.stack?.slice(0, 500) ?? ''}`)
+  } catch {}
+})
+process.on('unhandledRejection', (reason) => {
+  const { dialog } = require('electron')
+  console.error('[REJECTION]', reason)
+  try {
+    const msg = reason instanceof Error ? reason.message : String(reason)
+    dialog.showErrorBox('OOMNI 비동기 오류', `처리되지 않은 Promise 오류:\n\n${msg}`)
   } catch {}
 })
 

@@ -156,5 +156,8 @@ async function main() {
 
 main().catch((err) => {
   console.error('서버 시작 실패:', err);
-  process.exit(1);
+  // Electron 인-프로세스 실행 시 process.exit() 금지 — Electron 앱 전체가 종료됨
+  if (process.env.OOMNI_IN_PROCESS !== 'true') {
+    process.exit(1);
+  }
 });
