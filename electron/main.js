@@ -84,7 +84,10 @@ function launchBackend(backendPath, done) {
   // 인-프로세스 모드 표시 — 백엔드가 process.exit() 호출하지 않도록
   process.env.OOMNI_IN_PROCESS = 'true'
   // 프론트엔드 dist 경로 → 백엔드가 정적 파일 서빙에 사용
-  process.env.OOMNI_FRONTEND_DIST = path.join(__dirname, '../frontend/dist')
+  // app.isPackaged: asar 압축 밖(app.asar.unpacked)에서 실제 파일시스템 경로 사용
+  process.env.OOMNI_FRONTEND_DIST = app.isPackaged
+    ? path.join(process.resourcesPath, 'app.asar.unpacked', 'frontend', 'dist')
+    : path.join(__dirname, '../frontend/dist')
   try {
     require(path.join(backendPath, 'dist', 'index.js'))
     console.log('[Backend] 인-프로세스 시작 완료')
@@ -148,7 +151,7 @@ function createWindow() {
             contextIsolation: true,
             nodeIntegration: false,
             sandbox: false,              // postMessage 콜백을 위해 필요
-            webSecurity: false,          // file:// ↔ https:// 크로스오리진 통신 허용
+            // webSecurity: true (기본값) — Firebase postMessage가 정상 작동하려면 반드시 활성화
           },
         },
       }

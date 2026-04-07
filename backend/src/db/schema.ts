@@ -195,6 +195,8 @@ interface Migration {
   version: number;
   description: string;
   sql: string;
+  /** 롤백 SQL (선택사항 — ALTER TABLE 등 역방향이 불가한 경우 생략 가능) */
+  rollbackSql?: string;
 }
 
 const MIGRATIONS: Migration[] = [
@@ -210,6 +212,7 @@ const MIGRATIONS: Migration[] = [
       last_used_at TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);`,
+    rollbackSql: `DROP TABLE IF EXISTS sessions;`,
   },
   {
     version: 2,
@@ -223,6 +226,7 @@ const MIGRATIONS: Migration[] = [
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`,
+    rollbackSql: `DROP TABLE IF EXISTS users;`,
   },
   {
     version: 3,
@@ -256,35 +260,159 @@ const MIGRATIONS: Migration[] = [
     CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
     CREATE INDEX IF NOT EXISTS idx_payment_logs_user_id ON payment_logs(user_id);
     CREATE INDEX IF NOT EXISTS idx_payment_logs_order_id ON payment_logs(order_id);
-  `
+  `,
+    rollbackSql: `DROP TABLE IF EXISTS payment_logs; DROP TABLE IF EXISTS subscriptions;`,
   },
   {
     version: 4,
     description: 'users 테이블 display_name 컬럼 추가',
-    sql: `ALTER TABLE users ADD COLUMN display_name TEXT;`
+    sql: `ALTER TABLE users ADD COLUMN display_name TEXT;`,
+    // SQLite는 ALTER TABLE DROP COLUMN을 지원하지 않으므로 rollbackSql 생략
   },
 ];
 
-export function runMigrations(db: Database.Database): void {
+// ── 마이그레이션 결과 타입 ──────────────────────────────────────
+
+export interface MigrationResult {
+  version: number;
+  description: string;
+  status: 'applied' | 'skipped' | 'failed' | 'rolled_back';
+  error?: string;
+  durationMs: number;
+}
+
+// ── 마이그레이션 실행 (트랜잭션 + 롤백 지원) ────────────────────
+
+export function runMigrations(db: Database.Database): MigrationResult[] {
+  // schema_migrations 테이블 보장
   db.exec(
     `CREATE TABLE IF NOT EXISTS schema_migrations (
-      version    INTEGER PRIMARY KEY,
+      version     INTEGER PRIMARY KEY,
       description TEXT,
-      applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+      status      TEXT NOT NULL DEFAULT 'applied' CHECK (status IN ('applied','rolled_back')),
+      applied_at  TEXT NOT NULL DEFAULT (datetime('now')),
+      rolled_back_at TEXT
     )`
   );
 
+  // status 컬럼이 없는 구버전 schema_migrations 대응 (silent)
+  try {
+    db.exec(`ALTER TABLE schema_migrations ADD COLUMN status TEXT NOT NULL DEFAULT 'applied'`);
+  } catch {
+    // 이미 존재하면 무시
+  }
+  try {
+    db.exec(`ALTER TABLE schema_migrations ADD COLUMN rolled_back_at TEXT`);
+  } catch {
+    // 이미 존재하면 무시
+  }
+
   const applied = (
-    db.prepare('SELECT version FROM schema_migrations').all() as { version: number }[]
+    db.prepare(
+      `SELECT version FROM schema_migrations WHERE status = 'applied'`
+    ).all() as { version: number }[]
   ).map((r) => r.version);
 
+  const results: MigrationResult[] = [];
+
   for (const m of MIGRATIONS) {
-    if (!applied.includes(m.version)) {
+    if (applied.includes(m.version)) {
+      results.push({
+        version: m.version,
+        description: m.description,
+        status: 'skipped',
+        durationMs: 0,
+      });
+      continue;
+    }
+
+    const startMs = Date.now();
+    console.log(`[DB Migration] v${m.version} 시작: ${m.description}`);
+
+    // SQLite는 DDL을 트랜잭션 안에 넣을 수 있음 (BEGIN/COMMIT 수동)
+    try {
+      db.exec('BEGIN');
       db.exec(m.sql);
       db.prepare(
-        'INSERT INTO schema_migrations (version, description, applied_at) VALUES (?, ?, datetime("now"))'
+        `INSERT INTO schema_migrations (version, description, status, applied_at)
+         VALUES (?, ?, 'applied', datetime('now'))`
       ).run(m.version, m.description);
-      console.log(`[DB] 마이그레이션 v${m.version} 적용: ${m.description}`);
+      db.exec('COMMIT');
+
+      const durationMs = Date.now() - startMs;
+      console.log(`[DB Migration] v${m.version} 완료 (${durationMs}ms): ${m.description}`);
+      results.push({
+        version: m.version,
+        description: m.description,
+        status: 'applied',
+        durationMs,
+      });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error(`[DB Migration] v${m.version} 실패: ${errMsg}`);
+
+      // 트랜잭션 롤백 시도
+      try {
+        db.exec('ROLLBACK');
+        console.log(`[DB Migration] v${m.version} 트랜잭션 롤백 완료`);
+      } catch (rollbackErr) {
+        console.error(`[DB Migration] v${m.version} 롤백 실패:`, rollbackErr);
+      }
+
+      // rollbackSql이 있으면 추가 정리 시도
+      if (m.rollbackSql) {
+        try {
+          db.exec(m.rollbackSql);
+          db.prepare(
+            `INSERT OR REPLACE INTO schema_migrations
+               (version, description, status, applied_at, rolled_back_at)
+             VALUES (?, ?, 'rolled_back', datetime('now'), datetime('now'))`
+          ).run(m.version, m.description);
+          console.log(`[DB Migration] v${m.version} rollbackSql 실행 완료`);
+          results.push({
+            version: m.version,
+            description: m.description,
+            status: 'rolled_back',
+            error: errMsg,
+            durationMs: Date.now() - startMs,
+          });
+        } catch (cleanupErr) {
+          const cleanupMsg = cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr);
+          console.error(`[DB Migration] v${m.version} rollbackSql 실패: ${cleanupMsg}`);
+          results.push({
+            version: m.version,
+            description: m.description,
+            status: 'failed',
+            error: `migration: ${errMsg} | rollback: ${cleanupMsg}`,
+            durationMs: Date.now() - startMs,
+          });
+        }
+      } else {
+        results.push({
+          version: m.version,
+          description: m.description,
+          status: 'failed',
+          error: errMsg,
+          durationMs: Date.now() - startMs,
+        });
+      }
+
+      // 마이그레이션 실패 시 이후 마이그레이션 중단 (의존성 보호)
+      console.error(
+        `[DB Migration] v${m.version} 실패로 이후 마이그레이션 중단. ` +
+        `남은 마이그레이션: ${MIGRATIONS.filter(x => x.version > m.version).map(x => `v${x.version}`).join(', ') || '없음'}`
+      );
+      break;
     }
   }
+
+  // 요약 로그
+  const applied_count = results.filter(r => r.status === 'applied').length;
+  const skipped_count = results.filter(r => r.status === 'skipped').length;
+  const failed_count  = results.filter(r => r.status === 'failed' || r.status === 'rolled_back').length;
+  console.log(
+    `[DB Migration] 완료 — 적용: ${applied_count}, 건너뜀: ${skipped_count}, 실패: ${failed_count}`
+  );
+
+  return results;
 }

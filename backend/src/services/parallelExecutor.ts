@@ -1,8 +1,11 @@
 /**
- * ParallelExecutor — runs multiple ClaudeCodeExecutor jobs concurrently
+ * ParallelExecutor — runs multiple Anthropic SDK jobs concurrently
  * with a configurable concurrency limit (semaphore/queue pattern).
+ *
+ * Phase 3-B1: ClaudeCodeExecutor(CLI) 제거, Anthropic SDK 직접 호출로 전환.
+ * Design Bot은 이 경로를 통해 실행되지 않으므로 CLI 분기 불필요.
  */
-import { ClaudeCodeExecutor } from './claudeCodeExecutor';
+import { getAnthropicClient } from './roleExecutors/base';
 
 export interface ParallelJob {
   agentId: string;
@@ -18,6 +21,44 @@ export interface ParallelResult {
   output: string;
   duration_ms: number;
   error?: string;
+}
+
+/**
+ * Run a single job using Anthropic SDK messages.create (non-streaming).
+ */
+async function runWithSdk(job: ParallelJob): Promise<ParallelResult> {
+  const start = Date.now();
+  try {
+    const client = getAnthropicClient();
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: job.task }],
+    });
+
+    const output = response.content
+      .filter((b) => b.type === 'text')
+      .map((b) => (b as { type: 'text'; text: string }).text)
+      .join('');
+
+    return {
+      agentId: job.agentId,
+      agentName: job.agentName,
+      success: true,
+      output: output || '(출력 없음)',
+      duration_ms: Date.now() - start,
+    };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    return {
+      agentId: job.agentId,
+      agentName: job.agentName,
+      success: false,
+      output: '',
+      duration_ms: Date.now() - start,
+      error: errMsg,
+    };
+  }
 }
 
 export class ParallelExecutor {
@@ -36,54 +77,12 @@ export class ParallelExecutor {
     const results: ParallelResult[] = [];
     let completed = 0;
 
-    // Check claude CLI availability once upfront
-    const claudeAvailable = await ClaudeCodeExecutor.isAvailable();
-
     // Semaphore: a pool of active-slot promises
     const queue = [...jobs];
     const active: Promise<void>[] = [];
 
     const runJob = async (job: ParallelJob): Promise<void> => {
-      const start = Date.now();
-      let result: ParallelResult;
-
-      if (!claudeAvailable) {
-        // Mock result when claude CLI is not available
-        await new Promise<void>((resolve) => setTimeout(resolve, 100)); // simulate async
-        result = {
-          agentId: job.agentId,
-          agentName: job.agentName,
-          success: true,
-          output: `(mock) task 수신: ${job.task}`,
-          duration_ms: Date.now() - start,
-        };
-      } else {
-        try {
-          const executor = new ClaudeCodeExecutor();
-          const execResult = await executor.execute(job.task, job.workingDir, {
-            timeout: 300_000, // 5 minutes per job
-          });
-
-          result = {
-            agentId: job.agentId,
-            agentName: job.agentName,
-            success: execResult.success,
-            output: execResult.output || '(출력 없음)',
-            duration_ms: Date.now() - start,
-            error: execResult.success ? undefined : `exit code ${execResult.exitCode}`,
-          };
-        } catch (err) {
-          const errMsg = err instanceof Error ? err.message : String(err);
-          result = {
-            agentId: job.agentId,
-            agentName: job.agentName,
-            success: false,
-            output: '',
-            duration_ms: Date.now() - start,
-            error: errMsg,
-          };
-        }
-      }
+      const result = await runWithSdk(job);
 
       results.push(result);
       completed += 1;

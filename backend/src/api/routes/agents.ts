@@ -247,25 +247,34 @@ export function agentsRouter(db: DbClient): Router {
       is_active: boolean; system_prompt: string; budget_cents: number;
     };
 
-    // ClaudeCodeService 백그라운드 실행 (SSE stream 엔드포인트로 실시간 진행 확인 권장)
-    const ccService = ClaudeCodeService.create(agentFull.id, agentFull.role);
-    ccService.execute(task, async (event, data) => {
-      // 백그라운드: 완료/에러 시 feed_items에 저장
-      if (event === 'done') {
-        await saveFeedItem(db, agentFull.id, 'result', `태스크 완료: ${task}`).catch(() => {});
-      } else if (event === 'error') {
-        const msg = (data as { message: string }).message ?? 'Unknown error';
-        await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${msg}`).catch(() => {});
-      }
-    }).catch(async (err) => {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`).catch(() => {});
-    });
+    // Design Bot은 MCP(Pencil) 연동이 필요하므로 ClaudeCodeService(CLI) 유지
+    // 나머지 봇은 Anthropic SDK 직접 호출 (routeToExecutor)
+    if (agentFull.role === 'design') {
+      const ccService = ClaudeCodeService.create(agentFull.id, agentFull.role);
+      ccService.execute(task, async (event, data) => {
+        if (event === 'done') {
+          await saveFeedItem(db, agentFull.id, 'result', `태스크 완료: ${task}`).catch(() => {});
+        } else if (event === 'error') {
+          const msg = (data as { message: string }).message ?? 'Unknown error';
+          await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${msg}`).catch(() => {});
+        }
+      }).catch(async (err) => {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`).catch(() => {});
+      });
+    } else {
+      // Anthropic SDK 직접 호출 — 백그라운드 실행, feed_items에 결과 저장
+      const noopSend = (_event: string, _data: unknown): void => { /* 백그라운드: SSE 불필요 */ };
+      routeToExecutor({ agent: agentFull, task, db, send: noopSend }).catch(async (err) => {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`).catch(() => {});
+      });
+    }
 
     res.status(202).json({
       success: true,
       message: '봇 실행 시작됨 (실시간 확인: GET /api/agents/:id/stream)',
-      method: 'claude_code_service',
+      method: agentFull.role === 'design' ? 'claude_code_service' : 'anthropic_sdk',
       agentId: agentFull.id,
       task,
     });

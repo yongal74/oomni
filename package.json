@@ -1,6 +1,6 @@
 {
   "name": "oomni",
-  "version": "1.8.8",
+  "version": "1.8.9",
   "description": "OOMNI — 딸깍 하나로 AI 팀이 일한다",
   "main": "electron/main.js",
   "scripts": {
@@ -67,6 +67,7 @@
         ]
       }
     ],
+    "asarUnpack": ["frontend/dist/**/*"],
     "compression": "maximum",
     "win": {
       "target": "nsis"

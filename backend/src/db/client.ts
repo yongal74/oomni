@@ -66,8 +66,18 @@ export function initDb(): DbClient {
   db.exec(SCHEMA_SQL);
 
   // 버전 기반 마이그레이션 실행
-  runMigrations(db);
-  logger.info('[DB] 스키마 마이그레이션 완료');
+  const migrationResults = runMigrations(db);
+  const failedMigrations = migrationResults.filter(
+    r => r.status === 'failed' || r.status === 'rolled_back'
+  );
+  if (failedMigrations.length > 0) {
+    logger.error(
+      '[DB] 마이그레이션 실패:',
+      failedMigrations.map(r => `v${r.version}(${r.status}): ${r.error}`).join(', ')
+    );
+  } else {
+    logger.info('[DB] 스키마 마이그레이션 완료');
+  }
 
   return createClient();
 }
