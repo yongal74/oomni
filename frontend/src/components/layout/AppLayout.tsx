@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../../store/app.store'
-import { BarChart2, Bell, Calendar, Crown, DollarSign, GitBranch, LayoutDashboard, Plug, Plus, Search, Ticket, Wrench, Zap } from 'lucide-react'
+import { BarChart2, Bell, Calendar, Crown, DollarSign, GitBranch, LayoutDashboard, Plug, Plus, Search, Settings, Ticket, Wrench, Zap } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useEffect } from 'react'
 import { oomniWs } from '../../lib/ws'
@@ -17,6 +17,7 @@ const NAV = [
   { to: '/dashboard/n8n', icon: Zap, label: 'n8n 자동화' },
   { to: '/dashboard/devtools', icon: Wrench, label: '개발 환경' },
   { to: '/dashboard/pipeline', icon: GitBranch, label: '파이프라인' },
+  { to: '/dashboard/settings', icon: Settings, label: '설정' },
 ]
 
 export function AppLayout() {
@@ -71,7 +72,16 @@ export function AppLayout() {
               <span>CEO 대시보드</span>
             </NavLink>
             <div className="border-t border-border/50 mt-0.5 mb-2" />
-          </>) : null}
+          </>) : (
+            <button
+              onClick={() => navigate('/dashboard?addBot=true&role=ceo')}
+              className="flex items-center gap-2 px-2 py-2 rounded-lg text-[13px] mb-2 border border-dashed border-border/40 text-muted hover:border-primary/30 hover:text-primary/70 w-full transition-colors"
+            >
+              <Crown size={13} className="shrink-0 text-muted" />
+              <span className="truncate">CEO 추가</span>
+              <Plus size={11} className="ml-auto shrink-0" />
+            </button>
+          )}
 
           <div className="text-[10px] text-muted uppercase tracking-widest px-2 mb-2">봇</div>
           {agents.filter(a => a.role !== 'ceo').map(agent => (

@@ -1,14 +1,22 @@
 {
   "name": "oomni",
-  "version": "1.6.3",
+  "version": "1.7.0",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder"
   },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
   "build": {
     "appId": "com.oomni.app",
     "productName": "OOMNI",
+    "publish": {
+      "provider": "github",
+      "owner": "yongal74",
+      "repo": "oomni"
+    },
     "win": {
       "target": "nsis",
       "icon": "assets/icon.ico"

@@ -18,6 +18,7 @@ const ResearchPage = React.lazy(() => import('./pages/ResearchPage'))
 const DevToolsPage = React.lazy(() => import('./pages/DevToolsPage'))
 const PipelinePage = React.lazy(() => import('./pages/PipelinePage'))
 const CeoBotPage = React.lazy(() => import('./pages/CeoBotPage'))
+const SettingsPage = React.lazy(() => import('./pages/SettingsPage'))
 
 // 봇 이동 시 컴포넌트 remount — key={id}로 상태 초기화
 function BotDetailPageWrapper() {
@@ -41,17 +42,25 @@ function AuthGuard() {
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    authApi.status()
-      .then(({ pin_set }) => {
-        const sessionToken = localStorage.getItem('session_token')
+    const sessionToken = localStorage.getItem('session_token')
+
+    // 토큰이 있으면 서버에서 유효성 확인 후 자동 로그인
+    const checkFn = sessionToken
+      ? fetch(`/api/auth/status?token=${encodeURIComponent(sessionToken)}`)
+          .then(r => r.json() as Promise<{ pin_set: boolean; authenticated?: boolean }>)
+      : authApi.status().then(r => ({ pin_set: r.pin_set, authenticated: false }))
+
+    checkFn
+      .then(({ pin_set, authenticated }) => {
         if (!pin_set) {
           // PIN 미설정 → 온보딩
           navigate('/onboarding', { replace: true })
-        } else if (sessionToken) {
-          // 로그인됨 → 대시보드
+        } else if (authenticated) {
+          // 세션 유효 → 바로 대시보드 (자동 로그인)
           navigate('/dashboard', { replace: true })
         } else {
-          // PIN 있지만 미로그인 → PIN 입력
+          // PIN 있지만 세션 만료/없음 → PIN 입력
+          localStorage.removeItem('session_token')
           navigate('/pin', { replace: true })
         }
       })
@@ -103,6 +112,7 @@ export const router = createHashRouter([
       { path: 'devtools', element: <React.Suspense fallback={<Loader />}><DevToolsPage /></React.Suspense> },
       { path: 'pipeline', element: <React.Suspense fallback={<Loader />}><PipelinePage /></React.Suspense> },
       { path: 'ceo', element: <React.Suspense fallback={<Loader />}><CeoBotPage /></React.Suspense> },
+      { path: 'settings', element: <React.Suspense fallback={<Loader />}><SettingsPage /></React.Suspense> },
     ],
   },
   {

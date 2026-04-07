@@ -311,10 +311,26 @@ export function agentsRouter(db: DbClient): Router {
 
     send('start', { agentId: agentFull.id, task: taskStr });
 
-    // 모든 봇: routeToExecutor (직접 Anthropic API) — 안정적, CLI 불필요
     try {
-      await routeToExecutor({ agent: agentFull, task: taskStr, db, send });
-      send('done', { success: true });
+      if (agentFull.role === 'design') {
+        // Design Bot: ClaudeCodeService (Claude Code CLI + Pencil MCP)
+        const ccService = ClaudeCodeService.create(agentFull.id, agentFull.role);
+        await ccService.execute(taskStr, (event, data) => {
+          send(event, data);
+          // Pencil tool_result에서 스크린샷 추출
+          if (event === 'tool_result' && data && typeof data === 'object') {
+            const d = data as Record<string, unknown>;
+            if (typeof d.imageData === 'string') {
+              send('screenshot', { data: d.imageData, mimeType: d.mimeType ?? 'image/png' });
+            }
+          }
+        });
+        send('done', { success: true });
+      } else {
+        // 그 외 봇: routeToExecutor (Anthropic SDK 직접)
+        await routeToExecutor({ agent: agentFull, task: taskStr, db, send });
+        send('done', { success: true });
+      }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`).catch(() => {});

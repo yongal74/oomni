@@ -7,7 +7,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { SCHEMA_SQL } from './schema.js';
+import { SCHEMA_SQL, runMigrations } from './schema.js';
 import { logger } from '../logger.js';
 
 // DB 파일 위치: 한글 경로 피하기 위해 C:/oomni-data 고정
@@ -62,8 +62,11 @@ export function initDb(): DbClient {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
 
-  // 스키마 마이그레이션 (IF NOT EXISTS로 멱등)
+  // 기본 스키마 적용 (IF NOT EXISTS로 멱등)
   db.exec(SCHEMA_SQL);
+
+  // 버전 기반 마이그레이션 실행
+  runMigrations(db);
   logger.info('[DB] 스키마 마이그레이션 완료');
 
   return createClient();

@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, Notification, shell, session, Menu, MenuItem } = require('electron')
 const path = require('path')
 const http = require('http')
+const { autoUpdater } = require('electron-updater')
 
 // app.isPackaged: 패키징된 프로덕션 앱이면 true, 개발 모드면 false
 // process.env.NODE_ENV 는 electron-builder가 자동 설정 안 함 → 사용하지 않음
@@ -144,6 +145,75 @@ function createWindow() {
   if (isDev) mainWindow.webContents.openDevTools()
 }
 
+// ── electron-updater 설정 ────────────────────────────────
+function setupAutoUpdater() {
+  if (isDev) return // 개발 모드에서는 업데이트 비활성화
+
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+
+  autoUpdater.on('update-available', (info) => {
+    console.log(`[Updater] 업데이트 발견: v${info.version}`)
+    if (Notification.isSupported()) {
+      new Notification({
+        title: 'OOMNI 업데이트',
+        body: `v${info.version} 업데이트가 있습니다. 다운로드 중...`,
+        icon: path.join(__dirname, 'assets/icon.ico'),
+      }).show()
+    }
+    mainWindow?.webContents.send('update-available', info)
+  })
+
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log(`[Updater] 다운로드 완료: v${info.version}`)
+    if (Notification.isSupported()) {
+      new Notification({
+        title: 'OOMNI 업데이트 준비 완료',
+        body: `v${info.version} 업데이트가 준비됐습니다. 앱 종료 시 자동 설치됩니다.`,
+        icon: path.join(__dirname, 'assets/icon.ico'),
+      }).show()
+    }
+    mainWindow?.webContents.send('update-downloaded', info)
+  })
+
+  autoUpdater.on('error', (err) => {
+    console.error('[Updater] 업데이트 오류:', err.message)
+  })
+
+  // 앱 준비 후 업데이트 확인
+  autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+    console.warn('[Updater] 업데이트 확인 실패 (네트워크 오류일 수 있음):', err.message)
+  })
+}
+
+// ── 라이선스 검증 기초 구조 ──────────────────────────────
+// OOMNI_DEV_MODE=true 시 라이선스 검증 우회
+// role='admin' 사용자는 무제한 사용
+// 향후 Toss Payments 연동 예정
+async function checkLicense() {
+  // 개발자 모드: 우회
+  if (process.env.OOMNI_DEV_MODE === 'true') {
+    console.log('[License] 개발자 모드 — 라이선스 검증 우회')
+    return { valid: true, reason: 'dev_mode' }
+  }
+
+  try {
+    // 백엔드 라이선스 상태 확인
+    const result = await new Promise((resolve) => {
+      http.get('http://localhost:3001/api/auth/license/status', (res) => {
+        let data = ''
+        res.on('data', (chunk) => { data += chunk })
+        res.on('end', () => {
+          try { resolve(JSON.parse(data)) } catch { resolve({ valid: false }) }
+        })
+      }).on('error', () => resolve({ valid: false, reason: 'backend_unavailable' }))
+    })
+    return result
+  } catch {
+    return { valid: false, reason: 'check_failed' }
+  }
+}
+
 app.whenReady().then(async () => {
   await startBackend()
 
@@ -155,6 +225,14 @@ app.whenReady().then(async () => {
     } catch (err) {
       console.error('[Electron] 백엔드 시작 실패:', err.message)
     }
+
+    // 라이선스 확인 (비동기, 실패해도 앱 실행 차단 안 함)
+    checkLicense().then((result) => {
+      console.log('[License]', result)
+    }).catch(() => {})
+
+    // 자동 업데이트 초기화
+    setupAutoUpdater()
   }
 
   createWindow()
@@ -206,6 +284,36 @@ ipcMain.handle('open-external', (_event, url) => {
 })
 
 ipcMain.handle('get-app-version', () => app.getVersion())
+
+// ── Google OAuth IPC 핸들러 ───────────────────────────────
+ipcMain.handle('google-oauth-start', async () => {
+  const oauthWindow = new BrowserWindow({
+    width: 500,
+    height: 700,
+    webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: false },
+    title: 'Google 로그인',
+    autoHideMenuBar: true,
+    parent: mainWindow,
+    modal: false,
+  })
+
+  oauthWindow.loadURL('http://localhost:3001/api/auth/google')
+
+  // 콜백 완료 감지
+  oauthWindow.webContents.on('will-redirect', (_event, url) => {
+    if (url.includes('/api/auth/google/callback')) {
+      setTimeout(() => { if (!oauthWindow.isDestroyed()) oauthWindow.close() }, 2000)
+    }
+  })
+
+  oauthWindow.webContents.on('did-navigate', (_event, url) => {
+    if (url.includes('auth/success') || url.includes('로그인')) {
+      setTimeout(() => { if (!oauthWindow.isDestroyed()) oauthWindow.close() }, 500)
+    }
+  })
+
+  return { started: true }
+})
 
 // ── 알림 IPC 핸들러 ──────────────────────────────────────
 // Frontend usage:

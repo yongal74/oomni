@@ -1,6 +1,6 @@
 {
   "name": "oomni-backend",
-  "version": "1.6.3",
+  "version": "1.7.0",
   "description": "OOMNI backend — secure multi-agent heartbeat engine",
   "main": "dist/index.js",
   "type": "commonjs",

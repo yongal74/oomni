@@ -9,6 +9,7 @@ export const TABLES = [
   'schedules',
   'research_items',
   'token_usage',
+  'sessions',
 ] as const;
 
 // SQLite 스키마 (PostgreSQL 호환 제거: TIMESTAMPTZ→TEXT, BOOLEAN→INTEGER, JSONB→TEXT, NUMERIC→REAL)
@@ -161,4 +162,88 @@ CREATE TABLE IF NOT EXISTS token_usage (
 );
 CREATE INDEX IF NOT EXISTS idx_token_usage_agent_id ON token_usage(agent_id);
 CREATE INDEX IF NOT EXISTS idx_token_usage_mission_id ON token_usage(mission_id);
+
+-- 세션 토큰 영속화
+CREATE TABLE IF NOT EXISTS sessions (
+  token        TEXT PRIMARY KEY,
+  user_id      TEXT,
+  login_method TEXT,
+  created_at   TEXT DEFAULT (datetime('now')),
+  expires_at   TEXT,
+  last_used_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+
+-- 사용자 (라이선스/역할 관리)
+CREATE TABLE IF NOT EXISTS users (
+  id         TEXT PRIMARY KEY,
+  email      TEXT NOT NULL UNIQUE,
+  role       TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','admin')),
+  license_key TEXT,
+  license_valid_until TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 `;
+
+// ── DB 마이그레이션 시스템 ──────────────────────────────
+import Database from 'better-sqlite3';
+
+interface Migration {
+  version: number;
+  description: string;
+  sql: string;
+}
+
+const MIGRATIONS: Migration[] = [
+  {
+    version: 1,
+    description: 'sessions 테이블 생성',
+    sql: `CREATE TABLE IF NOT EXISTS sessions (
+      token        TEXT PRIMARY KEY,
+      user_id      TEXT,
+      login_method TEXT,
+      created_at   TEXT DEFAULT (datetime('now')),
+      expires_at   TEXT,
+      last_used_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);`,
+  },
+  {
+    version: 2,
+    description: 'users 테이블 생성 (라이선스/역할 관리)',
+    sql: `CREATE TABLE IF NOT EXISTS users (
+      id         TEXT PRIMARY KEY,
+      email      TEXT NOT NULL UNIQUE,
+      role       TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','admin')),
+      license_key TEXT,
+      license_valid_until TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`,
+  },
+];
+
+export function runMigrations(db: Database.Database): void {
+  db.exec(
+    `CREATE TABLE IF NOT EXISTS schema_migrations (
+      version    INTEGER PRIMARY KEY,
+      description TEXT,
+      applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`
+  );
+
+  const applied = (
+    db.prepare('SELECT version FROM schema_migrations').all() as { version: number }[]
+  ).map((r) => r.version);
+
+  for (const m of MIGRATIONS) {
+    if (!applied.includes(m.version)) {
+      db.exec(m.sql);
+      db.prepare(
+        'INSERT INTO schema_migrations (version, description, applied_at) VALUES (?, ?, datetime("now"))'
+      ).run(m.version, m.description);
+      console.log(`[DB] 마이그레이션 v${m.version} 적용: ${m.description}`);
+    }
+  }
+}

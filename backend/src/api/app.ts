@@ -26,6 +26,7 @@ import { ceoRouter } from './routes/ceo';
 import { templatesRouter } from './routes/templates';
 import { videoRouter } from './routes/video';
 import { obsidianRouter } from './routes/obsidian';
+import { backupRouter } from './routes/backup';
 import { logger } from '../logger';
 
 interface AppOptions {
@@ -148,20 +149,19 @@ export function createApp(options: AppOptions): Application {
   app.use('/api/templates', templatesRouter(options.db));
   app.use('/api/video', videoRouter());
   app.use('/api/obsidian', obsidianRouter());
+  app.use('/api/backup', backupRouter());
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  // ── 에러 핸들러 ───────────────────────────────────────────
+  // ── 전역 에러 핸들러 ──────────────────────────────────────
   app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
-    logger.error(`[API Error] ${req.method} ${req.path}`, err);
-
-    // 에러 상세 정보를 프로덕션에서 노출하지 않음
     const isDev = process.env.NODE_ENV !== 'production';
+    logger.error(`[Error] ${req.method} ${req.path}`, err);
     res.status(500).json({
-      error: '서버 내부 오류',
-      ...(isDev ? { detail: err.message } : {}),
+      error: isDev ? err.message : '서버 오류가 발생했습니다',
+      code: 'INTERNAL_ERROR',
     });
   });
 

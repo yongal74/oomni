@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import { getDb } from '../../db/client.js';
 
 const CreateMissionSchema = z.object({
   name: z.string().min(1).max(200),
@@ -24,10 +25,30 @@ export function missionsRouter(db: DbClient): Router {
       return;
     }
     const { name, description } = parsed.data;
+    const missionId = uuidv4();
     const result = await db.query(
       'INSERT INTO missions (id, name, description) VALUES ($1,$2,$3) RETURNING *',
-      [uuidv4(), name, description],
+      [missionId, name, description],
     );
+
+    // 미션 생성 후 CEO Bot 자동 생성
+    const ceoBotDb = getDb();
+    const ceoBotId = uuidv4();
+    await ceoBotDb.query(
+      `INSERT INTO agents (id, mission_id, name, role, system_prompt, schedule, budget_cents, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        ceoBotId,
+        missionId,
+        'CEO Bot',
+        'ceo',
+        '너는 CEO AI 봇이다. 모든 봇의 활동을 종합하고 전략적 보고서를 생성해라.',
+        'manual',
+        1000,
+        true,
+      ],
+    );
+
     res.status(201).json({ data: (result.rows as unknown[])[0] });
   });
 

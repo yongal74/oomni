@@ -1,6 +1,6 @@
 {
   "name": "oomni",
-  "version": "1.6.3",
+  "version": "1.7.0",
   "description": "OOMNI — 딸깍 하나로 AI 팀이 일한다",
   "main": "electron/main.js",
   "scripts": {

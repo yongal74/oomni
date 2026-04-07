@@ -5,6 +5,8 @@ interface ElectronAPI {
   getInternalApiKey: () => Promise<string>
   openExternal: (url: string) => Promise<void>
   getAppVersion: () => Promise<string>
+  showNotification: (opts: { title: string; body: string; urgency?: string }) => Promise<void>
+  startGoogleOAuth: () => Promise<{ started: boolean }>
   platform: string
 }
 

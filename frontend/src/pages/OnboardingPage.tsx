@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { missionsApi, settingsApi, type Mission } from '../lib/api'
 import { useAppStore } from '../store/app.store'
-import { useAuth } from '../hooks/useAuth'
+import { startGoogleOAuth } from '../hooks/useAuth'
 import { Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react'
 
 const PRESETS = [
@@ -17,8 +17,6 @@ const TOTAL_STEPS = 4
 export default function OnboardingPage() {
   const navigate = useNavigate()
   const { setCurrentMission } = useAppStore()
-  const { signIn: googleSignIn } = useAuth()
-
   const [step, setStep] = useState(1)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -45,10 +43,12 @@ export default function OnboardingPage() {
     setError('')
     setGoogleLoading(true)
     try {
-      await googleSignIn()
+      await startGoogleOAuth()
+      // OAuth 완료 후 토큰이 localStorage에 저장됨 → 페이지 이동
       navigate('/dashboard')
-    } catch {
-      setError('Google 로그인에 실패했습니다. 다시 시도해주세요.')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Google 로그인에 실패했습니다.'
+      setError(msg)
     } finally {
       setGoogleLoading(false)
     }

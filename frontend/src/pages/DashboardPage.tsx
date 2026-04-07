@@ -92,6 +92,7 @@ export default function DashboardPage() {
   const { currentMission, agents, setAgents, setPendingApprovals } = useAppStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const [showAddBot, setShowAddBot] = useState(() => searchParams.get('addBot') === 'true')
+  const preselectedRole = searchParams.get('role')
   const [feedItems, setFeedItems] = useState<FeedItem[]>([])
   const [creatingRole, setCreatingRole] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<DashTab>('feed')
@@ -618,7 +619,11 @@ export default function DashboardPage() {
                     createBot.mutate(tmpl.role)
                   }}
                   disabled={createBot.isPending || !!agents.find(a => a.role === tmpl.role)}
-                  className="text-left p-3 rounded-lg border border-border hover:border-primary hover:bg-surface transition-colors disabled:opacity-50"
+                  className={`text-left p-3 rounded-lg border transition-colors disabled:opacity-50 ${
+                    preselectedRole === tmpl.role
+                      ? 'border-primary bg-primary/5 hover:border-primary hover:bg-primary/10'
+                      : 'border-border hover:border-primary hover:bg-surface'
+                  }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xl">{tmpl.emoji}</span>

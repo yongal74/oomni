@@ -184,6 +184,22 @@ export const obsidianApi = {
     api.post<{ success: boolean; file_path: string; file_name: string }>('/api/obsidian/archive', data).then(r => r.data),
 }
 
+// 백업/복원
+export const backupApi = {
+  export: (): Promise<void> => {
+    return api.get('/api/backup/export', { responseType: 'blob' }).then(r => {
+      const url = window.URL.createObjectURL(new Blob([r.data], { type: 'application/json' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'oomni-backup-' + new Date().toISOString().replace(/[:.]/g, '-') + '.json'
+      a.click()
+      window.URL.revokeObjectURL(url)
+    })
+  },
+  import: (data: unknown): Promise<{ success: boolean; message: string; imported: number }> =>
+    api.post('/api/backup/import', data).then(r => r.data),
+}
+
 // 개발 환경
 export const devtoolsApi = {
   status: (): Promise<{ claude_code: boolean; vscode: boolean; cursor: boolean; antigravity: boolean }> =>

@@ -5,5 +5,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   showNotification: (opts) => ipcRenderer.invoke('show-notification', opts),
+  startGoogleOAuth: () => ipcRenderer.invoke('google-oauth-start'),
   platform: process.platform,
 })
