@@ -219,6 +219,15 @@ async function checkLicense() {
   }
 }
 
+// 未처리 예외를 다이얼로그로 표시 (디버깅용)
+process.on('uncaughtException', (err) => {
+  const { dialog } = require('electron')
+  console.error('[CRASH]', err)
+  try {
+    dialog.showErrorBox('OOMNI 오류', `오류가 발생했습니다:\n\n${err.message}\n\n${err.stack?.slice(0, 500) ?? ''}`)
+  } catch {}
+})
+
 app.whenReady().then(async () => {
   await startBackend()
 
