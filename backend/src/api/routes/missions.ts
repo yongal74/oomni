@@ -19,37 +19,42 @@ export function missionsRouter(db: DbClient): Router {
   });
 
   router.post('/', async (req: Request, res: Response) => {
-    const parsed = CreateMissionSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.issues[0]?.message });
-      return;
+    try {
+      const parsed = CreateMissionSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: parsed.error.issues[0]?.message });
+        return;
+      }
+      const { name, description } = parsed.data;
+      const missionId = uuidv4();
+      const result = await db.query(
+        'INSERT INTO missions (id, name, description) VALUES ($1,$2,$3) RETURNING *',
+        [missionId, name, description],
+      );
+
+      // 미션 생성 후 CEO Bot 자동 생성
+      const ceoBotDb = getDb();
+      const ceoBotId = uuidv4();
+      await ceoBotDb.query(
+        `INSERT INTO agents (id, mission_id, name, role, system_prompt, schedule, budget_cents, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [
+          ceoBotId,
+          missionId,
+          'CEO Bot',
+          'ceo',
+          '너는 CEO AI 봇이다. 모든 봇의 활동을 종합하고 전략적 보고서를 생성해라.',
+          'manual',
+          1000,
+          true,
+        ],
+      );
+
+      res.status(201).json({ data: (result.rows as unknown[])[0] });
+    } catch (err) {
+      console.error('[missions POST]', err);
+      res.status(500).json({ error: '미션 생성에 실패했습니다' });
     }
-    const { name, description } = parsed.data;
-    const missionId = uuidv4();
-    const result = await db.query(
-      'INSERT INTO missions (id, name, description) VALUES ($1,$2,$3) RETURNING *',
-      [missionId, name, description],
-    );
-
-    // 미션 생성 후 CEO Bot 자동 생성
-    const ceoBotDb = getDb();
-    const ceoBotId = uuidv4();
-    await ceoBotDb.query(
-      `INSERT INTO agents (id, mission_id, name, role, system_prompt, schedule, budget_cents, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [
-        ceoBotId,
-        missionId,
-        'CEO Bot',
-        'ceo',
-        '너는 CEO AI 봇이다. 모든 봇의 활동을 종합하고 전략적 보고서를 생성해라.',
-        'manual',
-        1000,
-        true,
-      ],
-    );
-
-    res.status(201).json({ data: (result.rows as unknown[])[0] });
   });
 
   router.get('/:id', async (req: Request, res: Response) => {

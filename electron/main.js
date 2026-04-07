@@ -83,6 +83,8 @@ function startBackend() {
 function launchBackend(backendPath, done) {
   // 인-프로세스 모드 표시 — 백엔드가 process.exit() 호출하지 않도록
   process.env.OOMNI_IN_PROCESS = 'true'
+  // 프론트엔드 dist 경로 → 백엔드가 정적 파일 서빙에 사용
+  process.env.OOMNI_FRONTEND_DIST = path.join(__dirname, '../frontend/dist')
   try {
     require(path.join(backendPath, 'dist', 'index.js'))
     console.log('[Backend] 인-프로세스 시작 완료')
@@ -158,7 +160,9 @@ function createWindow() {
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../frontend/dist/index.html'))
+    // HTTP로 서빙 — file:// 대신 localhost:3001 사용
+    // 이유: Firebase signInWithPopup이 file:// 프로토콜에서 auth/unauthorized-domain 오류 발생
+    mainWindow.loadURL('http://localhost:3001')
   }
 
   if (isDev) mainWindow.webContents.openDevTools()

@@ -8,6 +8,8 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import session from 'express-session';
 import passport from 'passport';
+import * as fs from 'fs';
+import { ApiError } from '../middleware/apiError';
 import { agentsRouter } from './routes/agents';
 import { feedRouter } from './routes/feed';
 import { integrationsRouter } from './routes/integrations';
@@ -85,6 +87,14 @@ export function createApp(options: AppOptions): Application {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
+  // ── 프론트엔드 정적 파일 서빙 (프로덕션) ────────────────────
+  // Electron이 loadURL('http://localhost:3001')으로 프론트엔드를 서빙
+  // → Firebase signInWithPopup이 localhost에서 작동 (file:// 불가)
+  const frontendDist = process.env.OOMNI_FRONTEND_DIST;
+  if (frontendDist && fs.existsSync(frontendDist)) {
+    app.use(express.static(frontendDist));
+  }
+
   // ── express-session (Google OAuth 콜백용) ────────────────
   app.use(session({
     secret: process.env.OOMNI_MASTER_KEY ?? 'oomni-session-secret',
@@ -158,9 +168,22 @@ export function createApp(options: AppOptions): Application {
   });
 
   // ── 전역 에러 핸들러 ──────────────────────────────────────
+  // ApiError: 정의된 HTTP 상태코드 + 코드 반환
+  // 그 외 Error: 500 반환 (개발 환경에서만 메시지 노출)
   app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
+    if (err instanceof ApiError) {
+      // 4xx는 warn, 5xx는 error 레벨 로깅
+      if (err.statusCode >= 500) {
+        logger.error(`[API ${err.statusCode}] ${req.method} ${req.path} — ${err.code}: ${err.message}`, err);
+      } else {
+        logger.warn(`[API ${err.statusCode}] ${req.method} ${req.path} — ${err.code}: ${err.message}`);
+      }
+      res.status(err.statusCode).json({ error: err.message, code: err.code });
+      return;
+    }
+
     const isDev = process.env.NODE_ENV !== 'production';
-    logger.error(`[Error] ${req.method} ${req.path}`, err);
+    logger.error(`[Error 500] ${req.method} ${req.path}`, err);
     res.status(500).json({
       error: isDev ? err.message : '서버 오류가 발생했습니다',
       code: 'INTERNAL_ERROR',
