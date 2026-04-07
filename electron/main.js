@@ -1,7 +1,12 @@
 const { app, BrowserWindow, ipcMain, Notification, shell, session, Menu, MenuItem } = require('electron')
 const path = require('path')
 const http = require('http')
-const { autoUpdater } = require('electron-updater')
+let autoUpdater = null
+try {
+  autoUpdater = require('electron-updater').autoUpdater
+} catch {
+  console.warn('[Updater] electron-updater를 찾을 수 없음 — 자동업데이트 비활성화')
+}
 
 // app.isPackaged: 패키징된 프로덕션 앱이면 true, 개발 모드면 false
 // process.env.NODE_ENV 는 electron-builder가 자동 설정 안 함 → 사용하지 않음
@@ -147,7 +152,7 @@ function createWindow() {
 
 // ── electron-updater 설정 ────────────────────────────────
 function setupAutoUpdater() {
-  if (isDev) return // 개발 모드에서는 업데이트 비활성화
+  if (isDev || !autoUpdater) return // 개발 모드 또는 electron-updater 없으면 비활성화
 
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
