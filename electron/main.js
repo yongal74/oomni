@@ -242,12 +242,8 @@ process.on('uncaughtException', (err) => {
   } catch {}
 })
 process.on('unhandledRejection', (reason) => {
-  const { dialog } = require('electron')
+  // 콘솔에만 로그 — Firebase SDK·HeartbeatScheduler 등의 내부 rejection으로 인한 다이얼로그 노이즈 방지
   console.error('[REJECTION]', reason)
-  try {
-    const msg = reason instanceof Error ? reason.message : String(reason)
-    dialog.showErrorBox('OOMNI 비동기 오류', `처리되지 않은 Promise 오류:\n\n${msg}`)
-  } catch {}
 })
 
 app.whenReady().then(async () => {

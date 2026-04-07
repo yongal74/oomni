@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { auth, signOutUser, onAuthStateChanged, type User } from '../lib/firebase'
+import { auth, signInWithGoogle, signOutUser, onAuthStateChanged, type User } from '../lib/firebase'
 
 interface AuthUser {
   uid: string
@@ -16,43 +16,13 @@ interface UseAuthReturn {
   error: string | null
 }
 
-const BASE_URL = 'http://localhost:3001'
-
-// Electron BrowserWindow + 백엔드 passport OAuth 흐름
-export async function startGoogleOAuth(): Promise<string> {
-  // Electron 환경: IPC로 OAuth 창 열기
-  if (window.electronAPI?.startGoogleOAuth) {
-    await window.electronAPI.startGoogleOAuth()
-  } else {
-    window.open(`${BASE_URL}/api/auth/google`, '_blank')
-  }
-
-  // 토큰 폴링 (최대 2분, 3초 간격)
-  const MAX_ATTEMPTS = 40
-  for (let i = 0; i < MAX_ATTEMPTS; i++) {
-    await new Promise(r => setTimeout(r, 3000))
-    try {
-      const res = await fetch(`${BASE_URL}/api/auth/google/pending-token`)
-      if (res.ok) {
-        const data = await res.json() as { token?: string }
-        if (data.token) {
-          localStorage.setItem('oomni_token', data.token)
-          return data.token
-        }
-      }
-    } catch { /* 계속 폴링 */ }
-  }
-  throw new Error('Google 로그인 시간 초과. 다시 시도해주세요.')
-}
-
-
 export function useAuth(): UseAuthReturn {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: User | null) => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: User | null) => {
       if (firebaseUser) {
         setUser({
           uid: firebaseUser.uid,
@@ -73,9 +43,28 @@ export function useAuth(): UseAuthReturn {
     setError(null)
     setLoading(true)
     try {
-      // Electron BrowserWindow OAuth 흐름 사용
-      await startGoogleOAuth()
-      // 토큰이 저장됐으면 페이지 새로고침으로 AuthGuard가 처리
+      // 1. Firebase signInWithPopup → Google 계정 선택 팝업
+      const firebaseUser = await signInWithGoogle()
+      // 2. Firebase ID Token 획득
+      const idToken = await firebaseUser.getIdToken()
+      // 3. 백엔드에서 세션 토큰 발급
+      const res = await fetch('http://localhost:3001/api/auth/firebase/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      })
+      if (!res.ok) {
+        const errData = await res.json() as { error?: string }
+        throw new Error(errData.error ?? '서버 인증 실패')
+      }
+      const data = await res.json() as { session_token: string }
+      localStorage.setItem('session_token', data.session_token)
+      setUser({
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
+      })
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '로그인에 실패했습니다'
       setError(msg)
