@@ -121,11 +121,12 @@ export function createApp(options: AppOptions): Application {
       return;
     }
     // 헬스체크, auth, settings 경로는 인증 제외
-    // SSE 스트림 엔드포인트는 쿼리 파라미터 토큰으로 별도 인증
+    // SSE 스트림 엔드포인트: EventSource는 헤더 설정 불가 → agents 라우터에서 ?token= 검증
     const isPublicPath =
       req.path === '/health' ||
       req.path.startsWith('/auth') ||
-      req.path.startsWith('/settings');
+      req.path.startsWith('/settings') ||
+      /^\/agents\/[^/]+\/stream/.test(req.path);
 
     if (isPublicPath) {
       next();

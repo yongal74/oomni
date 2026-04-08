@@ -91,6 +91,10 @@ async function verifyStreamToken(
   db: DbClient,
   token: string
 ): Promise<{ user_id: string } | null> {
+  if (!token) return null;
+  // 내부 API 키는 즉시 통과 (Electron 앱 기본 인증)
+  const internalKey = process.env.OOMNI_INTERNAL_API_KEY ?? 'oomni-internal-dev-key-change-me!';
+  if (token === internalKey) return { user_id: 'internal' };
   try {
     const result = await db.query(
       `SELECT user_id FROM sessions

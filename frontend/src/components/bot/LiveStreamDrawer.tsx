@@ -39,68 +39,79 @@ export function LiveStreamDrawer({
     setLines([])
     setStatus('running')
     const errorHandled = { current: false }
+    let es: EventSource | null = null
 
-    const token = sessionStorage.getItem('session_token') || ''
-    const url = `http://localhost:3001/api/agents/${agentId}/stream?task=${encodeURIComponent(task)}&token=${encodeURIComponent(token)}`
-    const es = new EventSource(url)
-    esRef.current = es
-
-    const addLine = (type: StreamLine['type'], text: string) => {
-      setLines(prev => [...prev, { type, text, ts: new Date().toLocaleTimeString('ko-KR', { hour12: false }) }])
-    }
-
-    es.addEventListener('start', () => {
-      addLine('info', '▶ 실행 시작')
-    })
-    es.addEventListener('output', (e) => {
-      const data = JSON.parse(e.data)
-      const chunk = data.chunk || data.text || ''
-      addLine('output', chunk)
-      onOutputChunk?.(chunk)
-    })
-    es.addEventListener('stage', (e) => {
-      const data = JSON.parse(e.data)
-      addLine('info', `→ ${data.label}`)
-      onStageChange?.(data.stage)
-    })
-    es.addEventListener('done', () => {
-      setStatus('done')
-      addLine('info', '✅ 완료')
-      es.close()
-      esRef.current = null
-      onDone?.()
-    })
-    es.addEventListener('error', (e) => {
-      // 커스텀 서버 error 이벤트 (data 있음) vs 연결 오류 (data 없음) 구분
-      const rawData = (e as MessageEvent).data
-      if (!rawData) return // 연결 오류는 onerror에서 처리
-      errorHandled.current = true
-      try {
-        const msg = JSON.parse(rawData)
-        setStatus('error')
-        addLine('error', msg.message || '실행 오류')
-        es.close()
-        esRef.current = null
-        onError?.(msg.message || '실행 오류')
-      } catch {
-        setStatus('error')
-        addLine('error', rawData)
-        es.close()
-        esRef.current = null
-        onError?.(rawData)
+    const connect = async () => {
+      // session_token 없으면 Electron 내부 API 키로 폴백 (PIN/소셜 로그인 없이도 동작)
+      let token = sessionStorage.getItem('session_token') || ''
+      if (!token) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          token = await (window as any).electronAPI?.getInternalApiKey?.() || ''
+        } catch { /* ignore */ }
       }
-    })
-    es.onerror = () => {
-      if (errorHandled.current) return // 이미 커스텀 에러로 처리됨
-      setStatus('error')
-      addLine('error', '서버 연결 실패 — API 키를 확인하거나 앱을 재시작하세요')
-      es.close()
-      esRef.current = null
-      onError?.('연결 오류')
+      const url = `http://localhost:3001/api/agents/${agentId}/stream?task=${encodeURIComponent(task)}&token=${encodeURIComponent(token)}`
+      es = new EventSource(url)
+      esRef.current = es
+
+      const addLine = (type: StreamLine['type'], text: string) => {
+        setLines(prev => [...prev, { type, text, ts: new Date().toLocaleTimeString('ko-KR', { hour12: false }) }])
+      }
+
+      es.addEventListener('start', () => {
+        addLine('info', '▶ 실행 시작')
+      })
+      es.addEventListener('output', (e) => {
+        const data = JSON.parse(e.data)
+        const chunk = data.chunk || data.text || ''
+        addLine('output', chunk)
+        onOutputChunk?.(chunk)
+      })
+      es.addEventListener('stage', (e) => {
+        const data = JSON.parse(e.data)
+        addLine('info', `→ ${data.label}`)
+        onStageChange?.(data.stage)
+      })
+      es.addEventListener('done', () => {
+        setStatus('done')
+        addLine('info', '✅ 완료')
+        es!.close()
+        esRef.current = null
+        onDone?.()
+      })
+      es.addEventListener('error', (e) => {
+        const rawData = (e as MessageEvent).data
+        if (!rawData) return
+        errorHandled.current = true
+        try {
+          const msg = JSON.parse(rawData)
+          setStatus('error')
+          addLine('error', msg.message || '실행 오류')
+          es!.close()
+          esRef.current = null
+          onError?.(msg.message || '실행 오류')
+        } catch {
+          setStatus('error')
+          addLine('error', rawData)
+          es!.close()
+          esRef.current = null
+          onError?.(rawData)
+        }
+      })
+      es.onerror = () => {
+        if (errorHandled.current) return
+        setStatus('error')
+        addLine('error', '서버 연결 실패 — 앱을 재시작하세요')
+        es!.close()
+        esRef.current = null
+        onError?.('연결 오류')
+      }
     }
+
+    connect()
 
     return () => {
-      es.close()
+      es?.close()
       esRef.current = null
     }
   }, [isRunning, agentId, task]) // eslint-disable-line react-hooks/exhaustive-deps
