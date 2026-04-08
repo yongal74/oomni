@@ -531,25 +531,110 @@ export function authRouter(): Router {
     }
   })
 
-  // GET /api/auth/license/status — 라이선스 상태 확인
+  // GET /api/auth/license/status — 라이선스/구독 상태 확인
   // 개발자 모드(OOMNI_DEV_MODE=true) 또는 admin 역할이면 무제한 사용
-  // 향후 Toss Payments 연동 예정
-  router.get('/license/status', (_req: Request, res: Response) => {
+  router.get('/license/status', async (req: Request, res: Response) => {
     // 개발자 모드 우회
     if (process.env.OOMNI_DEV_MODE === 'true') {
-      res.json({ valid: true, reason: 'dev_mode', unlimited: true });
+      res.json({ valid: true, reason: 'dev_mode', unlimited: true, plan: 'admin' });
       return;
     }
 
-    const auth = readAuthFile();
-    const email = auth?.google_user?.email ?? '';
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : (req.query['token'] as string | undefined);
 
-    // 현재는 기본 구조만: 로그인된 사용자는 유효
-    // TODO: users 테이블에서 role='admin' 확인 및 Toss Payments 라이선스 검증
-    if (email) {
-      res.json({ valid: true, email, reason: 'authenticated' });
-    } else {
-      res.json({ valid: false, reason: 'not_authenticated' });
+    if (!token) {
+      res.json({ valid: false, reason: 'not_authenticated', plan: 'free' });
+      return;
+    }
+
+    const isValid = await checkSessionInDb(token);
+    if (!isValid) {
+      res.json({ valid: false, reason: 'session_expired', plan: 'free' });
+      return;
+    }
+
+    try {
+      const db = getDb();
+
+      // 세션에서 user_id 가져오기
+      const sessionResult = await db.query(
+        `SELECT user_id FROM sessions WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))`,
+        [token]
+      );
+      const sessionRow = sessionResult.rows[0] as { user_id?: string } | undefined;
+      const userId = sessionRow?.user_id;
+
+      if (!userId) {
+        // PIN 로그인 (user_id 없음) → 기본 유효
+        res.json({ valid: true, reason: 'pin_auth', plan: 'free', unlimited: false });
+        return;
+      }
+
+      // users 테이블에서 role 확인
+      const userResult = await db.query(
+        `SELECT role, license_key, license_valid_until FROM users WHERE id = ?`,
+        [userId]
+      );
+      const userRow = userResult.rows[0] as {
+        role?: string;
+        license_key?: string;
+        license_valid_until?: string;
+      } | undefined;
+
+      // admin이면 무제한
+      if (userRow?.role === 'admin') {
+        res.json({ valid: true, reason: 'admin', plan: 'admin', unlimited: true });
+        return;
+      }
+
+      // subscriptions 테이블에서 활성 구독 확인
+      const subResult = await db.query(
+        `SELECT plan, status, current_period_end FROM subscriptions
+         WHERE user_id = ? AND status = 'active'
+         ORDER BY created_at DESC LIMIT 1`,
+        [userId]
+      );
+      const subRow = subResult.rows[0] as {
+        plan?: string;
+        status?: string;
+        current_period_end?: string;
+      } | undefined;
+
+      if (subRow?.plan && subRow.plan !== 'free') {
+        // 유료 구독 활성
+        res.json({
+          valid: true,
+          reason: 'subscription_active',
+          plan: subRow.plan,
+          unlimited: true,
+          current_period_end: subRow.current_period_end ?? null,
+        });
+        return;
+      }
+
+      // license_key 유효성 확인 (직접 키 입력 방식)
+      if (userRow?.license_valid_until) {
+        const validUntil = new Date(userRow.license_valid_until);
+        if (validUntil > new Date()) {
+          res.json({
+            valid: true,
+            reason: 'license_key',
+            plan: 'personal',
+            unlimited: true,
+            license_valid_until: userRow.license_valid_until,
+          });
+          return;
+        }
+      }
+
+      // 무료 플랜
+      res.json({ valid: true, reason: 'free_plan', plan: 'free', unlimited: false });
+    } catch {
+      // DB 오류 시 fallback — 로그인된 상태이므로 기본 허용
+      res.json({ valid: true, reason: 'fallback', plan: 'free', unlimited: false });
     }
   });
 
