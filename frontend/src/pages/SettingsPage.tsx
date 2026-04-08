@@ -124,11 +124,16 @@ export default function SettingsPage() {
   const handleOpenPayment = (plan: string) => {
     const orderId = `OOMNI-${Date.now()}-${plan.toUpperCase()}`
     const planInfo = PLANS[plan]
+    const backendBase = 'http://localhost:3001'
+    const successUrl = `${backendBase}/api/payments/toss/success?plan=${encodeURIComponent(plan)}`
+    const failUrl = `${backendBase}/api/payments/toss/fail`
     const url =
       `https://pay.toss.im/payment?` +
       `orderId=${encodeURIComponent(orderId)}` +
       `&orderName=${encodeURIComponent(`OOMNI ${planInfo.name} 플랜`)}` +
-      `&amount=${planInfo.price}`
+      `&amount=${planInfo.price}` +
+      `&successUrl=${encodeURIComponent(successUrl)}` +
+      `&failUrl=${encodeURIComponent(failUrl)}`
 
     if ((window as { electronAPI?: { openExternal?: (u: string) => void } }).electronAPI?.openExternal) {
       (window as { electronAPI?: { openExternal?: (u: string) => void } }).electronAPI!.openExternal!(url)
@@ -138,8 +143,23 @@ export default function SettingsPage() {
     setPayModal(null)
     setSubMsg({
       type: 'success',
-      text: '결제 페이지가 외부 브라우저에서 열렸습니다. 결제 완료 후 앱을 재시작하면 구독이 활성화됩니다.',
+      text: '결제 페이지가 열렸습니다. 결제 완료 후 이 창이 자동으로 닫히면 앱이 업데이트됩니다.',
     })
+
+    // 결제 완료 후 구독 상태 폴링 (30초간 5초마다 확인)
+    let attempts = 0
+    const poll = setInterval(async () => {
+      attempts++
+      try {
+        const updated = await paymentsApi.subscription()
+        if (updated && updated.plan !== 'free') {
+          setSub(updated as typeof sub)
+          setSubMsg({ type: 'success', text: `${planInfo.name} 플랜이 활성화되었습니다!` })
+          clearInterval(poll)
+        }
+      } catch { /* 폴링 실패는 무시 */ }
+      if (attempts >= 6) clearInterval(poll) // 30초 후 중단
+    }, 5000)
   }
 
   // ── 구독 취소 ────────────────────────────────────────────────────────────

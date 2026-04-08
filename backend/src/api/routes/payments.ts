@@ -407,6 +407,119 @@ export function paymentsRouter(): Router {
     });
   });
 
+  // GET /api/payments/toss/success — Toss 결제 성공 리다이렉트 (브라우저 → 자동 confirm)
+  router.get('/toss/success', async (req: Request, res: Response) => {
+    const { paymentKey, orderId, amount, plan } = req.query as {
+      paymentKey?: string; orderId?: string; amount?: string; plan?: string;
+    };
+
+    if (!paymentKey || !orderId || !amount) {
+      res.status(400).send(`<html><body style="font-family:sans-serif;background:#0F0F10;color:#fff;text-align:center;padding:60px">
+        <h2 style="color:#e05252">결제 오류</h2><p>필수 파라미터가 누락되었습니다.</p>
+        <p style="color:#888">앱으로 돌아가세요.</p></body></html>`);
+      return;
+    }
+
+    // orderId에서 plan 추출 (OOMNI-{timestamp}-{PLAN} 형식)
+    const planFromOrder = plan ?? (orderId.split('-').pop() ?? 'personal').toLowerCase();
+    const resolvedPlan = PLANS[planFromOrder as PlanId] ? planFromOrder : 'personal';
+    const numAmount = parseInt(amount, 10);
+
+    try {
+      const tossRes = await axios.post<TossConfirmResponse>(
+        'https://api.tosspayments.com/v1/payments/confirm',
+        { paymentKey, orderId, amount: numAmount },
+        { headers: { Authorization: tossAuthHeader(), 'Content-Type': 'application/json' } }
+      );
+
+      const tossData = tossRes.data;
+      const db = getDb();
+      const subscriptionId = generateId();
+      const paymentLogId = generateId();
+      const periodEnd = daysFromNow(30);
+
+      // orderId로 userId 추론 (세션 없는 외부 브라우저 콜백)
+      const userId = orderId;
+
+      await db.query(
+        `INSERT INTO payment_logs (id, user_id, subscription_id, payment_key, order_id, order_name, amount, status, method, paid_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'done', ?, ?)`,
+        [paymentLogId, userId, subscriptionId, tossData.paymentKey, tossData.orderId,
+         tossData.orderName ?? `OOMNI ${resolvedPlan} 플랜`, tossData.amount,
+         tossData.method ?? null, tossData.approvedAt ?? new Date().toISOString()]
+      );
+      await db.query(
+        `INSERT INTO subscriptions (id, user_id, plan, status, current_period_start, current_period_end)
+         VALUES (?, ?, ?, 'active', datetime('now'), ?)`,
+        [subscriptionId, userId, resolvedPlan, periodEnd]
+      );
+      await db.query(
+        `UPDATE users SET license_valid_until = ? WHERE id = ? OR email = ?`,
+        [periodEnd, userId, userId]
+      );
+
+      res.send(`<html><body style="font-family:sans-serif;background:#0F0F10;color:#fff;text-align:center;padding:60px">
+        <h2 style="color:#D97B5B">결제 완료!</h2>
+        <p style="font-size:18px">OOMNI ${PLANS[resolvedPlan as PlanId]?.name ?? resolvedPlan} 플랜이 활성화되었습니다.</p>
+        <p style="color:#888;margin-top:24px">이 창을 닫고 앱으로 돌아가세요.</p>
+        <script>setTimeout(() => window.close(), 4000)</script>
+      </body></html>`);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      const tossMsg = axiosErr.response?.data?.message ?? (err instanceof Error ? err.message : '결제 확인 실패');
+      res.status(400).send(`<html><body style="font-family:sans-serif;background:#0F0F10;color:#fff;text-align:center;padding:60px">
+        <h2 style="color:#e05252">결제 확인 실패</h2><p>${tossMsg}</p>
+        <p style="color:#888">앱으로 돌아가서 다시 시도해주세요.</p></body></html>`);
+    }
+  });
+
+  // GET /api/payments/toss/fail — Toss 결제 실패 리다이렉트
+  router.get('/toss/fail', (req: Request, res: Response) => {
+    const { message, code } = req.query as { message?: string; code?: string };
+    res.send(`<html><body style="font-family:sans-serif;background:#0F0F10;color:#fff;text-align:center;padding:60px">
+      <h2 style="color:#e05252">결제 실패</h2>
+      <p>${message ?? '결제가 취소되었거나 실패했습니다.'} ${code ? `(${code})` : ''}</p>
+      <p style="color:#888;margin-top:24px">이 창을 닫고 앱에서 다시 시도해주세요.</p>
+      <script>setTimeout(() => window.close(), 4000)</script>
+    </body></html>`);
+  });
+
+  // POST /api/payments/toss/webhook — Toss 웹훅 (결제 상태 변경 알림)
+  router.post('/toss/webhook', async (req: Request, res: Response) => {
+    // Toss는 X-TOSS-SIGNATURE 헤더로 서명 전달 (선택적 검증)
+    const { eventType, data } = req.body as {
+      eventType?: string;
+      data?: { paymentKey?: string; orderId?: string; status?: string; amount?: number };
+    };
+
+    if (!eventType || !data) {
+      res.status(400).json({ error: 'invalid webhook payload' });
+      return;
+    }
+
+    try {
+      const db = getDb();
+      if (eventType === 'PAYMENT_STATUS_CHANGED' && data.status === 'DONE' && data.paymentKey) {
+        // 이미 처리된 paymentKey인지 확인
+        const existing = await db.query(
+          `SELECT id FROM payment_logs WHERE payment_key = ?`, [data.paymentKey]
+        );
+        if (!(existing.rows as unknown[]).length) {
+          // 새 결제 로그 기록
+          const logId = generateId();
+          await db.query(
+            `INSERT INTO payment_logs (id, user_id, payment_key, order_id, order_name, amount, status)
+             VALUES (?, 'webhook', ?, ?, 'Toss 웹훅', ?, 'done')`,
+            [logId, data.paymentKey, data.orderId ?? '', data.amount ?? 0]
+          );
+        }
+      }
+      res.json({ success: true });
+    } catch {
+      res.status(500).json({ error: 'webhook processing failed' });
+    }
+  });
+
   // POST /api/payments/subscription/cancel — 구독 취소
   router.post('/subscription/cancel', async (req: Request, res: Response) => {
     const session = await getSessionUser(req);
