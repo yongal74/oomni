@@ -83,11 +83,6 @@ function startBackend() {
 function launchBackend(backendPath, done) {
   // 인-프로세스 모드 표시 — 백엔드가 process.exit() 호출하지 않도록
   process.env.OOMNI_IN_PROCESS = 'true'
-  // 프론트엔드 dist 경로 → 백엔드가 정적 파일 서빙에 사용
-  // app.isPackaged: asar 압축 밖(app.asar.unpacked)에서 실제 파일시스템 경로 사용
-  process.env.OOMNI_FRONTEND_DIST = app.isPackaged
-    ? path.join(process.resourcesPath, 'app.asar.unpacked', 'frontend', 'dist')
-    : path.join(__dirname, '../frontend/dist')
   try {
     require(path.join(backendPath, 'dist', 'index.js'))
     console.log('[Backend] 인-프로세스 시작 완료')
@@ -151,7 +146,7 @@ function createWindow() {
             contextIsolation: true,
             nodeIntegration: false,
             sandbox: false,              // postMessage 콜백을 위해 필요
-            // webSecurity: true (기본값) — Firebase postMessage가 정상 작동하려면 반드시 활성화
+            webSecurity: false,          // Firebase opener.postMessage() 크로스오리진 허용
           },
         },
       }
@@ -163,9 +158,9 @@ function createWindow() {
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
   } else {
-    // HTTP로 서빙 — file:// 대신 localhost:3001 사용
-    // 이유: Firebase signInWithPopup이 file:// 프로토콜에서 auth/unauthorized-domain 오류 발생
-    mainWindow.loadURL('http://localhost:3001')
+    // file:// 프로토콜로 직접 서빙 (IPC/preload 완전 호환)
+    // Firebase signInWithPopup은 popup이 firebaseapp.com 도메인에서 열리므로 file:// 무관
+    mainWindow.loadFile(path.join(__dirname, '../frontend/dist/index.html'))
   }
 
   if (isDev) mainWindow.webContents.openDevTools()

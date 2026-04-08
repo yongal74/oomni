@@ -8,7 +8,6 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import session from 'express-session';
 import passport from 'passport';
-import * as fs from 'fs';
 import { ApiError } from '../middleware/apiError';
 import { agentsRouter } from './routes/agents';
 import { feedRouter } from './routes/feed';
@@ -86,14 +85,6 @@ export function createApp(options: AppOptions): Application {
   app.use(limiter);
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
-
-  // ── 프론트엔드 정적 파일 서빙 (프로덕션) ────────────────────
-  // Electron이 loadURL('http://localhost:3001')으로 프론트엔드를 서빙
-  // → Firebase signInWithPopup이 localhost에서 작동 (file:// 불가)
-  const frontendDist = process.env.OOMNI_FRONTEND_DIST;
-  if (frontendDist && fs.existsSync(frontendDist)) {
-    app.use(express.static(frontendDist));
-  }
 
   // ── express-session (Google OAuth 콜백용) ────────────────
   app.use(session({

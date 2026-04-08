@@ -32,23 +32,27 @@ export function missionsRouter(db: DbClient): Router {
         [missionId, name, description],
       );
 
-      // 미션 생성 후 CEO Bot 자동 생성
-      const ceoBotDb = getDb();
-      const ceoBotId = uuidv4();
-      await ceoBotDb.query(
-        `INSERT INTO agents (id, mission_id, name, role, system_prompt, schedule, budget_cents, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [
-          ceoBotId,
-          missionId,
-          'CEO Bot',
-          'ceo',
-          '너는 CEO AI 봇이다. 모든 봇의 활동을 종합하고 전략적 보고서를 생성해라.',
-          'manual',
-          1000,
-          true,
-        ],
-      );
+      // CEO Bot 자동 생성 (실패해도 미션 생성은 성공 — 구버전 DB 호환)
+      try {
+        const ceoBotDb = getDb();
+        const ceoBotId = uuidv4();
+        await ceoBotDb.query(
+          `INSERT INTO agents (id, mission_id, name, role, system_prompt, schedule, budget_cents, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            ceoBotId,
+            missionId,
+            'CEO Bot',
+            'ceo',
+            '너는 CEO AI 봇이다. 모든 봇의 활동을 종합하고 전략적 보고서를 생성해라.',
+            'manual',
+            1000,
+            true,
+          ],
+        );
+      } catch (ceoErr) {
+        console.warn('[missions POST] CEO Bot 자동 생성 실패 (무시):', ceoErr);
+      }
 
       res.status(201).json({ data: (result.rows as unknown[])[0] });
     } catch (err) {
