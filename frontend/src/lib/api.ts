@@ -170,6 +170,30 @@ export const settingsApi = {
     settingsAxios.get('/api/settings').then(r => r.data),
 }
 
+// CDP 연동 API
+export const cdpApi = {
+  status: (): Promise<{ connected: boolean; mode: 'live' | 'demo' }> =>
+    api.get('/api/cdp/status').then(r => r.data),
+  segments: (): Promise<{ data: Array<{ id: string; label: string; icon: string; color: string; count: number }>; mode: string }> =>
+    api.get('/api/cdp/segments').then(r => r.data),
+  campaign: (body: { segment_id: string; channel: 'email' | 'sms' | 'push'; message: string }): Promise<{ success: boolean; message: string; sent_count?: number }> =>
+    api.post('/api/cdp/campaign', body).then(r => r.data),
+}
+
+// 통합 연동 설정
+export const integrationsSettingsApi = {
+  get: (): Promise<{ cdp_configured: boolean; cdp_key_masked: string | null; video_configured: boolean; video_key_masked: string | null }> =>
+    api.get('/api/settings/integrations').then(r => r.data),
+  setCdpKey: (key: string): Promise<{ success: boolean; message: string }> =>
+    api.post('/api/settings/cdp-key', { key }).then(r => r.data),
+  deleteCdpKey: (): Promise<{ success: boolean }> =>
+    api.delete('/api/settings/cdp-key').then(r => r.data),
+  setVideoKey: (key: string): Promise<{ success: boolean; message: string }> =>
+    api.post('/api/settings/video-key', { key }).then(r => r.data),
+  deleteVideoKey: (): Promise<{ success: boolean }> =>
+    api.delete('/api/settings/video-key').then(r => r.data),
+}
+
 // Obsidian vault 경로 설정
 export const obsidianSettingsApi = {
   get: (): Promise<{ vault_path: string }> =>

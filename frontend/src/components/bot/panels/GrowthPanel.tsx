@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { agentsApi, videoApi, type FeedItem } from '../../../lib/api'
+import { useState, useCallback } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { agentsApi, videoApi, cdpApi, type FeedItem } from '../../../lib/api'
 import {
   TrendingUp, Users, MessageSquare, BarChart2, Video, Film,
   Mail, Smartphone, Link2, ChevronRight, Zap, BarChart, ArrowUpRight,
@@ -26,24 +26,55 @@ const METRIC_OPTIONS: { value: MetricType; label: string; emoji: string; unit: s
   { value: 'mrr', label: 'MRR', emoji: '💎', unit: '만원' },
 ]
 
-// CDP 연동 상태 (Phase 4에서 실제 API 연동)
-const CDP_CONNECTED = false
-
-const CDP_SEGMENTS = [
-  { label: '파워유저',  icon: '⚡', color: 'text-yellow-400', count: null },
-  { label: '이탈위험',  icon: '⚠️', color: 'text-red-400',    count: null },
-  { label: '신규가입',  icon: '🌱', color: 'text-green-400',  count: null },
-  { label: '재구매',   icon: '🔄', color: 'text-blue-400',   count: null },
-]
+const COLOR_MAP: Record<string, string> = {
+  yellow: 'text-yellow-400',
+  red: 'text-red-400',
+  green: 'text-green-400',
+  blue: 'text-blue-400',
+}
 
 // ── LEFT: KPI + CDP 세그먼트 + 빠른 캠페인 ──────────────────────────────────
-export function GrowthLeftPanel() {
+export function GrowthLeftPanel({ onCampaign }: { onCampaign?: (segId: string, channel: 'email' | 'sms' | 'push') => void }) {
+  const qc = useQueryClient()
   const kpis = [
     { label: '총 고객',  value: '—', sub: '명' },
     { label: 'DAU',      value: '—', sub: '명' },
     { label: 'MRR',      value: '—', sub: '원' },
     { label: '전환율',   value: '—', sub: '%' },
   ]
+
+  const { data: cdpStatus } = useQuery({
+    queryKey: ['cdp-status'],
+    queryFn: cdpApi.status,
+    staleTime: 30_000,
+  })
+  const { data: segmentsResult } = useQuery({
+    queryKey: ['cdp-segments'],
+    queryFn: cdpApi.segments,
+    staleTime: 60_000,
+  })
+
+  const segments = segmentsResult?.data ?? []
+  const isDemo = segmentsResult?.mode === 'demo'
+  const cdpConnected = cdpStatus?.connected ?? false
+
+  const campaignMutation = useMutation({
+    mutationFn: (vars: { segment_id: string; channel: 'email' | 'sms' | 'push'; message: string }) =>
+      cdpApi.campaign(vars),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['cdp-segments'] }),
+  })
+  const [activeCampaignSeg, setActiveCampaignSeg] = useState<string | null>(null)
+
+  const handleCampaignClick = useCallback((segId: string, channel: 'email' | 'sms' | 'push') => {
+    const seg = segments.find(s => s.id === segId)
+    if (!seg) return
+    setActiveCampaignSeg(segId)
+    campaignMutation.mutate(
+      { segment_id: segId, channel, message: `[${seg.label}] 자동 캠페인 메시지` },
+      { onSettled: () => setActiveCampaignSeg(null) }
+    )
+    onCampaign?.(segId, channel)
+  }, [segments, campaignMutation, onCampaign])
 
   return (
     <div className="p-4 space-y-5">
@@ -67,48 +98,40 @@ export function GrowthLeftPanel() {
       <div>
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs text-muted uppercase tracking-widest">CDP 세그먼트</p>
-          {CDP_CONNECTED && (
-            <span className="flex items-center gap-1 text-[10px] text-green-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
-              연동됨
+          <span className="flex items-center gap-1 text-[10px]">
+            <span className={cn('w-1.5 h-1.5 rounded-full', cdpConnected ? 'bg-green-400' : 'bg-yellow-400')} />
+            <span className={cdpConnected ? 'text-green-400' : 'text-yellow-400'}>
+              {cdpConnected ? '연동됨' : isDemo ? '데모' : '미연동'}
             </span>
-          )}
+          </span>
         </div>
 
-        {CDP_CONNECTED ? (
-          <div className="space-y-1">
-            {CDP_SEGMENTS.map(seg => (
-              <div key={seg.label} className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface transition-colors cursor-pointer group">
-                <span className="flex items-center gap-2 text-sm text-dim">
-                  <span>{seg.icon}</span>{seg.label}
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <span className={cn('text-xs font-medium', seg.color)}>{seg.count ?? '—'}명</span>
-                  <ChevronRight size={11} className="text-muted/40 group-hover:text-muted transition-colors" />
-                </div>
-              </div>
-            ))}
-            <button className="w-full mt-1 text-xs text-primary/70 hover:text-primary text-center py-1.5 transition-colors">
-              + 전체 세그먼트 보기
-            </button>
-          </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-border bg-bg/50 p-4 text-center">
-            <Link2 size={20} className="text-muted/40 mx-auto mb-2" />
-            <p className="text-xs text-dim mb-0.5">oomni-cdp 연동 예정</p>
-            <p className="text-[10px] text-muted/60 mb-3">Phase 4에서 실시간 세그먼트 연동</p>
-            <div className="space-y-1">
-              {CDP_SEGMENTS.map(seg => (
-                <div key={seg.label} className="flex items-center justify-between px-2 py-1.5 rounded-lg opacity-40">
-                  <span className="text-xs text-dim flex items-center gap-1.5">
-                    <span>{seg.icon}</span>{seg.label}
+        <div className="space-y-1">
+          {segments.map(seg => (
+            <div
+              key={seg.id}
+              className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface transition-colors cursor-pointer group"
+              onClick={() => handleCampaignClick(seg.id, 'email')}
+            >
+              <span className="flex items-center gap-2 text-sm text-dim">
+                <span>{seg.icon}</span>{seg.label}
+              </span>
+              <div className="flex items-center gap-1.5">
+                {activeCampaignSeg === seg.id ? (
+                  <span className="text-[10px] text-primary">발송 중...</span>
+                ) : (
+                  <span className={cn('text-xs font-medium', COLOR_MAP[seg.color] ?? 'text-muted')}>
+                    {seg.count.toLocaleString()}명
                   </span>
-                  <span className="text-[10px] text-muted">—명</span>
-                </div>
-              ))}
+                )}
+                <ChevronRight size={11} className="text-muted/40 group-hover:text-muted transition-colors" />
+              </div>
             </div>
-          </div>
-        )}
+          ))}
+          {isDemo && (
+            <p className="text-[10px] text-yellow-400/70 text-center pt-1">데모 데이터 · oomni-cdp 연동 시 실제 고객 데이터</p>
+          )}
+        </div>
       </div>
 
       {/* 빠른 캠페인 */}
@@ -116,19 +139,25 @@ export function GrowthLeftPanel() {
         <p className="text-xs text-muted uppercase tracking-widest mb-2">빠른 캠페인</p>
         <div className="space-y-1.5">
           {[
-            { icon: Mail,       label: '이메일 캠페인', desc: '세그먼트별 발송' },
-            { icon: Smartphone, label: 'SMS 캠페인',    desc: '문자 발송' },
-            { icon: Video,      label: 'AI 영상 캠페인', desc: 'oomni-video 연동' },
-          ].map(({ icon: Icon, label, desc }) => (
+            { icon: Mail,       label: '이메일 캠페인', channel: 'email' as const, desc: '세그먼트별 발송' },
+            { icon: Smartphone, label: 'SMS 캠페인',    channel: 'sms'   as const, desc: '문자 발송' },
+            { icon: Video,      label: 'AI 영상 캠페인', channel: 'push'  as const, desc: 'oomni-video 연동' },
+          ].map(({ icon: Icon, label, channel, desc }) => (
             <button
               key={label}
-              disabled
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-dashed border-border bg-bg/30 text-left opacity-50 cursor-not-allowed"
+              onClick={() => segments[0] && handleCampaignClick(segments[0].id, channel)}
+              disabled={segments.length === 0}
+              className={cn(
+                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors',
+                segments.length > 0
+                  ? 'border-border bg-bg hover:bg-surface'
+                  : 'border-dashed border-border bg-bg/30 opacity-50 cursor-not-allowed'
+              )}
             >
-              <Icon size={14} className="text-muted shrink-0" />
+              <Icon size={14} className="text-primary shrink-0" />
               <div>
                 <p className="text-xs text-dim">{label}</p>
-                <p className="text-[10px] text-muted/60">{desc} · Phase 4</p>
+                <p className="text-[10px] text-muted/60">{desc}</p>
               </div>
             </button>
           ))}
@@ -205,34 +234,66 @@ export function GrowthCenterPanel({ agentId, streamOutput, isRunning }: {
 
 // CDP 세그먼트 탭 내용
 function CdpSegmentTab() {
+  const { data: statusData } = useQuery({ queryKey: ['cdp-status'], queryFn: cdpApi.status, staleTime: 30_000 })
+  const { data: segsData } = useQuery({ queryKey: ['cdp-segments'], queryFn: cdpApi.segments, staleTime: 60_000 })
+  const segments = segsData?.data ?? []
+  const isDemo = segsData?.mode === 'demo'
+  const connected = statusData?.connected ?? false
+
   return (
     <div className="h-full flex flex-col gap-4">
-      {/* 연동 배너 */}
-      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+      {/* 상태 배너 */}
+      <div className={cn('rounded-xl border p-4', connected ? 'border-green-500/20 bg-green-500/5' : 'border-yellow-500/20 bg-yellow-500/5')}>
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <Link2 size={15} className="text-primary" />
+          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', connected ? 'bg-green-500/10' : 'bg-yellow-500/10')}>
+            <Link2 size={15} className={connected ? 'text-green-400' : 'text-yellow-400'} />
           </div>
           <div>
-            <p className="text-sm font-medium text-text mb-0.5">oomni-cdp 연동 예정 (Phase 4)</p>
+            <div className="flex items-center gap-2 mb-0.5">
+              <p className="text-sm font-medium text-text">oomni-cdp</p>
+              <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full', connected ? 'bg-green-500/15 text-green-400' : 'bg-yellow-500/15 text-yellow-400')}>
+                {connected ? '연동됨' : isDemo ? '데모 모드' : '미연동'}
+              </span>
+            </div>
             <p className="text-xs text-muted leading-relaxed">
-              연동 후 세그먼트 실시간 현황, 캠페인 성과, 고객 유입 채널을 이 탭에서 통합 관리할 수 있습니다.
+              {connected
+                ? '실시간 고객 세그먼트 데이터가 연동되어 있습니다.'
+                : '설정 → oomni-cdp 연동에서 API 키를 입력하면 실제 고객 데이터가 표시됩니다.'}
             </p>
           </div>
         </div>
       </div>
 
-      {/* 연동 시 사용 가능한 기능 미리보기 */}
+      {/* 세그먼트 카드 */}
       <div>
-        <p className="text-xs text-muted uppercase tracking-widest mb-3">연동 후 사용 가능</p>
+        <p className="text-xs text-muted uppercase tracking-widest mb-3">세그먼트 현황</p>
+        <div className="grid grid-cols-2 gap-2">
+          {segments.map(seg => (
+            <div key={seg.id} className="rounded-xl bg-bg border border-border p-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <span className="text-lg">{seg.icon}</span>
+                <p className="text-xs text-muted">{seg.label}</p>
+              </div>
+              <p className={cn('text-xl font-bold', COLOR_MAP[seg.color] ?? 'text-text')}>
+                {seg.count.toLocaleString()}
+              </p>
+              <p className="text-[10px] text-muted">명</p>
+            </div>
+          ))}
+        </div>
+        {isDemo && <p className="text-[10px] text-yellow-400/70 text-center mt-2">데모 데이터 — API 키 연동 시 실제 수치 표시</p>}
+      </div>
+
+      {/* 기능 목록 */}
+      <div>
+        <p className="text-xs text-muted uppercase tracking-widest mb-3">사용 가능 기능</p>
         <div className="space-y-2">
           {[
-            { icon: Users,      label: '세그먼트별 고객 수',          desc: '파워유저/이탈위험/신규가입/재구매 실시간 인원' },
-            { icon: BarChart,   label: '캠페인 성과',                 desc: '오픈율 / 클릭율 / 전환율 대시보드' },
-            { icon: ArrowUpRight, label: '고객 유입 채널 분석',       desc: '웹 SDK / QR / CSV / Webhook 채널별 현황' },
-            { icon: Zap,        label: 'AI 세그먼트 캠페인 즉시 실행', desc: '분석 결과 → oomni-cdp 캠페인 직접 생성' },
+            { icon: BarChart,    label: '캠페인 성과',            desc: '오픈율 / 클릭율 / 전환율' },
+            { icon: ArrowUpRight, label: '고객 유입 채널',        desc: '웹 SDK / QR / CSV / Webhook' },
+            { icon: Zap,         label: 'AI 캠페인 즉시 실행',   desc: '세그먼트 → 이메일/SMS 자동 발송' },
           ].map(({ icon: Icon, label, desc }) => (
-            <div key={label} className="flex items-start gap-3 px-3 py-3 rounded-lg bg-bg border border-border opacity-60">
+            <div key={label} className={cn('flex items-start gap-3 px-3 py-3 rounded-lg bg-bg border border-border', !connected && 'opacity-50')}>
               <Icon size={15} className="text-muted mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm text-dim">{label}</p>

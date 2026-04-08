@@ -3,7 +3,7 @@ import {
   Download, Upload, AlertTriangle, CheckCircle, Loader2,
   User, CreditCard, Key, Database, ExternalLink, X
 } from 'lucide-react'
-import { backupApi, profileApi, paymentsApi, type Subscription } from '../lib/api'
+import { backupApi, profileApi, paymentsApi, integrationsSettingsApi, type Subscription } from '../lib/api'
 
 interface MsgState {
   type: 'success' | 'error'
@@ -83,6 +83,13 @@ export default function SettingsPage() {
   const [pendingFile, setPendingFile] = useState<unknown>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // 연동 설정 (oomni-cdp / oomni-video)
+  const [cdpKey, setCdpKey] = useState('')
+  const [videoKey, setVideoKey] = useState('')
+  const [integrations, setIntegrations] = useState<{ cdp_configured: boolean; cdp_key_masked: string | null; video_configured: boolean; video_key_masked: string | null } | null>(null)
+  const [intMsg, setIntMsg] = useState<MsgState | null>(null)
+  const [intSaving, setIntSaving] = useState(false)
+
   // ── 구독 정보 로드 ──────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -97,6 +104,7 @@ export default function SettingsPage() {
         setSub(null)
       })
       .finally(() => setSubLoading(false))
+    integrationsSettingsApi.get().then(setIntegrations).catch(() => {})
   }, [])
 
   // ── 프로필 저장 ──────────────────────────────────────────────────────────
@@ -495,6 +503,136 @@ export default function SettingsPage() {
         </div>
 
         {dataMsg && <MsgBox msg={dataMsg} />}
+      </SectionCard>
+
+      {/* ── 5. 연동 서비스 섹션 ────────────────────────────────────────── */}
+      <SectionCard>
+        <SectionTitle icon={<ExternalLink size={16} />} title="서비스 연동 (50% 할인)" />
+        <p className="text-xs text-muted mb-4">OOMNI 구독자는 연동 서비스를 50% 할인된 가격으로 이용합니다.</p>
+
+        {/* oomni-cdp */}
+        <div className="mb-4 pb-4 border-b border-border">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-sm font-medium text-text">oomni-cdp</p>
+              <p className="text-xs text-muted">AI 고객 세그먼테이션 CDP</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted line-through">월 29,000원</span>
+              <span className="text-xs font-bold text-yellow-400">월 14,500원</span>
+              {integrations?.cdp_configured && (
+                <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400" />연동됨
+                </span>
+              )}
+            </div>
+          </div>
+          {integrations?.cdp_configured ? (
+            <div className="flex items-center justify-between bg-bg border border-border rounded-lg px-3 py-2">
+              <span className="text-xs text-muted font-mono">{integrations.cdp_key_masked}</span>
+              <button
+                onClick={async () => {
+                  setIntSaving(true)
+                  try {
+                    await integrationsSettingsApi.deleteCdpKey()
+                    const updated = await integrationsSettingsApi.get()
+                    setIntegrations(updated)
+                    setIntMsg({ type: 'success', text: 'oomni-cdp 연동이 해제되었습니다' })
+                  } catch { setIntMsg({ type: 'error', text: '연동 해제 실패' }) }
+                  setIntSaving(false)
+                }}
+                className="text-xs text-red-400 hover:text-red-300 transition-colors"
+              >연동 해제</button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                value={cdpKey}
+                onChange={e => setCdpKey(e.target.value)}
+                placeholder="oomni-cdp API 키 입력"
+                className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted/50 focus:outline-none focus:border-primary/60"
+              />
+              <button
+                disabled={cdpKey.length < 8 || intSaving}
+                onClick={async () => {
+                  setIntSaving(true)
+                  try {
+                    await integrationsSettingsApi.setCdpKey(cdpKey)
+                    const updated = await integrationsSettingsApi.get()
+                    setIntegrations(updated)
+                    setCdpKey('')
+                    setIntMsg({ type: 'success', text: 'oomni-cdp 연동 완료!' })
+                  } catch { setIntMsg({ type: 'error', text: '저장 실패' }) }
+                  setIntSaving(false)
+                }}
+                className="px-3 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-40 transition-colors"
+              >연동</button>
+            </div>
+          )}
+        </div>
+
+        {/* oomni-video */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-sm font-medium text-text">oomni-video</p>
+              <p className="text-xs text-muted">AI 숏폼 영상 자동 생성</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted line-through">월 19,000원</span>
+              <span className="text-xs font-bold text-yellow-400">월 9,500원</span>
+              {integrations?.video_configured && (
+                <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400" />연동됨
+                </span>
+              )}
+            </div>
+          </div>
+          {integrations?.video_configured ? (
+            <div className="flex items-center justify-between bg-bg border border-border rounded-lg px-3 py-2">
+              <span className="text-xs text-muted font-mono">{integrations.video_key_masked}</span>
+              <button
+                onClick={async () => {
+                  setIntSaving(true)
+                  try {
+                    await integrationsSettingsApi.deleteVideoKey()
+                    const updated = await integrationsSettingsApi.get()
+                    setIntegrations(updated)
+                    setIntMsg({ type: 'success', text: 'oomni-video 연동이 해제되었습니다' })
+                  } catch { setIntMsg({ type: 'error', text: '연동 해제 실패' }) }
+                  setIntSaving(false)
+                }}
+                className="text-xs text-red-400 hover:text-red-300 transition-colors"
+              >연동 해제</button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                value={videoKey}
+                onChange={e => setVideoKey(e.target.value)}
+                placeholder="oomni-video API 키 입력"
+                className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted/50 focus:outline-none focus:border-primary/60"
+              />
+              <button
+                disabled={videoKey.length < 8 || intSaving}
+                onClick={async () => {
+                  setIntSaving(true)
+                  try {
+                    await integrationsSettingsApi.setVideoKey(videoKey)
+                    const updated = await integrationsSettingsApi.get()
+                    setIntegrations(updated)
+                    setVideoKey('')
+                    setIntMsg({ type: 'success', text: 'oomni-video 연동 완료!' })
+                  } catch { setIntMsg({ type: 'error', text: '저장 실패' }) }
+                  setIntSaving(false)
+                }}
+                className="px-3 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-40 transition-colors"
+              >연동</button>
+            </div>
+          )}
+        </div>
+
+        {intMsg && <MsgBox msg={intMsg} />}
       </SectionCard>
 
       {/* ── 결제 안내 모달 ──────────────────────────────────────────── */}

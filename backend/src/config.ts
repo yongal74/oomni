@@ -27,6 +27,8 @@ interface Settings {
   google_client_secret?: string;
   preferred_ide?: string;
   obsidian_vault_path?: string;
+  cdp_api_key?: string;
+  video_api_key?: string;
 }
 
 // ── 암호화 유틸 ────────────────────────────────────────────
@@ -74,6 +76,8 @@ const SENSITIVE_FIELDS: (keyof Settings)[] = [
   'anthropic_api_key',
   'google_client_id',
   'google_client_secret',
+  'cdp_api_key',
+  'video_api_key',
 ];
 
 // ── 설정 파일 읽기/쓰기 ─────────────────────────────────────
@@ -166,6 +170,9 @@ export function readSettings(): Settings {
   // Non-sensitive fields — return as-is
   if (raw.preferred_ide) result.preferred_ide = raw.preferred_ide;
   if (raw.obsidian_vault_path) result.obsidian_vault_path = raw.obsidian_vault_path;
+  // CDP / video keys are sensitive but also needed directly
+  if (raw.cdp_api_key) result.cdp_api_key = decryptField(raw.cdp_api_key);
+  if (raw.video_api_key) result.video_api_key = decryptField(raw.video_api_key);
   return result;
 }
 

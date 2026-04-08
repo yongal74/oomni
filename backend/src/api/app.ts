@@ -29,6 +29,7 @@ import { videoRouter } from './routes/video';
 import { obsidianRouter } from './routes/obsidian';
 import { backupRouter } from './routes/backup';
 import { paymentsRouter } from './routes/payments';
+import { cdpRouter } from './routes/cdp';
 import { logger } from '../logger';
 
 interface AppOptions {
@@ -153,6 +154,7 @@ export function createApp(options: AppOptions): Application {
   app.use('/api/obsidian', obsidianRouter());
   app.use('/api/backup', backupRouter());
   app.use('/api/payments', paymentsRouter());
+  app.use('/api/cdp', cdpRouter());
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });

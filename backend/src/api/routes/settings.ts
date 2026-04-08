@@ -73,5 +73,50 @@ export function settingsRouter(): Router {
     res.json({ success: true });
   });
 
+  // GET /api/settings/integrations — CDP + video 연동 상태
+  router.get('/integrations', (_req: Request, res: Response) => {
+    const settings = readSettings();
+    res.json({
+      cdp_configured: !!settings.cdp_api_key,
+      cdp_key_masked: settings.cdp_api_key ? maskApiKey(settings.cdp_api_key) : null,
+      video_configured: !!settings.video_api_key,
+      video_key_masked: settings.video_api_key ? maskApiKey(settings.video_api_key) : null,
+    });
+  });
+
+  // POST /api/settings/cdp-key — oomni-cdp API 키 저장
+  router.post('/cdp-key', (req: Request, res: Response) => {
+    const { key } = req.body as { key?: string };
+    if (!key || key.length < 8) {
+      res.status(400).json({ error: 'CDP API 키를 입력하세요' });
+      return;
+    }
+    saveSettings({ cdp_api_key: key });
+    res.json({ success: true, message: 'oomni-cdp API 키가 저장되었습니다' });
+  });
+
+  // DELETE /api/settings/cdp-key — CDP 연동 해제
+  router.delete('/cdp-key', (_req: Request, res: Response) => {
+    saveSettings({ cdp_api_key: undefined });
+    res.json({ success: true });
+  });
+
+  // POST /api/settings/video-key — oomni-video API 키 저장
+  router.post('/video-key', (req: Request, res: Response) => {
+    const { key } = req.body as { key?: string };
+    if (!key || key.length < 8) {
+      res.status(400).json({ error: 'Video API 키를 입력하세요' });
+      return;
+    }
+    saveSettings({ video_api_key: key });
+    res.json({ success: true, message: 'oomni-video API 키가 저장되었습니다' });
+  });
+
+  // DELETE /api/settings/video-key — video 연동 해제
+  router.delete('/video-key', (_req: Request, res: Response) => {
+    saveSettings({ video_api_key: undefined });
+    res.json({ success: true });
+  });
+
   return router;
 }
