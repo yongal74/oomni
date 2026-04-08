@@ -367,19 +367,15 @@ export class ClaudeCodeService {
 
     const args = [
       cliPath,
-      '--print',
+      '--print', resolved,
       '--output-format', 'stream-json',
-      '--include-partial-messages',
       '--dangerously-skip-permissions',
-      '--no-session-persistence',
       '--model', model,
     ];
 
     if (sysPrompt)   args.push('--append-system-prompt', sysPrompt);
     if (mcpCfgPath)  args.push('--mcp-config', mcpCfgPath);
     if (fs.existsSync(CLAUDE_DIR)) args.push('--add-dir', CLAUDE_DIR);
-
-    args.push(resolved);
 
     send('start', { agentId: this.agentId, role: this.role, model, task });
 

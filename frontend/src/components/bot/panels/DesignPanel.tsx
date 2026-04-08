@@ -63,7 +63,7 @@ export function DesignLeftPanel({ selectedTemplate, onTemplateChange }: {
 }
 
 // CENTER: 생성된 디자인 출력
-export function DesignCenterPanel({ agentId, streamOutput, isRunning }: { agentId: string; streamOutput?: string; isRunning?: boolean }) {
+export function DesignCenterPanel({ agentId, streamOutput, isRunning, screenshotUrl }: { agentId: string; streamOutput?: string; isRunning?: boolean; screenshotUrl?: string | null }) {
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
     queryFn: () => agentsApi.runs(agentId),
@@ -81,6 +81,12 @@ export function DesignCenterPanel({ agentId, streamOutput, isRunning }: { agentI
           <span className="text-sm text-muted">디자인 생성 중...</span>
         </div>
         <div className="h-full overflow-y-auto p-5">
+          {screenshotUrl ? (
+            <div className="mb-4">
+              <p className="text-xs text-muted mb-2 uppercase tracking-widest">Pencil 미리보기</p>
+              <img src={screenshotUrl} alt="Pencil 디자인" className="w-full rounded-lg border border-border shadow-lg" />
+            </div>
+          ) : null}
           <pre className="text-base text-dim leading-relaxed whitespace-pre-wrap font-sans">{streamOutput || ''}</pre>
         </div>
       </div>
@@ -88,11 +94,17 @@ export function DesignCenterPanel({ agentId, streamOutput, isRunning }: { agentI
   }
 
   if (!latest) {
-    if (streamOutput) {
+    if (screenshotUrl || streamOutput) {
       return (
         <div className="h-full overflow-y-auto p-5">
           <p className="text-xs text-muted mb-3 uppercase tracking-widest">마지막 실행 결과</p>
-          <pre className="text-base text-dim leading-relaxed whitespace-pre-wrap font-sans">{streamOutput}</pre>
+          {screenshotUrl && (
+            <div className="mb-4">
+              <p className="text-xs text-muted mb-2">Pencil 디자인</p>
+              <img src={screenshotUrl} alt="Pencil 디자인" className="w-full rounded-lg border border-border shadow-lg" />
+            </div>
+          )}
+          {streamOutput && <pre className="text-base text-dim leading-relaxed whitespace-pre-wrap font-sans">{streamOutput}</pre>}
         </div>
       )
     }

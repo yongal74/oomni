@@ -57,7 +57,7 @@ export async function researchExecutor(ctx: ExecutorContext): Promise<void> {
 
       // Skip duplicates
       const existing = await db.query(
-        'SELECT id FROM research_items WHERE mission_id = $1 AND title = $2',
+        `SELECT id FROM research_items WHERE mission_id = $1 AND title = $2 AND created_at > datetime('now', '-1 hours')`,
         [agent.mission_id, title]
       )
       if ((existing.rows as unknown[]).length > 0) continue

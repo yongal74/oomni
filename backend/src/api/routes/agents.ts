@@ -309,9 +309,9 @@ export function agentsRouter(db: DbClient): Router {
       is_active: boolean; system_prompt: string; budget_cents: number;
     };
 
-    // Design Bot은 MCP(Pencil) 연동이 필요하므로 ClaudeCodeService(CLI) 유지
+    // Design/Build Bot은 Claude Code CLI (ClaudeCodeService) 사용
     // 나머지 봇은 Anthropic SDK 직접 호출 (routeToExecutor)
-    if (agentFull.role === 'design') {
+    if (agentFull.role === 'design' || agentFull.role === 'build') {
       const ccService = ClaudeCodeService.create(agentFull.id, agentFull.role);
       ccService.execute(task, async (event, data) => {
         if (event === 'done') {
@@ -336,7 +336,7 @@ export function agentsRouter(db: DbClient): Router {
     res.status(202).json({
       success: true,
       message: '봇 실행 시작됨 (실시간 확인: GET /api/agents/:id/stream)',
-      method: agentFull.role === 'design' ? 'claude_code_service' : 'anthropic_sdk',
+      method: (agentFull.role === 'design' || agentFull.role === 'build') ? 'claude_code_service' : 'anthropic_sdk',
       agentId: agentFull.id,
       task,
     });
@@ -395,13 +395,20 @@ export function agentsRouter(db: DbClient): Router {
 
     send('start', { agentId: agentFull.id, task: taskStr });
 
+    // 실행 기록 생성 (heartbeat_runs)
+    const runId = uuidv4();
+    await db.query(
+      `INSERT INTO heartbeat_runs (id, agent_id, status, started_at) VALUES ($1,$2,'running',strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
+      [runId, agentFull.id]
+    ).catch(() => {}); // 실패해도 실행은 계속
+
     try {
-      if (agentFull.role === 'design') {
-        // Design Bot: ClaudeCodeService (Claude Code CLI + Pencil MCP)
+      if (agentFull.role === 'design' || agentFull.role === 'build') {
+        // Design/Build Bot: ClaudeCodeService (Claude Code CLI)
         const ccService = ClaudeCodeService.create(agentFull.id, agentFull.role);
         await ccService.execute(taskStr, (event, data) => {
           send(event, data);
-          // Pencil tool_result에서 스크린샷 추출
+          // Pencil tool_result에서 스크린샷 추출 (Design Bot)
           if (event === 'tool_result' && data && typeof data === 'object') {
             const d = data as Record<string, unknown>;
             if (typeof d.imageData === 'string') {
@@ -415,10 +422,20 @@ export function agentsRouter(db: DbClient): Router {
         await routeToExecutor({ agent: agentFull, task: taskStr, db, send });
         send('done', { success: true });
       }
+      // 실행 성공 기록
+      await db.query(
+        `UPDATE heartbeat_runs SET status='completed', finished_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=$1`,
+        [runId]
+      ).catch(() => {});
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`).catch(() => {});
       send('error', { message: errMsg });
+      // 실행 실패 기록
+      await db.query(
+        `UPDATE heartbeat_runs SET status='failed', error=$1, finished_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=$2`,
+        [errMsg, runId]
+      ).catch(() => {});
     }
 
     res.end();

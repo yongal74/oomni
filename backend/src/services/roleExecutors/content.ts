@@ -14,7 +14,7 @@ export async function contentExecutor(ctx: ExecutorContext): Promise<void> {
 
   // Get kept research items
   const researchItems = await db.query(
-    `SELECT title, summary, tags FROM research_items WHERE mission_id = $1 AND filter_decision = 'keep' ORDER BY signal_score DESC LIMIT 10`,
+    `SELECT title, summary, tags FROM research_items WHERE mission_id = $1 AND filter_decision = 'keep' ORDER BY signal_score DESC LIMIT 50`,
     [agent.mission_id]
   )
   const items = researchItems.rows as Array<{ title: string; summary: string; tags: string }>

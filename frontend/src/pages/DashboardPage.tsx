@@ -209,11 +209,17 @@ export default function DashboardPage() {
         budget_cents: 1000,
       })
     },
-    onSuccess: () => {
+    onSuccess: (newAgent: Agent) => {
       setCreatingRole(null)
       setShowAddBot(false)
       setSearchParams({})
       qc.invalidateQueries({ queryKey: ['agents'] })
+      if (newAgent?.id) navigate(`/dashboard/bots/${newAgent.id}`)
+    },
+    onError: (err: unknown) => {
+      setCreatingRole(null)
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? '봇 생성에 실패했습니다'
+      alert(msg)
     },
   })
 

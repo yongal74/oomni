@@ -63,6 +63,7 @@ export default function BotDetailPage() {
   const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null)
   const [streamOutput, setStreamOutput] = useState('')
   const [lastOutput, setLastOutput] = useState('')  // 다음봇 전달용 최신 결과물
+  const [designScreenshot, setDesignScreenshot] = useState<string | null>(null)
   const esRef = useRef<EventSource | null>(null)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [quota, setQuota] = useState<{ plan: string; runCount: number; limit: number; exceeded: boolean; remaining: number } | null>(null)
@@ -392,7 +393,7 @@ export default function BotDetailPage() {
       }
       case 'design': return {
         left: <DesignLeftPanel selectedTemplate={designTemplate} onTemplateChange={setDesignTemplate} />,
-        center: <DesignCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
+        center: <DesignCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} screenshotUrl={designScreenshot} />,
         right: <DesignRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="design" content={lastOutput} />,
       }
       default: return {
@@ -514,6 +515,7 @@ export default function BotDetailPage() {
           onDone={handleDone}
           onError={() => { setIsRunning(false); setCurrentStage(null) }}
           onOutputChunk={(chunk) => setStreamOutput(prev => prev + chunk)}
+          onScreenshot={(url) => setDesignScreenshot(url)}
           esRef={esRef}
         />
 

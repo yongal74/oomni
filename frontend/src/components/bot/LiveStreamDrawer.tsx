@@ -17,11 +17,12 @@ interface Props {
   onDone?: () => void
   onError?: (msg: string) => void
   onOutputChunk?: (chunk: string) => void
+  onScreenshot?: (dataUrl: string) => void
   esRef: React.MutableRefObject<EventSource | null>
 }
 
 export function LiveStreamDrawer({
-  agentId, task, isRunning, onStageChange, onDone, onError, onOutputChunk, esRef
+  agentId, task, isRunning, onStageChange, onDone, onError, onOutputChunk, onScreenshot, esRef
 }: Props) {
   const [open, setOpen] = useState(false)
   const [lines, setLines] = useState<StreamLine[]>([])
@@ -71,6 +72,15 @@ export function LiveStreamDrawer({
         const data = JSON.parse(e.data)
         addLine('info', `→ ${data.label}`)
         onStageChange?.(data.stage)
+      })
+      es.addEventListener('screenshot', (e) => {
+        try {
+          const data = JSON.parse((e as MessageEvent).data)
+          if (data.data) {
+            const mimeType = data.mimeType ?? 'image/png'
+            onScreenshot?.(`data:${mimeType};base64,${data.data}`)
+          }
+        } catch { /* ignore */ }
       })
       es.addEventListener('done', () => {
         setStatus('done')
@@ -144,7 +154,6 @@ export function LiveStreamDrawer({
               line.type === 'info' ? 'text-primary/80' :
               'text-green-400/90'
             )}>
-              <span className="text-muted/50 mr-2 select-none">{line.ts}</span>
               {line.text}
             </div>
           ))}

@@ -85,7 +85,7 @@ export default function PinPage() {
     setGooglePolling(true)
     pollingRef.current = setInterval(async () => {
       try {
-        const res = await fetch('/api/auth/google/pending-token')
+        const res = await fetch('http://localhost:3001/api/auth/google/pending-token')
         const data = await res.json() as { token: string | null }
         if (data.token) {
           if (pollingRef.current) clearInterval(pollingRef.current)
