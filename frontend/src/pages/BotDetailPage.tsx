@@ -115,12 +115,12 @@ export default function BotDetailPage() {
 
   const handleRun = async () => {
     if (!task.trim() || isRunning) return
-    // 무료 플랜 한도 확인
-    if (quota?.plan === 'free') {
-      const fresh = await paymentsApi.quota().catch(() => quota)
-      setQuota(fresh)
-      if (fresh?.exceeded) { setShowUpgradeModal(true); return }
-    }
+    // 무료 플랜 한도 확인 — 테스트 중 비활성화
+    // if (quota?.plan === 'free') {
+    //   const fresh = await paymentsApi.quota().catch(() => quota)
+    //   setQuota(fresh)
+    //   if (fresh?.exceeded) { setShowUpgradeModal(true); return }
+    // }
     const stages = ROLE_STAGES[agent?.role ?? 'default'] ?? ROLE_STAGES.default
     setCurrentStage(stages[0].key) // 첫 단계 즉시 활성화
     setStreamOutput('') // reset stream for new run
@@ -130,12 +130,12 @@ export default function BotDetailPage() {
   // 빠른 실행 버튼: prompt를 task에 설정하고 즉시 실행
   const handleSkillRun = async (prompt: string) => {
     if (isRunning) return
-    // 무료 플랜 한도 확인
-    if (quota?.plan === 'free') {
-      const fresh = await paymentsApi.quota().catch(() => quota)
-      setQuota(fresh)
-      if (fresh?.exceeded) { setTask(prompt); setShowUpgradeModal(true); return }
-    }
+    // 무료 플랜 한도 확인 — 테스트 중 비활성화
+    // if (quota?.plan === 'free') {
+    //   const fresh = await paymentsApi.quota().catch(() => quota)
+    //   setQuota(fresh)
+    //   if (fresh?.exceeded) { setTask(prompt); setShowUpgradeModal(true); return }
+    // }
     setTask(prompt)
     const stages = ROLE_STAGES[agent?.role ?? 'default'] ?? ROLE_STAGES.default
     setCurrentStage(stages[0].key)
@@ -539,8 +539,8 @@ export default function BotDetailPage() {
             />
           </div>
 
-          {/* 무료 플랜 사용량 배지 */}
-          {quota?.plan === 'free' && (
+          {/* 무료 플랜 사용량 배지 — 테스트 중 비활성화 */}
+          {/* {quota?.plan === 'free' && (
             <button
               onClick={() => setShowUpgradeModal(true)}
               className="shrink-0 text-xs px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
@@ -548,7 +548,7 @@ export default function BotDetailPage() {
             >
               {quota.runCount}/{quota.limit} 실행
             </button>
-          )}
+          )} */}
 
           {/* Reset 버튼 — 항상 표시 */}
           <button

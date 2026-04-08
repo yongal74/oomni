@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import {
   agentsApi, feedApi, costApi, issuesApi, schedulesApi, reportsApi,
   api,
@@ -89,6 +89,7 @@ interface TodoItem {
 
 export default function DashboardPage() {
   const qc = useQueryClient()
+  const navigate = useNavigate()
   const { currentMission, agents, setAgents, setPendingApprovals } = useAppStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const [showAddBot, setShowAddBot] = useState(() => searchParams.get('addBot') === 'true')
@@ -302,7 +303,7 @@ export default function DashboardPage() {
             템플릿
           </button>
           <button
-            onClick={() => setShowAddBot(true)}
+            onClick={() => { createBot.reset(); setShowAddBot(true) }}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[13px] hover:bg-[#C5664A] transition-colors"
           >
             <Plus size={14} />
@@ -359,7 +360,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="text-center text-muted text-[12px]">
                   또는{' '}
-                  <button onClick={() => setShowAddBot(true)} className="text-primary hover:underline">
+                  <button onClick={() => { createBot.reset(); setShowAddBot(true) }} className="text-primary hover:underline">
                     봇 직접 추가하기
                   </button>
                 </div>
@@ -470,6 +471,7 @@ export default function DashboardPage() {
                   item={item}
                   onApprove={() => approve.mutate(item.id)}
                   onReject={() => reject.mutate(item.id)}
+                  onView={item.agent_id ? () => navigate(`/dashboard/bots/${item.agent_id}`) : undefined}
                 />
               ))}
             </div>
@@ -611,31 +613,40 @@ export default function DashboardPage() {
               <button onClick={() => { setShowAddBot(false); setSearchParams({}) }} className="text-muted hover:text-text"><X size={18} /></button>
             </div>
             <div className="p-4 grid grid-cols-2 gap-3">
-              {BOT_TEMPLATES.map(tmpl => (
-                <button
-                  key={tmpl.role}
-                  onClick={() => {
-                    setCreatingRole(tmpl.role)
-                    createBot.mutate(tmpl.role)
-                  }}
-                  disabled={createBot.isPending || !!agents.find(a => a.role === tmpl.role)}
-                  className={`text-left p-3 rounded-lg border transition-colors disabled:opacity-50 ${
-                    preselectedRole === tmpl.role
-                      ? 'border-primary bg-primary/5 hover:border-primary hover:bg-primary/10'
-                      : 'border-border hover:border-primary hover:bg-surface'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xl">{tmpl.emoji}</span>
-                    <span className="text-[13px] font-medium text-text">{tmpl.name}</span>
-                    {agents.find(a => a.role === tmpl.role) && (
-                      <span className="ml-auto text-[10px] text-green-400">추가됨</span>
-                    )}
-                    {creatingRole === tmpl.role && <Loader2 size={12} className="ml-auto animate-spin text-primary" />}
-                  </div>
-                  <p className="text-[11px] text-muted">{tmpl.desc}</p>
-                </button>
-              ))}
+              {BOT_TEMPLATES.map(tmpl => {
+                const existingAgent = agents.find(a => a.role === tmpl.role)
+                return (
+                  <button
+                    key={tmpl.role}
+                    onClick={() => {
+                      if (existingAgent) {
+                        setShowAddBot(false)
+                        setSearchParams({})
+                        navigate(`/dashboard/bots/${existingAgent.id}`)
+                      } else {
+                        setCreatingRole(tmpl.role)
+                        createBot.mutate(tmpl.role)
+                      }
+                    }}
+                    disabled={createBot.isPending && creatingRole === tmpl.role}
+                    className={`text-left p-3 rounded-lg border transition-colors disabled:opacity-50 ${
+                      preselectedRole === tmpl.role
+                        ? 'border-primary bg-primary/5 hover:border-primary hover:bg-primary/10'
+                        : 'border-border hover:border-primary hover:bg-surface'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xl">{tmpl.emoji}</span>
+                      <span className="text-[13px] font-medium text-text">{tmpl.name}</span>
+                      {existingAgent && (
+                        <span className="ml-auto text-[10px] text-green-400">추가됨 →</span>
+                      )}
+                      {creatingRole === tmpl.role && <Loader2 size={12} className="ml-auto animate-spin text-primary" />}
+                    </div>
+                    <p className="text-[11px] text-muted">{tmpl.desc}</p>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -673,11 +684,12 @@ function DoneCard({ item, onUndo, onArchive }: { item: TodoItem; onUndo: () => v
 }
 
 function FeedCard({
-  item, onApprove, onReject,
+  item, onApprove, onReject, onView,
 }: {
   item: FeedItem
   onApprove: () => void
   onReject: () => void
+  onView?: () => void
 }) {
   const emoji: Record<string, string> = {
     research: '🔬', build: '🔨', design: '🎨', content: '✍️',
@@ -690,7 +702,10 @@ function FeedCard({
     error: 'border-red-800/40',
   }
   return (
-    <div className={`border rounded-lg p-3 ${typeColor[item.type] ?? 'border-border'}`}>
+    <div
+      className={`border rounded-lg p-3 ${typeColor[item.type] ?? 'border-border'} ${onView ? 'cursor-pointer hover:bg-surface/50 transition-colors' : ''}`}
+      onClick={onView}
+    >
       <div className="flex items-start gap-2">
         <span className="text-sm mt-0.5">{emoji[item.agent_role ?? ''] ?? '🤖'}</span>
         <div className="flex-1 min-w-0">

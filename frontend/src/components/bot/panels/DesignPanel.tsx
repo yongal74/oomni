@@ -1,4 +1,5 @@
 
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { agentsApi, type FeedItem } from '../../../lib/api'
 import { Palette, Layout } from 'lucide-react'
@@ -45,10 +46,16 @@ export function DesignLeftPanel({ selectedTemplate, onTemplateChange }: {
       <div>
         <p className="text-xs text-muted uppercase tracking-widest mb-3">디자인 도구</p>
         <div className="space-y-2">
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border text-dim hover:border-primary/40 hover:text-text transition-colors">
+          <button
+            onClick={() => window.open('https://pencil.animaapp.com', '_blank')}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border text-dim hover:border-primary/40 hover:text-text transition-colors"
+          >
             <Layout size={14} />
             <span className="text-sm">Pencil.dev 열기</span>
           </button>
+          <p className="text-xs text-muted/60 leading-relaxed px-1">
+            현재: AI Tailwind/HTML 생성 | 예정: Pencil MCP 직접 연동
+          </p>
         </div>
       </div>
     </div>
@@ -127,6 +134,8 @@ export function DesignRightPanel({ agentId, onSkillSelect, currentRole = 'design
   currentRole?: string
   content?: string
 }) {
+  const [toastMsg, setToastMsg] = useState<string | null>(null)
+
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
     queryFn: () => agentId ? agentsApi.runs(agentId) : Promise.resolve([]),
@@ -135,14 +144,40 @@ export function DesignRightPanel({ agentId, onSkillSelect, currentRole = 'design
   })
   const latest = feed[0]
 
+  const showToast = (msg: string) => {
+    setToastMsg(msg)
+    setTimeout(() => setToastMsg(null), 2500)
+  }
+
+  const handleExport = (label: string) => {
+    if (label === 'CSS 코드 추출') {
+      const code = latest?.content ?? content
+      if (code) {
+        navigator.clipboard.writeText(code).then(() => showToast('클립보드에 복사됐습니다'))
+          .catch(() => showToast('복사 실패 — 브라우저 권한 확인'))
+      } else {
+        showToast('복사할 결과물이 없습니다')
+      }
+    } else {
+      showToast('Pencil MCP 연동 후 지원 예정')
+    }
+  }
+
   return (
-    <div className="p-4 h-full flex flex-col gap-4">
+    <div className="p-4 h-full flex flex-col gap-4 relative">
+      {/* 토스트 알림 */}
+      {toastMsg && (
+        <div className="absolute top-2 left-2 right-2 z-10 bg-surface border border-border rounded-lg px-3 py-2 text-xs text-text shadow-lg text-center">
+          {toastMsg}
+        </div>
+      )}
       <div className="flex-1">
         <p className="text-xs text-muted uppercase tracking-widest mb-3">내보내기</p>
         <div className="space-y-2">
           {['PNG 내보내기', 'Figma 복사', 'CSS 코드 추출'].map(label => (
             <button
               key={label}
+              onClick={() => handleExport(label)}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-border text-dim hover:border-primary/40 hover:text-text transition-colors"
             >
               <span className="text-sm">{label}</span>
