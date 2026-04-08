@@ -46,21 +46,21 @@ export async function signInWithGoogle(): Promise<User> {
     const result = await signInWithPopup(auth, googleProvider)
     return result.user
   } catch (err: unknown) {
-    if (isPopupError(err)) {
-      // Popup이 차단됐거나 닫힌 경우 사용자 친화적 에러 메시지로 재throw
-      const code = (err as AuthError)?.code ?? ''
-      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
-        throw new Error('로그인 창이 닫혔습니다. 다시 시도해주세요.')
-      }
-      throw new Error(
-        'Google 로그인 팝업이 차단되었습니다. ' +
-        '브라우저 팝업 차단을 해제하거나 잠시 후 다시 시도해주세요.'
-      )
+    const code = (err as AuthError)?.code ?? ''
+    if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+      throw new Error('Google 로그인을 완료하지 못했습니다. 다시 시도해주세요.')
     }
-    // 네트워크 오류 등 기타 에러
-    const firebaseCode = (err as AuthError)?.code ?? ''
-    if (firebaseCode === 'auth/network-request-failed') {
+    if (code === 'auth/popup-blocked') {
+      throw new Error('팝업이 차단되었습니다. 잠시 후 다시 시도해주세요.')
+    }
+    if (code === 'auth/operation-not-supported-in-this-environment') {
+      throw new Error('이 환경에서는 팝업 로그인이 지원되지 않습니다.')
+    }
+    if (code === 'auth/network-request-failed') {
       throw new Error('네트워크 연결을 확인해주세요.')
+    }
+    if (isPopupError(err)) {
+      throw new Error('Google 로그인에 실패했습니다. 다시 시도해주세요.')
     }
     throw err
   }

@@ -107,7 +107,9 @@ function createWindow() {
       contextIsolation: true,      // 보안: renderer와 main 격리
       nodeIntegration: false,      // 보안: renderer에서 Node.js 비활성화
       sandbox: false,              // preload에서 일부 Node API 필요
-      webSecurity: true,
+      // production: file:// 기반이므로 webSecurity: false 허용
+      // Firebase signInWithPopup 팝업이 window.opener.postMessage로 결과 전달 시 필요
+      webSecurity: isDev,
       allowRunningInsecureContent: false,
     },
     show: false,
