@@ -69,6 +69,11 @@
     ],
     "asarUnpack": ["frontend/dist/**/*"],
     "compression": "maximum",
+    "publish": {
+      "provider": "github",
+      "owner": "yongal74",
+      "repo": "oomni"
+    },
     "win": {
       "target": "nsis"
     },

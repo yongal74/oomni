@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { agentsApi, type Agent, type HeartbeatRun } from '../lib/api'
+import { agentsApi, paymentsApi, type Agent, type HeartbeatRun } from '../lib/api'
 import { useAppStore } from '../store/app.store'
 import { Trash2, Settings, ArrowLeft, Send, Square, RotateCcw, Clock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
@@ -64,6 +64,8 @@ export default function BotDetailPage() {
   const [streamOutput, setStreamOutput] = useState('')
   const [lastOutput, setLastOutput] = useState('')  // 다음봇 전달용 최신 결과물
   const esRef = useRef<EventSource | null>(null)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [quota, setQuota] = useState<{ plan: string; runCount: number; limit: number; exceeded: boolean; remaining: number } | null>(null)
 
   const { data: agent, isLoading } = useQuery<Agent>({
     queryKey: ['agent', id],
@@ -89,6 +91,11 @@ export default function BotDetailPage() {
     onSuccess: () => navigate('/dashboard'),
   })
 
+  // 무료 플랜 사용량 조회
+  useEffect(() => {
+    paymentsApi.quota().then(setQuota).catch(() => {})
+  }, [])
+
   // ?autorun= URL 파라미터 처리 — 대시보드 프리셋 클릭 시 자동 실행
   useEffect(() => {
     const autorun = searchParams.get('autorun')
@@ -106,8 +113,14 @@ export default function BotDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agent])
 
-  const handleRun = () => {
+  const handleRun = async () => {
     if (!task.trim() || isRunning) return
+    // 무료 플랜 한도 확인
+    if (quota?.plan === 'free') {
+      const fresh = await paymentsApi.quota().catch(() => quota)
+      setQuota(fresh)
+      if (fresh?.exceeded) { setShowUpgradeModal(true); return }
+    }
     const stages = ROLE_STAGES[agent?.role ?? 'default'] ?? ROLE_STAGES.default
     setCurrentStage(stages[0].key) // 첫 단계 즉시 활성화
     setStreamOutput('') // reset stream for new run
@@ -115,8 +128,14 @@ export default function BotDetailPage() {
   }
 
   // 빠른 실행 버튼: prompt를 task에 설정하고 즉시 실행
-  const handleSkillRun = (prompt: string) => {
+  const handleSkillRun = async (prompt: string) => {
     if (isRunning) return
+    // 무료 플랜 한도 확인
+    if (quota?.plan === 'free') {
+      const fresh = await paymentsApi.quota().catch(() => quota)
+      setQuota(fresh)
+      if (fresh?.exceeded) { setTask(prompt); setShowUpgradeModal(true); return }
+    }
     setTask(prompt)
     const stages = ROLE_STAGES[agent?.role ?? 'default'] ?? ROLE_STAGES.default
     setCurrentStage(stages[0].key)
@@ -520,6 +539,17 @@ export default function BotDetailPage() {
             />
           </div>
 
+          {/* 무료 플랜 사용량 배지 */}
+          {quota?.plan === 'free' && (
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className="shrink-0 text-xs px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+              title="무료 플랜 사용량"
+            >
+              {quota.runCount}/{quota.limit} 실행
+            </button>
+          )}
+
           {/* Reset 버튼 — 항상 표시 */}
           <button
             onClick={handleReset}
@@ -556,6 +586,36 @@ export default function BotDetailPage() {
         </div>
       </div>
         </>
+      )}
+
+      {/* 무료 플랜 한도 초과 업그레이드 모달 */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-surface border border-border rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="text-4xl mb-3">🚀</div>
+              <h2 className="text-xl font-bold text-text mb-2">무료 플랜 한도 초과</h2>
+              <p className="text-sm text-muted leading-relaxed">
+                이번 달 무료 실행 횟수 <span className="text-text font-medium">{quota?.limit}회</span>를 모두 사용했습니다.
+                계속 사용하려면 플랜을 업그레이드하세요.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <button
+                onClick={() => { setShowUpgradeModal(false); navigate('/settings') }}
+                className="w-full py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary-hover transition-colors"
+              >
+                업그레이드 — 월 ₩9,900부터
+              </button>
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="w-full py-2.5 rounded-xl text-sm text-muted hover:text-text transition-colors"
+              >
+                나중에
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

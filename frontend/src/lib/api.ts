@@ -275,6 +275,7 @@ export const paymentsApi = {
   confirm: (body: { paymentKey: string; orderId: string; amount: number; plan: string }) =>
     api.post<{ data: { success: boolean; message: string } }>('/api/payments/toss/confirm', body).then(r => r.data.data),
   cancel: () => api.post('/api/payments/subscription/cancel').then(r => r.data),
+  quota: () => api.get<{ data: { plan: string; runCount: number; limit: number; exceeded: boolean; remaining: number } }>('/api/payments/quota').then(r => r.data.data),
 }
 
 // 타입들

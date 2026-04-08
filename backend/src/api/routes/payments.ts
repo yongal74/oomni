@@ -521,6 +521,46 @@ export function paymentsRouter(): Router {
   });
 
   // POST /api/payments/subscription/cancel — 구독 취소
+  // GET /api/payments/quota — 무료 플랜 사용량 조회
+  // 월간 token_usage 행 수로 실행 횟수를 추정, 유료 구독이면 무제한 반환
+  router.get('/quota', async (req: Request, res: Response) => {
+    const FREE_MONTHLY_LIMIT = 10;
+    const db = getDb();
+
+    // 유저 구독 확인
+    const session = await getSessionUser(req);
+    if (session?.userId) {
+      const subResult = await db.query(
+        `SELECT plan FROM subscriptions WHERE user_id = ? AND status = 'active'
+         ORDER BY created_at DESC LIMIT 1`,
+        [session.userId]
+      );
+      const plan = (subResult.rows[0] as { plan?: string } | undefined)?.plan ?? 'free';
+      if (plan !== 'free') {
+        res.json({ data: { plan, runCount: 0, limit: -1, exceeded: false, remaining: -1 } });
+        return;
+      }
+    }
+
+    // 이번 달 실행 수 (token_usage 기준)
+    const countResult = await db.query(
+      `SELECT COUNT(*) as count FROM token_usage
+       WHERE created_at >= strftime('%Y-%m-01', 'now')`,
+      []
+    );
+    const runCount = (countResult.rows[0] as { count?: number } | undefined)?.count ?? 0;
+    const remaining = Math.max(0, FREE_MONTHLY_LIMIT - runCount);
+    res.json({
+      data: {
+        plan: 'free',
+        runCount,
+        limit: FREE_MONTHLY_LIMIT,
+        exceeded: runCount >= FREE_MONTHLY_LIMIT,
+        remaining,
+      },
+    });
+  });
+
   router.post('/subscription/cancel', async (req: Request, res: Response) => {
     const session = await getSessionUser(req);
     if (!session?.userId) {
