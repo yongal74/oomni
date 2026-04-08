@@ -2,8 +2,10 @@
  * HeartbeatScheduler — 봇 자율 실행 엔진
  * Paperclip 검증 방식: setInterval 하트비트, 봇이 wake → 작업 확인 → 실행 → 보고
  */
+import { randomUUID } from 'crypto';
 import type { Agent } from '../db/types';
 import type { AgentRunner } from './runner';
+import { withRetry } from './runner';
 import { logger } from '../logger';
 
 interface ScheduledJob {
@@ -116,7 +118,8 @@ export class HeartbeatScheduler {
 
   private async _runAgent(agent: Agent, task?: string): Promise<TriggerResult> {
     try {
-      const result = await this.runner.run(agent, task);
+      // 최대 2회 재시도 (첫 재시도 2초 후, 두 번째 재시도 5초 후)
+      const result = await withRetry(() => this.runner.run(agent, task));
       const runResult: TriggerResult = { skipped: false, runId: (result as { runId?: string }).runId };
 
       // chain trigger: bot_complete 타입 스케줄 확인 후 연쇄 실행
@@ -125,7 +128,20 @@ export class HeartbeatScheduler {
       return runResult;
     } catch (err) {
       // 봇 실행 실패가 스케줄러 전체를 중단시키지 않도록 격리
-      logger.error(`[HeartbeatScheduler] 봇 실행 실패 (격리됨): ${agent.name}`, err);
+      const error = err as Error;
+      logger.error(`[HeartbeatScheduler] 봇 실행 최종 실패 (재시도 소진): ${agent.name}`, error);
+
+      // 실패 알림: feed_items에 error 레코드 자동 생성
+      try {
+        await this.db.query(
+          `INSERT INTO feed_items (id, agent_id, type, content, created_at)
+           VALUES (?, ?, 'error', ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
+          [randomUUID(), agent.id, `실행 실패: ${error.message}`]
+        );
+      } catch (feedErr) {
+        logger.warn(`[HeartbeatScheduler] 실패 피드 기록 오류: ${agent.name}`, feedErr);
+      }
+
       return { skipped: false };
     }
   }

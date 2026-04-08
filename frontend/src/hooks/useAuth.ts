@@ -58,7 +58,7 @@ export function useAuth(): UseAuthReturn {
         throw new Error(errData.error ?? '서버 인증 실패')
       }
       const data = await res.json() as { session_token: string }
-      localStorage.setItem('session_token', data.session_token)
+      sessionStorage.setItem('session_token', data.session_token)
       setUser({
         uid: firebaseUser.uid,
         email: firebaseUser.email,
@@ -78,7 +78,7 @@ export function useAuth(): UseAuthReturn {
     setError(null)
     try {
       await signOutUser()
-      localStorage.removeItem('session_token')
+      sessionStorage.removeItem('session_token')
       setUser(null)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '로그아웃에 실패했습니다'

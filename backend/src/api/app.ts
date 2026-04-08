@@ -120,13 +120,12 @@ export function createApp(options: AppOptions): Application {
       next();
       return;
     }
-    // EventSource는 헤더 설정 불가 → SSE 스트림 엔드포인트 인증 제외
-    // 헬스체크, auth, settings, SSE stream 경로는 인증 제외
+    // 헬스체크, auth, settings 경로는 인증 제외
+    // SSE 스트림 엔드포인트는 쿼리 파라미터 토큰으로 별도 인증
     const isPublicPath =
       req.path === '/health' ||
       req.path.startsWith('/auth') ||
-      req.path.startsWith('/settings') ||
-      /^\/agents\/[^/]+\/stream$/.test(req.path); // SSE: EventSource cannot set headers
+      req.path.startsWith('/settings');
 
     if (isPublicPath) {
       next();
@@ -159,6 +158,20 @@ export function createApp(options: AppOptions): Application {
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
+
+  // ── Swagger UI (개발 환경 전용) ───────────────────────────
+  if (process.env.NODE_ENV !== 'production') {
+    (async () => {
+      try {
+        const swaggerUi = await import('swagger-ui-express');
+        const { swaggerSpec } = await import('./swagger');
+        app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+        logger.info('[Swagger] API 문서: http://localhost:3001/api/docs');
+      } catch (err) {
+        logger.warn('[Swagger] swagger-ui-express 로드 실패 (무시)', err);
+      }
+    })();
+  }
 
   // ── 전역 에러 핸들러 ──────────────────────────────────────
   // ApiError: 정의된 HTTP 상태코드 + 코드 반환

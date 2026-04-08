@@ -92,6 +92,17 @@ interface TossBillingPayResponse {
 export function paymentsRouter(): Router {
   const router = Router();
 
+  /**
+   * @openapi
+   * /api/payments/plans:
+   *   get:
+   *     summary: 구독 플랜 목록 조회
+   *     tags: [Payments]
+   *     security: []
+   *     responses:
+   *       200:
+   *         description: 플랜 목록
+   */
   // GET /api/payments/plans — 플랜 목록 반환 (인증 불필요)
   router.get('/plans', (_req: Request, res: Response) => {
     const plans = Object.entries(PLANS).reduce<Record<string, { name: string; price: number; period: string; description: string } & { id: string }>>(
@@ -104,6 +115,30 @@ export function paymentsRouter(): Router {
     res.json({ data: plans });
   });
 
+  /**
+   * @openapi
+   * /api/payments/toss/confirm:
+   *   post:
+   *     summary: Toss 단건 결제 승인
+   *     tags: [Payments]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [paymentKey, orderId, amount, plan]
+   *             properties:
+   *               paymentKey: { type: string }
+   *               orderId: { type: string }
+   *               amount: { type: number }
+   *               plan: { type: string, enum: [personal, team] }
+   *     responses:
+   *       200:
+   *         description: 결제 완료
+   *       400:
+   *         description: 결제 실패
+   */
   // POST /api/payments/toss/confirm — 단건 결제 승인
   router.post('/toss/confirm', async (req: Request, res: Response) => {
     const { paymentKey, orderId, amount, plan } = req.body as {
@@ -176,6 +211,32 @@ export function paymentsRouter(): Router {
         `UPDATE users SET license_valid_until = ? WHERE id = ? OR email = ?`,
         [periodEnd, userId, userId]
       );
+
+      // 결제 성공 피드 알림 (실패해도 결제 성공으로 처리)
+      try {
+        const feedId = generateId();
+        // 해당 유저의 가장 최근 미션 조회 (없으면 null)
+        const missionResult = await db.query(
+          `SELECT id FROM missions WHERE user_id = ? OR user_id IS NULL ORDER BY created_at DESC LIMIT 1`,
+          [userId]
+        ).catch(() => ({ rows: [] }));
+        const missionId = (missionResult.rows[0] as { id?: string } | undefined)?.id ?? null;
+        // 대표 에이전트 조회 (미션에 속한 첫 번째 봇)
+        const agentResult = await db.query(
+          `SELECT id FROM agents ${missionId ? 'WHERE mission_id = ?' : 'LIMIT 1'} LIMIT 1`,
+          missionId ? [missionId] : []
+        ).catch(() => ({ rows: [] }));
+        const agentId = (agentResult.rows[0] as { id?: string } | undefined)?.id;
+        if (agentId) {
+          await db.query(
+            `INSERT INTO feed_items (id, agent_id, type, content, created_at)
+             VALUES (?, ?, 'info', ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
+            [feedId, agentId, `결제 완료: ₩${tossData.amount}원 결제가 완료되었습니다`]
+          );
+        }
+      } catch {
+        // 피드 알림 실패는 무시 — 결제는 성공
+      }
 
       res.json({ data: { success: true, message: '결제가 완료되었습니다', subscription_id: subscriptionId } });
     } catch (err: unknown) {
@@ -337,6 +398,28 @@ export function paymentsRouter(): Router {
         `UPDATE users SET license_valid_until = ? WHERE id = ? OR email = ?`,
         [periodEnd, session.userId, session.userId]
       );
+
+      // 정기결제 성공 피드 알림 (실패해도 결제 성공으로 처리)
+      try {
+        const feedId = generateId();
+        const agentResult = await db.query(
+          `SELECT a.id FROM agents a
+           JOIN missions m ON a.mission_id = m.id
+           WHERE m.user_id = ? OR a.id IN (SELECT id FROM agents LIMIT 1)
+           LIMIT 1`,
+          [session.userId]
+        ).catch(() => ({ rows: [] }));
+        const agentId = (agentResult.rows[0] as { id?: string } | undefined)?.id;
+        if (agentId) {
+          await db.query(
+            `INSERT INTO feed_items (id, agent_id, type, content, created_at)
+             VALUES (?, ?, 'info', ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
+            [feedId, agentId, `결제 완료: ₩${tossData.amount}원 결제가 완료되었습니다`]
+          );
+        }
+      } catch {
+        // 피드 알림 실패는 무시 — 결제는 성공
+      }
 
       res.json({ data: { success: true, message: '정기결제가 완료되었습니다' } });
     } catch (err: unknown) {

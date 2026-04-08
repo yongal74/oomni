@@ -83,6 +83,28 @@ function buildFileTree(dirPath: string, relativeTo: string): FileNode[] {
   }
 }
 
+type DbClient = { query: (sql: string, params?: unknown[]) => Promise<{ rows: unknown[] }> };
+
+// SSE 스트림 전용 세션 토큰 검증 헬퍼
+// EventSource는 Authorization 헤더 설정 불가 → URL 쿼리 파라미터 token 검증
+async function verifyStreamToken(
+  db: DbClient,
+  token: string
+): Promise<{ user_id: string } | null> {
+  try {
+    const result = await db.query(
+      `SELECT user_id FROM sessions
+       WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))`,
+      [token]
+    );
+    if (result.rows.length === 0) return null;
+    await db.query(`UPDATE sessions SET last_used_at = datetime('now') WHERE token = ?`, [token]);
+    return result.rows[0] as { user_id: string };
+  } catch {
+    return null;
+  }
+}
+
 const VALID_ROLES = ['research','build','design','content','growth','ops','integration','n8n','ceo'] as const;
 const VALID_SCHEDULES = ['manual','hourly','daily','weekly'] as const;
 
@@ -96,11 +118,25 @@ const CreateAgentSchema = z.object({
   reports_to: z.string().nullable().optional(),
 });
 
-type DbClient = { query: (sql: string, params?: unknown[]) => Promise<{ rows: unknown[] }> };
-
 export function agentsRouter(db: DbClient): Router {
   const router = Router();
 
+  /**
+   * @openapi
+   * /api/agents:
+   *   get:
+   *     summary: 에이전트 목록 조회
+   *     tags: [Agents]
+   *     parameters:
+   *       - in: query
+   *         name: mission_id
+   *         schema:
+   *           type: string
+   *         description: 미션 ID로 필터링
+   *     responses:
+   *       200:
+   *         description: 에이전트 목록
+   */
   // GET /api/agents
   router.get('/', async (req: Request, res: Response) => {
     const { mission_id } = req.query;
@@ -116,6 +152,28 @@ export function agentsRouter(db: DbClient): Router {
     res.json({ data: result.rows });
   });
 
+  /**
+   * @openapi
+   * /api/agents:
+   *   post:
+   *     summary: 새 에이전트 생성
+   *     tags: [Agents]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [mission_id, name, role]
+   *             properties:
+   *               mission_id: { type: string }
+   *               name: { type: string }
+   *               role: { type: string, enum: [research, build, design, content, growth, ops, integration, n8n, ceo] }
+   *               schedule: { type: string, enum: [manual, hourly, daily, weekly] }
+   *     responses:
+   *       201:
+   *         description: 생성된 에이전트
+   */
   // POST /api/agents
   router.post('/', async (req: Request, res: Response) => {
     const parsed = CreateAgentSchema.safeParse(req.body);
@@ -281,8 +339,21 @@ export function agentsRouter(db: DbClient): Router {
   });
 
   // GET /api/agents/:id/stream — SSE: ClaudeCodeService 실시간 출력 스트리밍
-  // Usage: GET /api/agents/:id/stream?task=<encoded_task>
+  // Usage: GET /api/agents/:id/stream?task=<encoded_task>&token=<session_token>
+  // EventSource는 헤더 설정 불가 → 쿼리 파라미터 token으로 세션 검증
   router.get('/:id/stream', async (req: Request, res: Response) => {
+    // 쿼리 파라미터 토큰 검증
+    const queryToken = typeof req.query.token === 'string' ? req.query.token : '';
+    if (!queryToken) {
+      res.status(401).json({ error: '인증이 필요합니다', code: 'AUTH_REQUIRED' });
+      return;
+    }
+    const sessionRow = await verifyStreamToken(db, queryToken);
+    if (!sessionRow) {
+      res.status(401).json({ error: '세션이 만료되었거나 유효하지 않습니다', code: 'SESSION_INVALID' });
+      return;
+    }
+
     const agentResult = await db.query('SELECT * FROM agents WHERE id = $1', [req.params.id]);
     const agentRows = agentResult.rows as Array<{ id: string; is_active: boolean }>;
 

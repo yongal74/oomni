@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
+import { logger } from '../../logger.js';
 
 const RecordCostSchema = z.object({
   agent_id: z.string().min(1),
@@ -253,7 +254,7 @@ export function costRouter(db: DbClient): Router {
         },
       });
     } catch (err) {
-      console.error('[cost/summary]', err);
+      logger.error('[cost/summary]', err);
       res.status(500).json({ error: 'Internal server error' });
     }
   });
@@ -282,7 +283,7 @@ export function costRouter(db: DbClient): Router {
       );
       res.status(201).json({ message: '비용 기록 완료' });
     } catch (err) {
-      console.error('[cost POST]', err);
+      logger.error('[cost POST]', err);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

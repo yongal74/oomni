@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { getDb } from '../../db/client.js';
+import { logger } from '../../logger.js';
 
 const CreateMissionSchema = z.object({
   name: z.string().min(1).max(200),
@@ -51,12 +52,12 @@ export function missionsRouter(db: DbClient): Router {
           ],
         );
       } catch (ceoErr) {
-        console.warn('[missions POST] CEO Bot 자동 생성 실패 (무시):', ceoErr);
+        logger.warn('[missions POST] CEO Bot 자동 생성 실패 (무시):', ceoErr);
       }
 
       res.status(201).json({ data: (result.rows as unknown[])[0] });
     } catch (err) {
-      console.error('[missions POST]', err);
+      logger.error('[missions POST]', err);
       res.status(500).json({ error: '미션 생성에 실패했습니다' });
     }
   });

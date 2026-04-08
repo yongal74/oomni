@@ -3,17 +3,55 @@
  * 상업용 보안: API 키, OAuth 토큰 등 민감 정보를 암호화해서 DB 저장
  */
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
-const SALT ='oomni-vault-salt-v1'; // production에서는 unique salt per-install
+
+// 설치별 salt 파일 경로 — %APPDATA%/OOMNI/vault-salt
+const SALT_DIR = process.env.APPDATA
+  ? path.join(process.env.APPDATA, 'OOMNI')
+  : path.join(os.homedir(), '.oomni');
+const SALT_FILE = path.join(SALT_DIR, 'vault-salt');
+
+/**
+ * 설치별 고유 salt를 읽거나 생성한다.
+ * - 파일이 없으면 신규 설치: cryptographically random salt 생성 후 저장
+ * - 파일이 있으면 기존 암호화 데이터와 호환을 위해 재사용
+ */
+function loadOrCreateSalt(): string {
+  try {
+    if (fs.existsSync(SALT_FILE)) {
+      const saved = fs.readFileSync(SALT_FILE, 'utf-8').trim();
+      if (saved.length >= 32) return saved;
+    }
+  } catch {
+    // 읽기 실패 시 새로 생성
+  }
+
+  // 신규 설치: 랜덤 salt 생성
+  const newSalt = randomBytes(16).toString('hex'); // 32자 hex
+  try {
+    if (!fs.existsSync(SALT_DIR)) {
+      fs.mkdirSync(SALT_DIR, { recursive: true });
+    }
+    fs.writeFileSync(SALT_FILE, newSalt, { encoding: 'utf-8', mode: 0o600 });
+  } catch {
+    // 저장 실패 시 인메모리 salt 사용 (재시작 시 새 salt가 생성되므로 기존 데이터 복호화 불가)
+    // 이 경우 경고를 남기되 서버는 계속 동작하도록 허용
+  }
+  return newSalt;
+}
 
 export class Vault {
   private readonly key: Buffer;
 
   constructor(masterKey: string) {
+    const salt = loadOrCreateSalt();
     // PBKDF2-like: scrypt으로 마스터 키 → 256bit 키 유도
-    this.key = scryptSync(masterKey, SALT, 32);
+    this.key = scryptSync(masterKey, salt, 32);
   }
 
   encrypt(plaintext: string): string {

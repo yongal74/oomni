@@ -79,39 +79,7 @@ interface FirebaseVerifyResult {
 
 async function verifyFirebaseToken(idToken: string): Promise<FirebaseVerifyResult> {
   if (!ensureFirebaseAdmin()) {
-    // Firebase Admin 초기화 불가 → JWT 구조/만료만 검증 (폴백)
-    const parts = idToken.split('.');
-    if (parts.length !== 3) {
-      throw new ApiError(401, '유효하지 않은 Firebase 토큰입니다', 'INVALID_TOKEN');
-    }
-    const payloadBase64 = (parts[1] ?? '').replace(/-/g, '+').replace(/_/g, '/');
-    const padding = (4 - (payloadBase64.length % 4)) % 4;
-    let payload: { sub?: string; email?: string; name?: string; exp?: number; iss?: string };
-    try {
-      payload = JSON.parse(
-        Buffer.from(payloadBase64 + '='.repeat(padding), 'base64').toString('utf-8')
-      ) as typeof payload;
-    } catch {
-      throw new ApiError(401, '토큰 파싱에 실패했습니다', 'INVALID_TOKEN');
-    }
-
-    if (
-      typeof payload.iss !== 'string' ||
-      !payload.iss.startsWith('https://securetoken.google.com/')
-    ) {
-      throw new ApiError(401, '토큰 발급자가 유효하지 않습니다', 'INVALID_TOKEN_ISSUER');
-    }
-
-    const now = Math.floor(Date.now() / 1000);
-    if (payload.exp !== undefined && payload.exp < now) {
-      throw new ApiError(401, '토큰이 만료되었습니다', 'TOKEN_EXPIRED');
-    }
-
-    return {
-      uid: payload.sub ?? '',
-      email: payload.email ?? '',
-      name: payload.name ?? '',
-    };
+    throw new ApiError(503, 'Firebase Admin 초기화에 실패했습니다. 서버 설정을 확인하세요.', 'FIREBASE_UNAVAILABLE');
   }
 
   try {

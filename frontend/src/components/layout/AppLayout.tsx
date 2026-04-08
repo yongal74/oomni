@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../../store/app.store'
-import { BarChart2, Bell, Calendar, Crown, DollarSign, GitBranch, LayoutDashboard, Plug, Plus, Search, Settings, Ticket, Wrench, Zap } from 'lucide-react'
+import { Activity, BarChart2, Bell, Calendar, Crown, DollarSign, GitBranch, LayoutDashboard, Plug, Plus, Search, Settings, Ticket, Wrench, Zap } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useEffect } from 'react'
 import { oomniWs } from '../../lib/ws'
@@ -17,6 +17,7 @@ const NAV = [
   { to: '/dashboard/n8n', icon: Zap, label: 'n8n 자동화' },
   { to: '/dashboard/devtools', icon: Wrench, label: '개발 환경' },
   { to: '/dashboard/pipeline', icon: GitBranch, label: '파이프라인' },
+  { to: '/dashboard/monitoring', icon: Activity, label: '모니터링' },
   { to: '/dashboard/settings', icon: Settings, label: '설정' },
 ]
 

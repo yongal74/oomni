@@ -40,7 +40,8 @@ export function LiveStreamDrawer({
     setStatus('running')
     const errorHandled = { current: false }
 
-    const url = `http://localhost:3001/api/agents/${agentId}/stream?task=${encodeURIComponent(task)}`
+    const token = localStorage.getItem('oomni_token') || sessionStorage.getItem('session_token') || ''
+    const url = `http://localhost:3001/api/agents/${agentId}/stream?task=${encodeURIComponent(task)}&token=${encodeURIComponent(token)}`
     const es = new EventSource(url)
     esRef.current = es
 

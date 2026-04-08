@@ -4,6 +4,7 @@ class OomniWebSocket {
   private ws: WebSocket | null = null
   private handlers = new Map<string, Set<WsHandler>>()
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  private isManualClose = false
 
   connect() {
     if (this.ws?.readyState === WebSocket.OPEN) return
@@ -15,7 +16,12 @@ class OomniWebSocket {
       } catch { /* ignore */ }
     }
     this.ws.onclose = () => {
-      this.reconnectTimer = setTimeout(() => this.connect(), 3000)
+      if (this.isManualClose) return
+      if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = setTimeout(() => {
+        this.reconnectTimer = null
+        this.connect()
+      }, 3000)
     }
     this.ws.onerror = () => this.ws?.close()
   }
@@ -27,8 +33,14 @@ class OomniWebSocket {
   }
 
   disconnect() {
-    if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
+    this.isManualClose = true
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
     this.ws?.close()
+    this.ws = null
+    this.isManualClose = false
   }
 }
 

@@ -49,7 +49,7 @@ export default function PinPage() {
         await authApi.setPin(pin)
         // PIN 설정 후 바로 verify하여 세션 발급
         const result = await authApi.verifyPin(pin)
-        localStorage.setItem('session_token', result.session_token)
+        sessionStorage.setItem('session_token', result.session_token)
         navigate('/dashboard', { replace: true })
       } catch (err: unknown) {
         const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
@@ -61,7 +61,7 @@ export default function PinPage() {
       setLoading(true)
       try {
         const result = await authApi.verifyPin(pin)
-        localStorage.setItem('session_token', result.session_token)
+        sessionStorage.setItem('session_token', result.session_token)
         navigate('/dashboard', { replace: true })
       } catch (err: unknown) {
         const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
@@ -90,7 +90,7 @@ export default function PinPage() {
         if (data.token) {
           if (pollingRef.current) clearInterval(pollingRef.current)
           setGooglePolling(false)
-          localStorage.setItem('session_token', data.token)
+          sessionStorage.setItem('session_token', data.token)
           navigate('/dashboard', { replace: true })
         }
       } catch {

@@ -10,6 +10,25 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Agent, AgentRole } from '../db/types';
 import { logger } from '../logger';
 
+// ── 재시도 유틸 ───────────────────────────────────────────────
+const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+
+export async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
+  const delays = [2000, 5000];
+  let lastError: Error = new Error('unknown');
+  for (let i = 0; i <= maxRetries; i++) {
+    try { return await fn(); }
+    catch (err) {
+      lastError = err as Error;
+      if (i < maxRetries) {
+        logger.warn(`[withRetry] 시도 ${i + 1}/${maxRetries + 1} 실패, ${delays[i]}ms 후 재시도: ${lastError.message}`);
+        await sleep(delays[i]);
+      }
+    }
+  }
+  throw lastError;
+}
+
 interface RunResult {
   runId: string;
   sessionId: string;

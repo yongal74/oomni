@@ -214,6 +214,24 @@ passport.deserializeUser((user, done) => {
 export function authRouter(): Router {
   const router = Router();
 
+  /**
+   * @openapi
+   * /api/auth/status:
+   *   get:
+   *     summary: PIN 설정 여부 및 세션 유효성 확인
+   *     tags: [Auth]
+   *     security: []
+   *     responses:
+   *       200:
+   *         description: 인증 상태
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 pin_set: { type: boolean }
+   *                 authenticated: { type: boolean }
+   */
   // GET /api/auth/status — PIN 설정 여부 + 세션 토큰 유효성 확인
   router.get('/status', async (req: Request, res: Response) => {
     const auth = readAuthFile();
@@ -233,6 +251,28 @@ export function authRouter(): Router {
     res.json({ pin_set: pinSet, authenticated: false });
   });
 
+  /**
+   * @openapi
+   * /api/auth/pin/set:
+   *   post:
+   *     summary: PIN 설정 (최초 1회)
+   *     tags: [Auth]
+   *     security: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [pin]
+   *             properties:
+   *               pin: { type: string, minLength: 4, maxLength: 6 }
+   *     responses:
+   *       200:
+   *         description: PIN 설정 완료
+   *       409:
+   *         description: PIN이 이미 설정됨
+   */
   // POST /api/auth/pin/set — PIN 설정 (최초 1회)
   router.post('/pin/set', (req: Request, res: Response) => {
     const parsed = PinSchema.safeParse(req.body);
@@ -252,6 +292,34 @@ export function authRouter(): Router {
     res.json({ success: true, message: 'PIN이 설정되었습니다' });
   });
 
+  /**
+   * @openapi
+   * /api/auth/pin/verify:
+   *   post:
+   *     summary: PIN 검증 — 세션 토큰 발급
+   *     tags: [Auth]
+   *     security: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [pin]
+   *             properties:
+   *               pin: { type: string }
+   *     responses:
+   *       200:
+   *         description: 세션 토큰 반환
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 session_token: { type: string }
+   *       401:
+   *         description: PIN 불일치
+   */
   // POST /api/auth/pin/verify — PIN 검증 → 세션 토큰 반환
   router.post('/pin/verify', async (req: Request, res: Response) => {
     const parsed = PinSchema.safeParse(req.body);
