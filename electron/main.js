@@ -150,9 +150,9 @@ function createWindow() {
           width: 500,
           height: 650,
           webPreferences: {
-            contextIsolation: true,
+            contextIsolation: false,     // window.opener.postMessage() 작동에 필요
             nodeIntegration: false,
-            sandbox: false,              // postMessage 콜백을 위해 필요
+            sandbox: false,
             webSecurity: false,          // Firebase opener.postMessage() 크로스오리진 허용
           },
         },

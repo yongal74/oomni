@@ -92,8 +92,15 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const { currentMission, agents, setAgents, setPendingApprovals } = useAppStore()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [showAddBot, setShowAddBot] = useState(() => searchParams.get('addBot') === 'true')
+  const [showAddBot, setShowAddBot] = useState(false)
   const preselectedRole = searchParams.get('role')
+
+  // 사이드바 "봇 추가" 버튼: navigate('/dashboard?addBot=true') 시 모달 열기
+  useEffect(() => {
+    if (searchParams.get('addBot') === 'true') {
+      setShowAddBot(true)
+    }
+  }, [searchParams])
   const [feedItems, setFeedItems] = useState<FeedItem[]>([])
   const [creatingRole, setCreatingRole] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<DashTab>('feed')
