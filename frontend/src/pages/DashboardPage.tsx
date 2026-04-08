@@ -112,7 +112,7 @@ export default function DashboardPage() {
   const missionId = currentMission?.id
 
   // 에이전트 로드
-  const { data: agentsData } = useQuery({
+  const { data: agentsData, isLoading: agentsLoading } = useQuery({
     queryKey: ['agents', missionId],
     queryFn: () => agentsApi.list(missionId),
     enabled: !!missionId,
@@ -227,6 +227,7 @@ export default function DashboardPage() {
   const saveTodos = (items: TodoItem[]) => {
     setTodoItems(items)
     localStorage.setItem('oomni_todos', JSON.stringify(items))
+    window.dispatchEvent(new Event('oomni-todos-updated'))
   }
   const saveDones = (items: TodoItem[]) => {
     setDoneItems(items)
@@ -320,24 +321,12 @@ export default function DashboardPage() {
             <h3 className="text-[13px] font-medium text-text">봇 현황</h3>
           </div>
           <div className="space-y-2">
-            {agents.map(agent => (
-              <Link key={agent.id} to={`/dashboard/bots/${agent.id}`}>
-                <div className="flex items-center gap-2 p-2 rounded hover:bg-bg transition-colors cursor-pointer">
-                  <span className="text-base">{BOT_TEMPLATES.find(t => t.role === agent.role)?.emoji ?? '🤖'}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[12px] text-text truncate">{agent.name}</div>
-                  </div>
-                  <button
-                    onClick={e => { e.preventDefault(); setRunModalAgent(agent) }}
-                    className="p-1 text-muted hover:text-primary rounded"
-                  >
-                    <Play size={12} />
-                  </button>
-                  <div className={`w-2 h-2 rounded-full ${agent.is_active ? 'bg-green-500' : 'bg-[#444]'}`} />
-                </div>
-              </Link>
-            ))}
-            {agents.length === 0 && (
+            {agentsLoading ? (
+              <div className="flex items-center gap-2 py-4 text-muted text-[12px]">
+                <Loader2 size={14} className="animate-spin" />
+                <span>불러오는 중...</span>
+              </div>
+            ) : agents.length === 0 ? (
               <div className="space-y-3">
                 {/* Solo Factory OS 배너 */}
                 <div className="rounded-lg border border-[#D4763B]/50 bg-primary/10 p-3">
@@ -365,7 +354,23 @@ export default function DashboardPage() {
                   </button>
                 </div>
               </div>
-            )}
+            ) : agents.map(agent => (
+              <Link key={agent.id} to={`/dashboard/bots/${agent.id}`}>
+                <div className="flex items-center gap-2 p-2 rounded hover:bg-bg transition-colors cursor-pointer">
+                  <span className="text-base">{BOT_TEMPLATES.find(t => t.role === agent.role)?.emoji ?? '🤖'}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[12px] text-text truncate">{agent.name}</div>
+                  </div>
+                  <button
+                    onClick={e => { e.preventDefault(); setRunModalAgent(agent) }}
+                    className="p-1 text-muted hover:text-primary rounded"
+                  >
+                    <Play size={12} />
+                  </button>
+                  <div className={`w-2 h-2 rounded-full ${agent.is_active ? 'bg-green-500' : 'bg-[#444]'}`} />
+                </div>
+              </Link>
+            ))}
           </div>
           {/* mini KPIs */}
           <div className="mt-4 pt-3 border-t border-border grid grid-cols-3 gap-2">

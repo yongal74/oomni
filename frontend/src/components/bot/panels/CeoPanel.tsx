@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { feedApi, agentsApi, type FeedItem, type Agent } from '../../../lib/api'
 import { CheckCircle, XCircle } from 'lucide-react'
@@ -173,10 +173,26 @@ export function CeoRightPanel({ missionId, onSkillSelect, agentId, currentRole =
 
   const pending = (allFeed as FeedItem[]).filter(f => f.requires_approval && !f.approved_at && !f.rejected_at)
 
-  // Load top priority items from localStorage
-  const [topTodos] = useState<Array<{id: string; text: string}>>(() => {
+  // Load top priority items from localStorage — 실시간 동기화
+  const [topTodos, setTopTodos] = useState<Array<{id: string; text: string}>>(() => {
     try { return (JSON.parse(localStorage.getItem('oomni_todos') ?? '[]') as Array<{id:string;text:string}>).slice(0, 3) } catch { return [] }
   })
+
+  useEffect(() => {
+    const sync = () => {
+      try {
+        const todos = JSON.parse(localStorage.getItem('oomni_todos') ?? '[]') as Array<{id: string; text: string}>
+        setTopTodos(todos.slice(0, 3))
+      } catch {}
+    }
+    sync()
+    window.addEventListener('storage', sync)
+    window.addEventListener('oomni-todos-updated', sync)
+    return () => {
+      window.removeEventListener('storage', sync)
+      window.removeEventListener('oomni-todos-updated', sync)
+    }
+  }, [])
 
   // latest feed for archiving
   const { data: feed = [] } = useQuery({

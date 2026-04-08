@@ -553,7 +553,7 @@ export default function BotDetailPage() {
           {/* Reset 버튼 — 항상 표시 */}
           <button
             onClick={handleReset}
-            title="결과 초기화"
+            title="입력창과 결과를 모두 초기화합니다"
             className="flex items-center gap-1.5 px-3 py-3 rounded-xl text-sm transition-colors shrink-0 text-muted hover:text-text hover:bg-surface border border-border"
           >
             <RotateCcw size={14} />

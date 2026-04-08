@@ -230,11 +230,11 @@ export const backupApi = {
 export const profileApi = {
   update: (data: { display_name: string }) =>
     api.patch('/api/auth/profile', data, {
-      headers: { Authorization: `Bearer ${sessionStorage.getItem('oomni_token') || ''}` }
+      headers: { Authorization: `Bearer ${sessionStorage.getItem('session_token') || ''}` }
     }).then(r => r.data),
   activateLicense: (license_key: string) =>
     api.post('/api/auth/license/activate', { license_key }, {
-      headers: { Authorization: `Bearer ${sessionStorage.getItem('oomni_token') || ''}` }
+      headers: { Authorization: `Bearer ${sessionStorage.getItem('session_token') || ''}` }
     }).then(r => r.data),
 }
 

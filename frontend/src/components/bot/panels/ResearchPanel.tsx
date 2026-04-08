@@ -152,6 +152,7 @@ export function ResearchLeftPanel({ missionId: _missionId }: { missionId: string
 
 // CENTER: AI 채점된 아이템 소팅 공간
 export function ResearchCenterPanel({ missionId, onItemClick, streamOutput, isRunning }: Props) {
+  const [selectedItem, setSelectedItem] = useState<ResearchItem | null>(null)
   const qc = useQueryClient()
   const { data: items = [], isLoading } = useQuery<ResearchItem[]>({
     queryKey: ['research', missionId],
@@ -220,7 +221,8 @@ export function ResearchCenterPanel({ missionId, onItemClick, streamOutput, isRu
                 key={item.id}
                 item={item}
                 onFilter={(decision) => filter.mutate({ id: item.id, decision })}
-                onClick={() => onItemClick?.(item)}
+                onClick={() => { setSelectedItem(item); onItemClick?.(item) }}
+                isSelected={selectedItem?.id === item.id}
               />
             ))}
           </div>
@@ -238,8 +240,9 @@ export function ResearchCenterPanel({ missionId, onItemClick, streamOutput, isRu
                 key={item.id}
                 item={item}
                 onFilter={(decision) => filter.mutate({ id: item.id, decision })}
-                onClick={() => onItemClick?.(item)}
+                onClick={() => { setSelectedItem(item); onItemClick?.(item) }}
                 dimmed
+                isSelected={selectedItem?.id === item.id}
               />
             ))}
           </div>
@@ -250,12 +253,13 @@ export function ResearchCenterPanel({ missionId, onItemClick, streamOutput, isRu
 }
 
 function ResearchCard({
-  item, onFilter, onClick, dimmed
+  item, onFilter, onClick, dimmed, isSelected
 }: {
   item: ResearchItem
   onFilter: (d: 'keep' | 'drop' | 'watch') => void
   onClick: () => void
   dimmed?: boolean
+  isSelected?: boolean
 }) {
   const score = item.signal_score ?? 0
   const scoreColor = score >= 70 ? 'text-green-400' : score >= 40 ? 'text-yellow-400' : 'text-red-400'
@@ -265,8 +269,9 @@ function ResearchCard({
     <div
       onClick={onClick}
       className={cn(
-        'rounded-lg border border-border p-3 cursor-pointer hover:border-primary/40 transition-colors',
-        dimmed ? 'bg-bg/50 opacity-60' : 'bg-bg'
+        'rounded-lg border p-3 cursor-pointer hover:border-primary/40 transition-colors',
+        isSelected ? 'border-primary bg-primary/10' : 'border-border',
+        dimmed && !isSelected ? 'bg-bg/50 opacity-60' : !isSelected ? 'bg-bg' : ''
       )}
     >
       <div className="flex items-start justify-between gap-3 mb-2">

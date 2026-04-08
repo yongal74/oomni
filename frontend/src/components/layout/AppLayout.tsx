@@ -1,3 +1,4 @@
+import React from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../../store/app.store'
 import { Activity, BarChart2, Bell, Calendar, Crown, DollarSign, GitBranch, LayoutDashboard, Plug, Plus, Search, Settings, Ticket, Wrench, Zap } from 'lucide-react'
@@ -5,20 +6,49 @@ import { cn } from '../../lib/utils'
 import { useEffect } from 'react'
 import { oomniWs } from '../../lib/ws'
 
-const NAV = [
-  { to: '/dashboard', icon: LayoutDashboard, label: '대시보드', end: true },
-  { to: '/dashboard/approvals', icon: Bell, label: '승인 인박스' },
-  { to: '/dashboard/issues', icon: Ticket, label: '티켓' },
-  { to: '/dashboard/cost', icon: DollarSign, label: '비용 추적' },
-  { to: '/dashboard/schedules', icon: Calendar, label: '자동화' },
-  { to: '/dashboard/reports', icon: BarChart2, label: '리포트' },
-  { to: '/dashboard/research', icon: Search, label: 'Research Studio' },
-  { to: '/dashboard/integrations', icon: Plug, label: '서비스 연동' },
-  { to: '/dashboard/n8n', icon: Zap, label: 'n8n 자동화' },
-  { to: '/dashboard/devtools', icon: Wrench, label: '개발 환경' },
-  { to: '/dashboard/pipeline', icon: GitBranch, label: '파이프라인' },
-  { to: '/dashboard/monitoring', icon: Activity, label: '모니터링' },
-  { to: '/dashboard/settings', icon: Settings, label: '설정' },
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type NavItem = { to: string; icon: React.ComponentType<any>; label: string; end?: boolean }
+type NavSection = { section: string; items: NavItem[] }
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    section: '메인',
+    items: [
+      { to: '/dashboard', icon: LayoutDashboard, label: '대시보드', end: true },
+    ],
+  },
+  {
+    section: '분석',
+    items: [
+      { to: '/dashboard/cost', icon: DollarSign, label: '비용 추적' },
+      { to: '/dashboard/reports', icon: BarChart2, label: '리포트' },
+      { to: '/dashboard/monitoring', icon: Activity, label: '모니터링' },
+    ],
+  },
+  {
+    section: '관리',
+    items: [
+      { to: '/dashboard/approvals', icon: Bell, label: '승인 인박스' },
+      { to: '/dashboard/issues', icon: Ticket, label: '티켓' },
+      { to: '/dashboard/schedules', icon: Calendar, label: '자동화' },
+    ],
+  },
+  {
+    section: '도구',
+    items: [
+      { to: '/dashboard/n8n', icon: Zap, label: 'n8n 자동화' },
+      { to: '/dashboard/devtools', icon: Wrench, label: '개발 환경' },
+      { to: '/dashboard/research', icon: Search, label: 'Research Studio' },
+      { to: '/dashboard/pipeline', icon: GitBranch, label: '파이프라인' },
+      { to: '/dashboard/integrations', icon: Plug, label: 'Obsidian' },
+    ],
+  },
+  {
+    section: '설정',
+    items: [
+      { to: '/dashboard/settings', icon: Settings, label: '설정' },
+    ],
+  },
 ]
 
 export function AppLayout() {
@@ -110,24 +140,30 @@ export function AppLayout() {
 
         {/* 네비게이션 */}
         <div className="border-t border-border px-2 py-3">
-          {NAV.map(({ to, icon: Icon, label, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) => cn(
-                'flex items-center gap-2 px-2 py-1.5 rounded text-[13px] mb-0.5 relative',
-                isActive ? 'bg-[#2A2A2C] text-text' : 'text-muted hover:text-text hover:bg-[#1E1E20]'
-              )}
-            >
-              <Icon size={14} />
-              <span>{label}</span>
-              {label === '승인 인박스' && pendingApprovals > 0 && (
-                <span className="ml-auto bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                  {pendingApprovals}
-                </span>
-              )}
-            </NavLink>
+          {NAV_SECTIONS.map(({ section, items }, sectionIdx) => (
+            <div key={section}>
+              {sectionIdx > 0 && <div className="border-t border-border mx-1 my-1" />}
+              <p className="text-[10px] text-muted uppercase tracking-widest px-2 pt-2 pb-1">{section}</p>
+              {items.map(({ to, icon: Icon, label, end }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={end}
+                  className={({ isActive }) => cn(
+                    'flex items-center gap-2 px-2 py-1.5 rounded text-[13px] mb-0.5 relative',
+                    isActive ? 'bg-[#2A2A2C] text-text' : 'text-muted hover:text-text hover:bg-[#1E1E20]'
+                  )}
+                >
+                  <Icon size={14} />
+                  <span>{label}</span>
+                  {label === '승인 인박스' && pendingApprovals > 0 && (
+                    <span className="ml-auto bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                      {pendingApprovals}
+                    </span>
+                  )}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </div>
       </aside>

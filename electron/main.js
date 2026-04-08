@@ -17,6 +17,11 @@ let mainWindow = null
 // ── 보안: CSP 헤더 ──────────────────────────────────────
 function setupCSP() {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    // file:// 프로토콜 (우리 앱 페이지)에만 CSP 적용
+    // Firebase OAuth 팝업 페이지의 inline script 차단 방지
+    if (!details.url.startsWith('file://')) {
+      return callback({ responseHeaders: details.responseHeaders })
+    }
     callback({
       responseHeaders: {
         ...details.responseHeaders,
