@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
+import { v4 as uuidv4 } from 'uuid'
 import { streamClaude, saveFeedItem, type ExecutorContext } from './base'
 
 const SYSTEM_PROMPT = `당신은 시니어 풀스택 개발자입니다.
@@ -71,7 +72,6 @@ export async function buildExecutor(ctx: ExecutorContext): Promise<void> {
   await saveFeedItem(db, agent.id, 'info', `🔨 Build Bot 시작: ${task}`)
 
   // Create issue for tracking
-  const { v4: uuidv4 } = require('uuid')
   const issueId = uuidv4()
   await db.query(
     `INSERT INTO issues (id, mission_id, agent_id, title, status, priority) VALUES ($1,$2,$3,$4,$5,$6)`,

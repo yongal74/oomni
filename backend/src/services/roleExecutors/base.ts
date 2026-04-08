@@ -8,8 +8,16 @@ export function getAnthropicClient(): Anthropic {
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' })
 }
 
+export const HAIKU_MODEL  = 'claude-haiku-4-5-20251001'
 export const DEFAULT_MODEL = 'claude-sonnet-4-6'
 export const CEO_MODEL = 'claude-opus-4-6'
+
+// Per-model cost (USD per 1M tokens)
+const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+  [HAIKU_MODEL]:   { input: 0.80,  output: 4.00  },
+  [DEFAULT_MODEL]: { input: 3.00,  output: 15.00 },
+  [CEO_MODEL]:     { input: 15.00, output: 75.00 },
+}
 
 export interface ExecutorContext {
   agent: { id: string; mission_id: string; name: string; role: string; system_prompt: string; budget_cents: number }
@@ -30,7 +38,8 @@ export async function saveFeedItem(db: DbClient, agentId: string, type: 'info'|'
 
 // Save token usage to DB
 export async function saveTokenUsage(db: DbClient, agentId: string, missionId: string, inputTokens: number, outputTokens: number, model: string): Promise<void> {
-  const costUsd = (inputTokens * 3 + outputTokens * 15) / 1_000_000 // claude-sonnet-4-6 pricing approx
+  const pricing = MODEL_PRICING[model] ?? MODEL_PRICING[DEFAULT_MODEL]
+  const costUsd = (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000
   const id = uuidv4()
   await db.query(
     `INSERT INTO token_usage (id, agent_id, mission_id, input_tokens, output_tokens, cost_usd, model) VALUES ($1,$2,$3,$4,$5,$6,$7)`,

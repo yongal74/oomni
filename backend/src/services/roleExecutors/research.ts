@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { streamClaude, saveFeedItem, type ExecutorContext } from './base'
+import { streamClaude, saveFeedItem, HAIKU_MODEL, type ExecutorContext } from './base'
 
 const SYSTEM_PROMPT = `당신은 AI/스타트업 트렌드를 분석하는 리서치 전문가입니다.
 주어진 주제로 최신 트렌드와 인사이트를 분석하여 아래 형식으로 3-7개의 아이템을 작성하세요.
@@ -34,7 +34,7 @@ export async function researchExecutor(ctx: ExecutorContext): Promise<void> {
 각 아이템은 ITEM_START / ITEM_END 블록으로 구분해주세요.`
 
   send('stage', { stage: 'scoring', label: 'AI 신호 채점 중...' })
-  const fullOutput = await streamClaude(ctx, SYSTEM_PROMPT, userMessage)
+  const fullOutput = await streamClaude(ctx, SYSTEM_PROMPT, userMessage, HAIKU_MODEL)
 
   // Parse ITEM_START/ITEM_END blocks and save to DB as 'pending' (사람 소팅 필요)
   const itemBlocks = fullOutput.split('ITEM_START').slice(1)

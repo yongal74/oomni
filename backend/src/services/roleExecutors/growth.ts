@@ -1,4 +1,4 @@
-import { streamClaude, saveFeedItem, type ExecutorContext } from './base'
+import { streamClaude, saveFeedItem, HAIKU_MODEL, type ExecutorContext } from './base'
 
 const SYSTEM_PROMPT = `당신은 그로스 마케팅 전문가입니다.
 데이터를 분석하여 실행 가능한 그로스 전략을 제시합니다.
@@ -39,7 +39,7 @@ export async function growthExecutor(ctx: ExecutorContext): Promise<void> {
   const userMessage = `태스크: ${task}\n\n현재 운영 지표:\n${JSON.stringify(metrics, null, 2)}\n\n그로스 전략과 실행 계획을 제시해주세요.`
 
   send('stage', { stage: 'analyzing', label: 'AI 그로스 분석 중...' })
-  const analysis = await streamClaude(ctx, agent.system_prompt || SYSTEM_PROMPT, userMessage)
+  const analysis = await streamClaude(ctx, agent.system_prompt || SYSTEM_PROMPT, userMessage, HAIKU_MODEL)
 
   send('stage', { stage: 'done', label: '완료' })
   await saveFeedItem(db, agent.id, 'result', analysis)

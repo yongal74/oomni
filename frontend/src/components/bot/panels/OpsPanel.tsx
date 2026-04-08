@@ -124,7 +124,7 @@ function CategoryAccordion({
 }
 
 // LEFT: 카테고리별 자동화 프리셋 + n8n 상태
-export function OpsLeftPanel({ agentId }: { agentId: string }) {
+export function OpsLeftPanel({ agentId, onSkillSelect }: { agentId: string; onSkillSelect?: (task: string) => void }) {
   const [n8nLocal, setN8nLocal] = useState<'checking' | 'online' | 'offline'>('checking')
   const [creatingPreset, setCreatingPreset] = useState<string | null>(null)
 
@@ -150,27 +150,31 @@ export function OpsLeftPanel({ agentId }: { agentId: string }) {
       .map(s => s.name)
   )
 
-  // 프리셋 클릭: 스케줄 즉시 생성 (이미 활성이면 아무 동작 없음)
+  // 프리셋 클릭: AI로 n8n JSON 생성 + 스케줄 등록
   const handlePresetClick = async (preset: AutomationPreset) => {
-    if (activeScheduleNames.has(preset.name)) return // 이미 활성
     setCreatingPreset(preset.name)
-    try {
-      // mission_id는 agentId와 동일 prefix가 아닐 수 있으므로 agent 정보를 미리 알 수 없어
-      // schedules API에 agent_id만 넘기고 mission_id를 agent_id로 대체합니다.
-      // (실제 mission_id가 필요하다면 상위 컴포넌트에서 prop으로 전달해야 합니다.)
-      await schedulesApi.create({
-        agent_id: agentId,
-        mission_id: agentId, // fallback; 실제 mission_id는 상위에서 주입 필요
-        name: preset.name,
-        trigger_type: preset.triggerType,
-        trigger_value: preset.triggerValue,
-      })
-      await refetchSchedules()
-    } catch {
-      // 생성 실패 시 조용히 무시 (사용자에게 콘솔 외 피드백 없음)
-    } finally {
-      setCreatingPreset(null)
+
+    // 1) AI 봇 실행: n8n 워크플로우 JSON 생성
+    const n8nTask = `"${preset.name}" n8n 워크플로우를 생성해줘. Cron 스케줄: ${preset.triggerValue}. 실제로 n8n에 import할 수 있는 완전한 JSON을 만들어줘.`
+    onSkillSelect?.(n8nTask)
+
+    // 2) 스케줄 등록 (이미 활성이면 스킵)
+    if (!activeScheduleNames.has(preset.name)) {
+      try {
+        await schedulesApi.create({
+          agent_id: agentId,
+          mission_id: agentId,
+          name: preset.name,
+          trigger_type: preset.triggerType,
+          trigger_value: preset.triggerValue,
+        })
+        await refetchSchedules()
+      } catch {
+        // 스케줄 생성 실패는 조용히 무시 (n8n JSON 생성은 이미 시작됨)
+      }
     }
+
+    setCreatingPreset(null)
   }
 
   return (
