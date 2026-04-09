@@ -30,6 +30,7 @@ import { obsidianRouter } from './routes/obsidian';
 import { backupRouter } from './routes/backup';
 import { paymentsRouter } from './routes/payments';
 import { cdpRouter } from './routes/cdp';
+import { designSystemsRouter } from './routes/design-systems';
 import { logger } from '../logger';
 
 interface AppOptions {
@@ -155,6 +156,7 @@ export function createApp(options: AppOptions): Application {
   app.use('/api/backup', backupRouter());
   app.use('/api/payments', paymentsRouter());
   app.use('/api/cdp', cdpRouter());
+  app.use('/api/design-systems', designSystemsRouter(options.db));
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });

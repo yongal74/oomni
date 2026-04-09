@@ -423,7 +423,7 @@ export default function BotDetailPage() {
         right: <CeoRightPanel missionId={missionId ?? ''} agentId={agent.id} onSkillSelect={(s: string) => setTask(s)} currentRole="ceo" content={lastOutput} />,
       }
       case 'design': return {
-        left: <DesignLeftPanel selectedTemplate={designTemplate} onTemplateChange={setDesignTemplate} />,
+        left: <DesignLeftPanel selectedTemplate={designTemplate} onTemplateChange={setDesignTemplate} onApplyTemplate={(prompt) => setTask(prompt)} />,
         center: <DesignCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} screenshotUrl={designScreenshot} />,
         right: <DesignRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="design" content={lastOutput} />,
       }

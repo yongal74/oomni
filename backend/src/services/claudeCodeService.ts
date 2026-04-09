@@ -212,9 +212,55 @@ JSON 형식 (정확히 이 구조 사용):
 - 타입 정의 + 에러 처리 필수
 - 파일 작성 완료 후 반드시 "✅ 파일 생성 완료: [파일명]" 출력`,
 
-    design: `당신은 UI/UX 디자인 에이전트입니다. 다크 테마, 오렌지 액센트 #D4763B.
-Pencil MCP를 사용할 수 있으면 사용하고, 없거나 실패하면 완성된 HTML/CSS/Tailwind 코드로 디자인을 생성하세요.
-결과물은 반드시 ${DATA_ROOT}/design/ 폴더에 저장하고, 생성한 코드를 응답에 포함하세요.`,
+    design: `당신은 세계 최고 수준의 UI/UX 디자인 에이전트입니다. Linear, Stripe, Vercel, Apple 수준의 프로덕션 품질 디자인을 생성합니다.
+
+## 디자인 토큰 (Design System)
+아래 토큰은 현재 프로젝트 디자인 시스템입니다. 모든 디자인에 일관되게 적용하세요:
+[DESIGN_SYSTEM_PLACEHOLDER]
+
+## 필수 출력 파일 — 반드시 3종 모두 저장
+
+저장 경로: ${DATA_ROOT}/design/YYYY-MM-DD_HH-MM/
+
+### 1. preview.html (독립 실행 HTML — 브라우저 즉시 열기 가능)
+필수 포함:
+- <link> Google Fonts (폰트명에 따라 적절히)
+- <script src="https://cdn.tailwindcss.com"></script>
+- <style>에 CSS 커스텀 프로퍼티: --color-primary, --color-bg, --color-surface, --color-text, --color-muted, --radius
+- 8px 그리드 기반 spacing
+- hover/focus/active 상태 (transition: all 150ms ease)
+- transform: translateY(-2px) hover 효과
+- box-shadow으로 depth 표현
+- 반응형 (mobile-first, sm/md/lg 브레이크포인트)
+- 실제 콘텐츠 사용 (Lorem ipsum 절대 금지)
+- 최소 400줄 이상의 완성된 HTML
+
+### 2. component.tsx (React + TypeScript + Tailwind)
+- Props 인터페이스 정의
+- 완성된 컴포넌트 코드 (TODO/placeholder 절대 금지)
+- className에 디자인 토큰 값 직접 사용 (style={{ color: 'var(--color-primary)' }} 활용)
+
+### 3. design-spec.md (개발자 핸드오프 문서)
+- 색상 코드 전체 명세
+- 타이포그래피 스펙 (size/weight/line-height)
+- 컴포넌트 구조 설명
+- 인터랙션/애니메이션 명세
+
+## 디자인 품질 기준 (Pencil 이상 수준)
+- 비어있는 공간(whitespace)을 적극 활용 — 숨쉬는 레이아웃
+- 명도 대비 WCAG AA 이상 (텍스트 가독성)
+- 그라디언트, 그림자, blur backdrop 등 시각적 깊이감 표현
+- 마이크로 인터랙션: hover scale(1.02), opacity 변화, underline 애니메이션
+- 아이콘은 SVG 인라인 또는 Heroicons 스타일 직접 그리기
+- 카드/섹션 경계는 subtle border (opacity 0.1-0.2) 활용
+- 버튼: primary(채움), secondary(선), ghost(배경없음) 3종 변형
+
+## 완료 후 출력
+파일 생성 완료 시 반드시:
+✅ preview.html → [경로]
+✅ component.tsx → [경로]
+✅ design-spec.md → [경로]
+형식으로 출력하세요.`,
 
     growth: `당신은 그로스 해킹 에이전트입니다. KPI + 실행 액션 아이템 제시.
 결과: ${DATA_ROOT}/growth/ 저장.`,
@@ -353,7 +399,7 @@ export class ClaudeCodeService {
     this.proc = null;
   }
 
-  async execute(task: string, send: SendFn): Promise<void> {
+  async execute(task: string, send: SendFn, options?: { designSystemTokens?: string }): Promise<void> {
     this.stopped = false;
 
     const cliPath = getCliPath();
@@ -365,7 +411,11 @@ export class ClaudeCodeService {
     const wsPath     = ensureWorkspace(this.agentId);
     const model      = ROLE_MODELS[this.role] ?? 'claude-sonnet-4-6';
     const resolved   = resolveTask(this.role, task);
-    const sysPrompt  = ROLE_PROMPTS[this.role] ?? '';
+    const rawPrompt  = ROLE_PROMPTS[this.role] ?? '';
+    // Design 봇: [DESIGN_SYSTEM_PLACEHOLDER]를 실제 디자인 시스템 토큰으로 교체
+    const sysPrompt  = options?.designSystemTokens
+      ? rawPrompt.replace('[DESIGN_SYSTEM_PLACEHOLDER]', options.designSystemTokens)
+      : rawPrompt.replace('[DESIGN_SYSTEM_PLACEHOLDER]', '기본 다크 테마: #0F0F10 배경, #D4763B 액센트, Pretendard 폰트');
     const apiKey     = process.env.ANTHROPIC_API_KEY ?? '';
     const tmpDir     = os.tmpdir();
 

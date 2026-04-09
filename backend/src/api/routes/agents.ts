@@ -414,6 +414,33 @@ export function agentsRouter(db: DbClient): Router {
       if (agentFull.role === 'design' || agentFull.role === 'build') {
         // Design/Build Bot: ClaudeCodeService (Claude Code CLI)
         const ccService = ClaudeCodeService.create(agentFull.id, agentFull.role);
+
+        // Design 봇: 미션 디자인 시스템 토큰 주입
+        let designSystemTokens: string | undefined;
+        if (agentFull.role === 'design') {
+          try {
+            const dsResult = await db.query(
+              'SELECT * FROM design_systems WHERE mission_id = ?',
+              [agentFull.mission_id]
+            );
+            if (dsResult.rows.length > 0) {
+              const ds = dsResult.rows[0] as Record<string, string>;
+              designSystemTokens = [
+                `- 프리셋: ${ds.preset}`,
+                `- Primary Color: ${ds.primary_color}`,
+                `- Background: ${ds.bg_color}`,
+                `- Surface: ${ds.surface_color}`,
+                `- Text: ${ds.text_color}`,
+                `- Muted: ${ds.muted_color}`,
+                `- Accent: ${ds.accent_color}`,
+                `- Font: ${ds.font_family}`,
+                `- Border Radius: ${ds.border_radius}`,
+                `- Style Voice: ${ds.style_voice}`,
+              ].join('\n');
+            }
+          } catch { /* 디자인 시스템 조회 실패 시 기본값 사용 */ }
+        }
+
         await ccService.execute(taskStr, (event, data) => {
           send(event, data);
           // Pencil tool_result에서 스크린샷 추출 (Design Bot)
@@ -423,7 +450,7 @@ export function agentsRouter(db: DbClient): Router {
               send('screenshot', { data: d.imageData, mimeType: d.mimeType ?? 'image/png' });
             }
           }
-        });
+        }, { designSystemTokens });
         send('done', { success: true });
       } else {
         // 그 외 봇: routeToExecutor (Anthropic SDK 직접)

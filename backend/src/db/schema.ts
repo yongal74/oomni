@@ -12,6 +12,7 @@ export const TABLES = [
   'sessions',
   'subscriptions',
   'payment_logs',
+  'design_systems',
 ] as const;
 
 // SQLite 스키마 (PostgreSQL 호환 제거: TIMESTAMPTZ→TEXT, BOOLEAN→INTEGER, JSONB→TEXT, NUMERIC→REAL)
@@ -186,6 +187,24 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+-- 디자인 시스템 (미션별 설정)
+CREATE TABLE IF NOT EXISTS design_systems (
+  id           TEXT PRIMARY KEY,
+  mission_id   TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+  preset       TEXT NOT NULL DEFAULT 'oomni',
+  primary_color TEXT NOT NULL DEFAULT '#D4763B',
+  bg_color     TEXT NOT NULL DEFAULT '#0F0F10',
+  surface_color TEXT NOT NULL DEFAULT '#1A1A1C',
+  text_color   TEXT NOT NULL DEFAULT '#E8E8E8',
+  muted_color  TEXT NOT NULL DEFAULT '#888888',
+  accent_color TEXT NOT NULL DEFAULT '#D4763B',
+  font_family  TEXT NOT NULL DEFAULT 'Pretendard',
+  border_radius TEXT NOT NULL DEFAULT '8px',
+  style_voice  TEXT NOT NULL DEFAULT 'modern-dark',
+  updated_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_design_systems_mission ON design_systems(mission_id);
 `;
 
 // ── DB 마이그레이션 시스템 ──────────────────────────────

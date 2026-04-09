@@ -415,3 +415,25 @@ export interface VideoMeta {
   size_bytes: number
   created_at: string
 }
+
+// 디자인 시스템
+export interface DesignSystem {
+  mission_id: string
+  preset: string
+  primary_color: string
+  bg_color: string
+  surface_color: string
+  text_color: string
+  muted_color: string
+  accent_color: string
+  font_family: string
+  border_radius: string
+  style_voice: string
+}
+
+export const designSystemsApi = {
+  get: (missionId: string) =>
+    api.get<ApiResponse<DesignSystem>>(`/api/design-systems/${missionId}`).then(r => r.data.data),
+  update: (missionId: string, data: Partial<DesignSystem>) =>
+    api.put<ApiResponse<DesignSystem>>(`/api/design-systems/${missionId}`, data).then(r => r.data.data),
+}
