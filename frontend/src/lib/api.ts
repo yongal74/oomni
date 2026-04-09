@@ -356,6 +356,7 @@ export interface HeartbeatRun {
   id: string
   agent_id: string
   status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
+  task?: string
   output?: string
   error?: string
   tokens_input: number

@@ -164,13 +164,14 @@ const PinSchema = z.object({
   pin: z.string().min(4).max(6).regex(/^\d+$/, 'PIN은 숫자만 입력 가능합니다'),
 });
 
-// Google Strategy 초기화 (credentials가 있을 때만)
+// Google Strategy 초기화 (credentials가 있을 때만, 항상 재등록)
 function setupGoogleStrategy(): void {
   const clientID = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
   if (!clientID || !clientSecret) return;
 
+  // passport.use()는 같은 이름 strategy를 항상 덮어씀 — 런타임 재등록 안전
   passport.use(
     new GoogleStrategy(
       {
@@ -188,20 +189,19 @@ function setupGoogleStrategy(): void {
 // 최초 1회 초기화 시도
 setupGoogleStrategy();
 
+// 설정 저장 후 외부에서 재초기화 호출 (settings.ts에서 사용)
+export function reinitGoogleStrategy(): void {
+  setupGoogleStrategy();
+}
+
 // Google credentials가 런타임에 설정될 수 있으므로 요청 시 재초기화
 function ensureGoogleStrategy(): boolean {
   const clientID = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   if (!clientID || !clientSecret) return false;
 
-  // 이미 등록된 경우 체크
-  try {
-    // Strategy가 없으면 재등록
-    setupGoogleStrategy();
-    return true;
-  } catch {
-    return false;
-  }
+  setupGoogleStrategy();
+  return true;
 }
 
 passport.serializeUser((user, done) => {

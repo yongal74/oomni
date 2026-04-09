@@ -125,12 +125,12 @@ export function loadSettings(): void {
       process.env.ANTHROPIC_API_KEY = anthropicKey;
     }
     const googleClientId = raw.google_client_id ? decryptField(raw.google_client_id) : '';
-    if (googleClientId && !process.env.GOOGLE_CLIENT_ID) {
-      process.env.GOOGLE_CLIENT_ID = googleClientId;
+    if (googleClientId) {
+      process.env.GOOGLE_CLIENT_ID = googleClientId; // 항상 덮어씀 (업데이트 반영)
     }
     const googleClientSecret = raw.google_client_secret ? decryptField(raw.google_client_secret) : '';
-    if (googleClientSecret && !process.env.GOOGLE_CLIENT_SECRET) {
-      process.env.GOOGLE_CLIENT_SECRET = googleClientSecret;
+    if (googleClientSecret) {
+      process.env.GOOGLE_CLIENT_SECRET = googleClientSecret; // 항상 덮어씀
     }
   } catch {
     // settings.json 읽기 실패 시 무시 (첫 실행)

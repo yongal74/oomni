@@ -369,6 +369,7 @@ export class ClaudeCodeService {
       cliPath,
       '--print', resolved,
       '--output-format', 'stream-json',
+      '--verbose',
       '--dangerously-skip-permissions',
       '--model', model,
     ];

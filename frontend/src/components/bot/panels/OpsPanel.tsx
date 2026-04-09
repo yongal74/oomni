@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { agentsApi, schedulesApi, type FeedItem, type Schedule } from '../../../lib/api'
-import { Zap, Download, ChevronDown, ChevronRight } from 'lucide-react'
+import { Zap, Download, ChevronDown, ChevronRight, Copy } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { ArchiveButton } from '../shared/ArchiveButton'
 import { NextBotDropdown } from '../shared/NextBotDropdown'
@@ -310,7 +310,7 @@ const OPS_SKILLS = [
   { label: '세금 준비', prompt: '/tax-prep 이번 분기 세금 신고를 위한 수입/지출 데이터를 정리해줘' },
 ]
 
-// RIGHT: n8n import + 다음봇
+// RIGHT: n8n 워크플로우 관리 + import + 다음봇
 export function OpsRightPanel({ agentId, onSkillSelect, currentRole = 'ops', content = '' }: {
   agentId: string
   nextBotName?: string
@@ -319,6 +319,18 @@ export function OpsRightPanel({ agentId, onSkillSelect, currentRole = 'ops', con
   currentRole?: string
   content?: string
 }) {
+  const [n8nStatus, setN8nStatus] = useState<'checking' | 'online' | 'offline'>('checking')
+  const [importMsg, setImportMsg] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const ctrl = new AbortController()
+    fetch('http://localhost:5678', { mode: 'no-cors', signal: ctrl.signal })
+      .then(() => setN8nStatus('online'))
+      .catch(() => setN8nStatus('offline'))
+    return () => ctrl.abort()
+  }, [])
+
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
     queryFn: () => agentsApi.runs(agentId),
@@ -328,36 +340,135 @@ export function OpsRightPanel({ agentId, onSkillSelect, currentRole = 'ops', con
 
   const workflowResults = feed.filter(f => f.content.includes('"nodes"'))
 
-  const handleDownloadWorkflow = (wfContent: string) => {
-    const jsonMatch = wfContent.match(/```json\n([\s\S]+?)\n```/)
-    const json = jsonMatch ? jsonMatch[1] : wfContent
+  const extractJson = (wfContent: string): string => {
+    const match = wfContent.match(/```json\n([\s\S]+?)\n```/)
+    return match ? match[1] : wfContent
+  }
+
+  const handleDownloadWorkflow = (wfContent: string, idx: number) => {
+    const json = extractJson(wfContent)
     const blob = new Blob([json], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'oomni-workflow.json'
+    a.download = `oomni-workflow-${idx + 1}.json`
     a.click()
     URL.revokeObjectURL(url)
   }
 
+  const handleCopyWorkflow = (wfContent: string) => {
+    navigator.clipboard.writeText(extractJson(wfContent))
+    setImportMsg('클립보드에 복사됨!')
+    setTimeout(() => setImportMsg(null), 2000)
+  }
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const json = ev.target?.result as string
+        JSON.parse(json) // validate
+        const blob = new Blob([json], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = file.name
+        a.click()
+        URL.revokeObjectURL(url)
+        setImportMsg('다운로드 완료! n8n에서 Import하세요')
+      } catch {
+        setImportMsg('유효하지 않은 JSON 파일입니다')
+      }
+      setTimeout(() => setImportMsg(null), 3000)
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
   return (
-    <div className="p-4 h-full flex flex-col gap-4">
+    <div className="p-4 h-full flex flex-col gap-4 overflow-y-auto">
+      {/* n8n 연동 상태 */}
+      <div>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2">n8n 연동</p>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-bg border border-border">
+            <div className="flex items-center gap-2">
+              <div className={cn('w-2 h-2 rounded-full', n8nStatus === 'online' ? 'bg-green-500' : n8nStatus === 'offline' ? 'bg-red-400' : 'bg-yellow-400 animate-pulse')} />
+              <span className="text-xs text-dim">로컬 n8n</span>
+            </div>
+            {n8nStatus === 'online' ? (
+              <a href="http://localhost:5678" target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline">열기 ↗</a>
+            ) : (
+              <span className="text-[10px] text-muted">미실행</span>
+            )}
+          </div>
+          <a href="https://n8n.cloud" target="_blank" rel="noreferrer"
+            className="flex items-center justify-between px-3 py-2 rounded-lg bg-bg border border-border hover:border-primary/40 transition-colors">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-blue-400" />
+              <span className="text-xs text-dim">n8n Cloud</span>
+            </div>
+            <span className="text-[10px] text-primary">접속 ↗</span>
+          </a>
+        </div>
+      </div>
+
       <div className="flex-1">
-        <p className="text-xs text-muted uppercase tracking-widest mb-3">워크플로우 관리</p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-muted uppercase tracking-widest">워크플로우 관리</p>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="text-[10px] text-primary border border-primary/30 rounded px-1.5 py-0.5 hover:bg-primary/5 transition-colors"
+          >
+            JSON 불러오기
+          </button>
+          <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportFile} />
+        </div>
+
+        {importMsg && (
+          <div className="mb-2 px-2 py-1.5 rounded bg-primary/10 border border-primary/20 text-[11px] text-primary">
+            {importMsg}
+          </div>
+        )}
+
         {workflowResults.length === 0 ? (
-          <p className="text-sm text-muted/60">생성된 워크플로우가 없습니다</p>
+          <div className="text-center py-3">
+            <p className="text-xs text-muted/60 mb-1">AI가 생성한 워크플로우가 없습니다</p>
+            <p className="text-[10px] text-muted/40">봇에게 n8n 워크플로우 생성을 요청하세요</p>
+          </div>
         ) : (
           <div className="space-y-2">
             {workflowResults.map((wf, i) => (
               <div key={wf.id} className="px-3 py-3 rounded-lg bg-bg border border-border">
-                <p className="text-sm text-dim mb-2">워크플로우 #{i + 1}</p>
-                <button
-                  onClick={() => handleDownloadWorkflow(wf.content)}
-                  className="flex items-center gap-2 text-xs text-primary hover:text-primary-hover transition-colors"
-                >
-                  <Download size={12} />
-                  JSON 다운로드 후 n8n Import
-                </button>
+                <p className="text-xs text-dim mb-2 font-medium">워크플로우 #{i + 1}</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => handleDownloadWorkflow(wf.content, i)}
+                    className="flex items-center gap-1 text-[10px] text-primary border border-primary/30 rounded px-1.5 py-0.5 hover:bg-primary/5 transition-colors"
+                  >
+                    <Download size={9} /> 다운로드
+                  </button>
+                  <button
+                    onClick={() => handleCopyWorkflow(wf.content)}
+                    className="flex items-center gap-1 text-[10px] text-muted border border-border rounded px-1.5 py-0.5 hover:text-text transition-colors"
+                  >
+                    <Copy size={9} /> 복사
+                  </button>
+                  {n8nStatus === 'online' && (
+                    <a
+                      href="http://localhost:5678/workflow/new"
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={() => handleCopyWorkflow(wf.content)}
+                      className="flex items-center gap-1 text-[10px] text-green-400 border border-green-500/30 rounded px-1.5 py-0.5 hover:bg-green-500/10 transition-colors"
+                      title="JSON이 클립보드에 복사됩니다. n8n에서 붙여넣기 하세요."
+                    >
+                      n8n Import ↗
+                    </a>
+                  )}
+                </div>
               </div>
             ))}
           </div>

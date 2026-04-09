@@ -95,12 +95,6 @@ export default function DashboardPage() {
   const [showAddBot, setShowAddBot] = useState(false)
   const preselectedRole = searchParams.get('role')
 
-  // 사이드바 "봇 추가" 버튼: navigate('/dashboard?addBot=true') 시 모달 열기
-  useEffect(() => {
-    if (searchParams.get('addBot') === 'true') {
-      setShowAddBot(true)
-    }
-  }, [searchParams])
   const [feedItems, setFeedItems] = useState<FeedItem[]>([])
   const [creatingRole, setCreatingRole] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<DashTab>('feed')
@@ -222,6 +216,25 @@ export default function DashboardPage() {
       alert(msg)
     },
   })
+
+  // 사이드바 "봇 추가" 버튼: navigate('/dashboard?addBot=true&role=xxx') 시 모달 열기
+  // role 파라미터가 있고 해당 봇이 없으면 자동 생성
+  useEffect(() => {
+    if (searchParams.get('addBot') === 'true') {
+      const role = searchParams.get('role')
+      if (role && missionId) {
+        const alreadyExists = agents.find(a => a.role === role)
+        if (!alreadyExists) {
+          setCreatingRole(role)
+          createBot.mutate(role)
+          setSearchParams({})
+          return
+        }
+      }
+      setShowAddBot(true)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, missionId])
 
   const approve = useMutation({
     mutationFn: (id: string) => feedApi.approve(id),

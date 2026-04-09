@@ -398,8 +398,8 @@ export function agentsRouter(db: DbClient): Router {
     // 실행 기록 생성 (heartbeat_runs)
     const runId = uuidv4();
     await db.query(
-      `INSERT INTO heartbeat_runs (id, agent_id, status, started_at) VALUES ($1,$2,'running',strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
-      [runId, agentFull.id]
+      `INSERT INTO heartbeat_runs (id, agent_id, task, status, started_at) VALUES ($1,$2,$3,'running',strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
+      [runId, agentFull.id, taskStr]
     ).catch(() => {}); // 실패해도 실행은 계속
 
     try {
@@ -447,7 +447,7 @@ export function agentsRouter(db: DbClient): Router {
       const { id } = req.params
       const limit = parseInt(req.query.limit as string) || 20
       const result = await db.query(
-        `SELECT id, agent_id, status, output, error, tokens_input, tokens_output, cost_usd, started_at, finished_at
+        `SELECT id, agent_id, task, status, output, error, tokens_input, tokens_output, cost_usd, started_at, finished_at
          FROM heartbeat_runs
          WHERE agent_id = $1
          ORDER BY started_at DESC

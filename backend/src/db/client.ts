@@ -74,6 +74,14 @@ export function initDb(): DbClient {
     // 이미 존재하면 무시 ("duplicate column name" 오류)
   }
 
+  // 구버전 DB 방어 패치: heartbeat_runs.task 컬럼이 없으면 추가
+  try {
+    db.exec("ALTER TABLE heartbeat_runs ADD COLUMN task TEXT DEFAULT ''");
+    logger.info('[DB] heartbeat_runs.task 컬럼 추가 완료');
+  } catch {
+    // 이미 존재하면 무시
+  }
+
   // 버전 기반 마이그레이션 실행
   const migrationResults = runMigrations(db);
   const failedMigrations = migrationResults.filter(

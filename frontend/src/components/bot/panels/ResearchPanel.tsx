@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { researchApi, type ResearchItem } from '../../../lib/api'
 import { Check, Eye, X, FileText, Copy, Upload, Download } from 'lucide-react'
@@ -340,6 +340,13 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
   const [convertingType, setConvertingType] = useState<string | null>(null)
   const [outputs, setOutputs] = useState<Record<string, string>>({})
   const [expandedType, setExpandedType] = useState<string | null>(null)
+  // 아이템 변경 시 변환 결과 초기화 (LinkedIn 연속 포스팅 등)
+  useEffect(() => {
+    setOutputs({})
+    setExpandedType(null)
+    setConvertingType(null)
+  }, [item?.id])
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleConvert = async (outputType: string) => {

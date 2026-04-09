@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentsApi, paymentsApi, type Agent, type HeartbeatRun } from '../lib/api'
 import { useAppStore } from '../store/app.store'
-import { Trash2, Settings, ArrowLeft, Send, Square, RotateCcw, Clock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Trash2, Settings, ArrowLeft, Send, Square, RotateCcw, Clock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Copy } from 'lucide-react'
 import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
 import { LiveStreamDrawer } from '../components/bot/LiveStreamDrawer'
 import { ResearchLeftPanel, ResearchCenterPanel, ResearchRightPanel } from '../components/bot/panels/ResearchPanel'
@@ -268,38 +268,64 @@ export default function BotDetailPage() {
               <div className="flex items-center gap-3 px-4 py-3">
                 {statusIcon(run.status)}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
                     {statusBadge(run.status)}
                     <span className="text-xs text-muted">
                       {new Date(run.started_at).toLocaleString('ko-KR')}
                     </span>
                     {dur && <span className="text-xs text-muted">· {dur}</span>}
                   </div>
+                  {run.task && (
+                    <p className="text-xs text-dim truncate" title={run.task}>
+                      {run.task.length > 55 ? run.task.slice(0, 55) + '...' : run.task}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 text-xs text-muted shrink-0">
                   {totalTokens > 0 && <span>{totalTokens.toLocaleString()} tokens</span>}
                   <span className="font-medium text-text">${(run.cost_usd ?? 0).toFixed(4)}</span>
-                  {(run.output || run.error) && (
-                    <button
-                      onClick={() => toggleExpand(run.id)}
-                      className="text-muted hover:text-text transition-colors"
-                    >
-                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => toggleExpand(run.id)}
+                    className="text-muted hover:text-text transition-colors"
+                  >
+                    {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
                 </div>
               </div>
               {/* 펼쳐진 상세 */}
               {isExpanded && (
-                <div className="border-t border-border px-4 py-3 space-y-2">
+                <div className="border-t border-border px-4 py-3 space-y-3">
+                  {run.task && (
+                    <div>
+                      <p className="text-[10px] text-muted uppercase tracking-widest mb-1">입력 지시사항</p>
+                      <div className="bg-bg border border-border rounded-lg px-3 py-2 text-xs text-dim whitespace-pre-wrap">
+                        {run.task}
+                      </div>
+                    </div>
+                  )}
                   {run.error && (
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-xs text-red-400 font-mono whitespace-pre-wrap break-all">
-                      {run.error}
+                    <div>
+                      <p className="text-[10px] text-muted uppercase tracking-widest mb-1">오류</p>
+                      <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-xs text-red-400 font-mono whitespace-pre-wrap break-words">
+                        {run.error}
+                      </div>
                     </div>
                   )}
                   {run.output && (
-                    <div className="text-xs text-muted whitespace-pre-wrap break-all leading-relaxed">
-                      {run.output.length > 200 ? run.output.slice(0, 200) + '...' : run.output}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-[10px] text-muted uppercase tracking-widest">실행 결과</p>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(run.output ?? '')}
+                          className="flex items-center gap-1 text-[10px] text-muted hover:text-primary transition-colors"
+                          title="결과 복사"
+                        >
+                          <Copy size={10} /> 복사
+                        </button>
+                      </div>
+                      <div className="bg-bg border border-border rounded-lg px-3 py-3 text-xs text-dim whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
+                        {run.output}
+                      </div>
                     </div>
                   )}
                 </div>
