@@ -40,6 +40,7 @@ export function LiveStreamDrawer({
     setLines([])
     setStatus('running')
     const errorHandled = { current: false }
+    let cancelled = false  // 비동기 connect()가 cleanup 후 실행될 때 이벤트 무시
     let es: EventSource | null = null
 
     const connect = async () => {
@@ -51,29 +52,35 @@ export function LiveStreamDrawer({
           token = await (window as any).electronAPI?.getInternalApiKey?.() || ''
         } catch { /* ignore */ }
       }
+      if (cancelled) return  // cleanup이 먼저 실행됐으면 중단
       const url = `http://localhost:3001/api/agents/${agentId}/stream?task=${encodeURIComponent(task)}&token=${encodeURIComponent(token)}`
       es = new EventSource(url)
       esRef.current = es
 
       const addLine = (type: StreamLine['type'], text: string) => {
+        if (cancelled) return
         setLines(prev => [...prev, { type, text, ts: new Date().toLocaleTimeString('ko-KR', { hour12: false }) }])
       }
 
       es.addEventListener('start', () => {
+        if (cancelled) return
         addLine('info', '▶ 실행 시작')
       })
       es.addEventListener('output', (e) => {
+        if (cancelled) return
         const data = JSON.parse(e.data)
         const chunk = data.chunk || data.text || ''
         addLine('output', chunk)
         onOutputChunk?.(chunk)
       })
       es.addEventListener('stage', (e) => {
+        if (cancelled) return
         const data = JSON.parse(e.data)
         addLine('info', `→ ${data.label}`)
         onStageChange?.(data.stage)
       })
       es.addEventListener('screenshot', (e) => {
+        if (cancelled) return
         try {
           const data = JSON.parse((e as MessageEvent).data)
           if (data.data) {
@@ -83,6 +90,7 @@ export function LiveStreamDrawer({
         } catch { /* ignore */ }
       })
       es.addEventListener('done', () => {
+        if (cancelled) return
         setStatus('done')
         addLine('info', '✅ 완료')
         es!.close()
@@ -90,16 +98,22 @@ export function LiveStreamDrawer({
         onDone?.()
       })
       es.addEventListener('error', (e) => {
+        if (cancelled) return
         const rawData = (e as MessageEvent).data
         if (!rawData) return
         errorHandled.current = true
         try {
           const msg = JSON.parse(rawData)
+          const errMsg = msg.message || '실행 오류'
           setStatus('error')
-          addLine('error', msg.message || '실행 오류')
+          // API 키 미설정 힌트
+          const hint = errMsg.includes('401') || errMsg.includes('API key') || errMsg.includes('api_key')
+            ? '\n→ 설정 > API 키를 확인하세요'
+            : ''
+          addLine('error', errMsg + hint)
           es!.close()
           esRef.current = null
-          onError?.(msg.message || '실행 오류')
+          onError?.(errMsg)
         } catch {
           setStatus('error')
           addLine('error', rawData)
@@ -109,9 +123,9 @@ export function LiveStreamDrawer({
         }
       })
       es.onerror = () => {
-        if (errorHandled.current) return
+        if (cancelled || errorHandled.current) return
         setStatus('error')
-        addLine('error', '서버 연결 실패 — 앱을 재시작하세요')
+        addLine('error', '서버 연결 실패 — 백엔드가 실행 중인지 확인하세요')
         es!.close()
         esRef.current = null
         onError?.('연결 오류')
@@ -121,6 +135,7 @@ export function LiveStreamDrawer({
     connect()
 
     return () => {
+      cancelled = true
       es?.close()
       esRef.current = null
     }

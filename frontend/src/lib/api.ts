@@ -168,6 +168,10 @@ export const settingsApi = {
     settingsAxios.get('/api/settings/api-key/status').then(r => r.data),
   get: (): Promise<{ anthropic_api_key: string | null; google_configured: boolean }> =>
     settingsAxios.get('/api/settings').then(r => r.data),
+  setGoogleOAuth: (client_id: string, client_secret: string): Promise<{ success: boolean; message: string }> =>
+    api.post('/api/settings/google-oauth', { client_id, client_secret }).then(r => r.data),
+  getGoogleOAuth: (): Promise<{ configured: boolean; client_id_masked: string | null }> =>
+    api.get('/api/settings/google-oauth').then(r => r.data),
 }
 
 // CDP 연동 API

@@ -118,5 +118,32 @@ export function settingsRouter(): Router {
     res.json({ success: true });
   });
 
+  // POST /api/settings/google-oauth — Google OAuth 클라이언트 ID/Secret 저장
+  router.post('/google-oauth', (req: Request, res: Response) => {
+    const { client_id, client_secret } = req.body as { client_id?: string; client_secret?: string };
+    if (!client_id || client_id.length < 10) {
+      res.status(400).json({ error: 'Google 클라이언트 ID를 입력하세요' });
+      return;
+    }
+    if (!client_secret || client_secret.length < 8) {
+      res.status(400).json({ error: 'Google 클라이언트 Secret을 입력하세요' });
+      return;
+    }
+    saveSettings({ google_client_id: client_id, google_client_secret: client_secret });
+    // 즉시 process.env 업데이트 (재시작 없이 반영)
+    process.env.GOOGLE_CLIENT_ID = client_id;
+    process.env.GOOGLE_CLIENT_SECRET = client_secret;
+    res.json({ success: true, message: 'Google OAuth 설정이 저장되었습니다' });
+  });
+
+  // GET /api/settings/google-oauth — Google OAuth 설정 상태
+  router.get('/google-oauth', (_req: Request, res: Response) => {
+    const settings = readSettings();
+    res.json({
+      configured: !!(settings.google_client_id && settings.google_client_secret),
+      client_id_masked: settings.google_client_id ? maskApiKey(settings.google_client_id) : null,
+    });
+  });
+
   return router;
 }

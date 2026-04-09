@@ -65,6 +65,15 @@ export function initDb(): DbClient {
   // 기본 스키마 적용 (IF NOT EXISTS로 멱등)
   db.exec(SCHEMA_SQL);
 
+  // 구버전 DB 방어 패치: token_usage.mission_id 컬럼이 없으면 추가
+  // (CREATE TABLE IF NOT EXISTS는 기존 테이블의 누락 컬럼을 추가하지 않으므로 별도 처리)
+  try {
+    db.exec("ALTER TABLE token_usage ADD COLUMN mission_id TEXT DEFAULT ''");
+    logger.info('[DB] token_usage.mission_id 컬럼 추가 완료 (구버전 DB 마이그레이션)');
+  } catch {
+    // 이미 존재하면 무시 ("duplicate column name" 오류)
+  }
+
   // 버전 기반 마이그레이션 실행
   const migrationResults = runMigrations(db);
   const failedMigrations = migrationResults.filter(

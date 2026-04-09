@@ -3,7 +3,7 @@ import {
   Download, Upload, AlertTriangle, CheckCircle, Loader2,
   User, CreditCard, Key, Database, ExternalLink, X
 } from 'lucide-react'
-import { backupApi, profileApi, paymentsApi, integrationsSettingsApi, type Subscription } from '../lib/api'
+import { backupApi, profileApi, paymentsApi, integrationsSettingsApi, settingsApi, type Subscription } from '../lib/api'
 
 interface MsgState {
   type: 'success' | 'error'
@@ -90,6 +90,13 @@ export default function SettingsPage() {
   const [intMsg, setIntMsg] = useState<MsgState | null>(null)
   const [intSaving, setIntSaving] = useState(false)
 
+  // Google OAuth 설정
+  const [googleClientId, setGoogleClientId] = useState('')
+  const [googleClientSecret, setGoogleClientSecret] = useState('')
+  const [googleOAuth, setGoogleOAuth] = useState<{ configured: boolean; client_id_masked: string | null } | null>(null)
+  const [googleMsg, setGoogleMsg] = useState<MsgState | null>(null)
+  const [googleSaving, setGoogleSaving] = useState(false)
+
   // ── 구독 정보 로드 ──────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -105,6 +112,7 @@ export default function SettingsPage() {
       })
       .finally(() => setSubLoading(false))
     integrationsSettingsApi.get().then(setIntegrations).catch(() => {})
+    settingsApi.getGoogleOAuth().then(setGoogleOAuth).catch(() => {})
   }, [])
 
   // ── 프로필 저장 ──────────────────────────────────────────────────────────
@@ -256,6 +264,29 @@ export default function SettingsPage() {
     } finally {
       setImportLoading(false)
       setPendingFile(null)
+    }
+  }
+
+  // ── Google OAuth 저장 ────────────────────────────────────────────────────
+
+  const handleGoogleOAuthSave = async () => {
+    if (!googleClientId.trim() || !googleClientSecret.trim()) {
+      setGoogleMsg({ type: 'error', text: '클라이언트 ID와 Secret을 모두 입력하세요' })
+      return
+    }
+    setGoogleSaving(true)
+    setGoogleMsg(null)
+    try {
+      await settingsApi.setGoogleOAuth(googleClientId.trim(), googleClientSecret.trim())
+      const updated = await settingsApi.getGoogleOAuth()
+      setGoogleOAuth(updated)
+      setGoogleClientId('')
+      setGoogleClientSecret('')
+      setGoogleMsg({ type: 'success', text: 'Google OAuth 설정이 저장되었습니다' })
+    } catch {
+      setGoogleMsg({ type: 'error', text: 'Google OAuth 설정 저장에 실패했습니다' })
+    } finally {
+      setGoogleSaving(false)
     }
   }
 
@@ -633,6 +664,53 @@ export default function SettingsPage() {
         </div>
 
         {intMsg && <MsgBox msg={intMsg} />}
+      </SectionCard>
+
+      {/* ── 5. Google OAuth 설정 ────────────────────────────────────── */}
+      <SectionCard>
+        <SectionTitle icon={<Key size={16} />} title="Google 소셜 로그인 설정" />
+        <p className="text-muted text-sm mb-4">
+          Google OAuth 클라이언트 ID와 Secret을 입력하면 구글 계정으로 로그인할 수 있습니다.
+        </p>
+
+        {googleOAuth?.configured && (
+          <div className="flex items-center gap-2 mb-3 p-2.5 bg-green-900/10 border border-green-800/20 rounded-lg">
+            <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
+            <span className="text-xs text-green-400">연동됨 — {googleOAuth.client_id_masked}</span>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <div>
+            <label className="block text-[12px] text-muted mb-1">클라이언트 ID</label>
+            <input
+              value={googleClientId}
+              onChange={e => setGoogleClientId(e.target.value)}
+              placeholder="xxxx.apps.googleusercontent.com"
+              className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted/50 focus:outline-none focus:border-primary/60"
+            />
+          </div>
+          <div>
+            <label className="block text-[12px] text-muted mb-1">클라이언트 Secret</label>
+            <input
+              type="password"
+              value={googleClientSecret}
+              onChange={e => setGoogleClientSecret(e.target.value)}
+              placeholder="GOCSPX-..."
+              className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted/50 focus:outline-none focus:border-primary/60"
+            />
+          </div>
+          <button
+            onClick={handleGoogleOAuthSave}
+            disabled={googleSaving || !googleClientId.trim() || !googleClientSecret.trim()}
+            className="mt-1 flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-40"
+          >
+            {googleSaving ? <Loader2 size={13} className="animate-spin" /> : null}
+            저장
+          </button>
+        </div>
+
+        {googleMsg && <MsgBox msg={googleMsg} />}
       </SectionCard>
 
       {/* ── 결제 안내 모달 ──────────────────────────────────────────── */}

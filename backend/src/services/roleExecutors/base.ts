@@ -75,6 +75,6 @@ export async function streamClaude(ctx: ExecutorContext, systemPrompt: string, u
     }
   }
 
-  await saveTokenUsage(ctx.db, ctx.agent.id, ctx.agent.mission_id, inputTokens, outputTokens, model)
+  await saveTokenUsage(ctx.db, ctx.agent.id, ctx.agent.mission_id, inputTokens, outputTokens, model).catch(() => {/* 토큰 사용량 저장 실패는 비치명적 */})
   return fullText
 }
