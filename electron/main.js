@@ -100,12 +100,16 @@ function launchBackend(backendPath, done) {
 function createWindow() {
   setupCSP()
 
+  // Windows/Linux 기본 애플리케이션 메뉴 (File/Edit/View/Help) 제거
+  Menu.setApplicationMenu(null)
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 1024,
     minHeight: 700,
     backgroundColor: '#0F0F10',
+    autoHideMenuBar: true,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
