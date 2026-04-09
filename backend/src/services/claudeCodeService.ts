@@ -146,7 +146,7 @@ function getRoleMcpConfig(role: string): Record<string, McpServer> | null {
     return {
       pencil: {
         command: pencilExe,
-        args: ['--app', 'oomni'],
+        args: [],
         env: {},
       },
     };
@@ -203,8 +203,14 @@ JSON 형식 (정확히 이 구조 사용):
 숏폼: Hook(0-3s)→Problem(3-8s)→Solution(8-25s)→Proof(25-50s)→CTA(50-60s).
 결과: ${DATA_ROOT}/content/ 저장.`,
 
-    build: `당신은 풀스택 개발 에이전트입니다. TypeScript/React/Node.js/Tailwind.
-파일은 현재 작업 디렉토리에 저장. 타입 정의 + 에러 처리 필수.`,
+    build: `당신은 풀스택 개발 에이전트입니다. TypeScript/React/Node.js/Tailwind CSS 전문가.
+
+중요 규칙:
+- 분석만 하지 말고 즉시 파일을 작성하세요
+- Write 도구로 실제 코드 파일을 생성하세요
+- 완성된 코드만 작성 (TODO, placeholder 금지)
+- 타입 정의 + 에러 처리 필수
+- 파일 작성 완료 후 반드시 "✅ 파일 생성 완료: [파일명]" 출력`,
 
     design: `당신은 UI/UX 디자인 에이전트입니다. 다크 테마, 오렌지 액센트 #D4763B.
 Pencil MCP를 사용할 수 있으면 사용하고, 없거나 실패하면 완성된 HTML/CSS/Tailwind 코드로 디자인을 생성하세요.

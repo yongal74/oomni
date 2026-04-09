@@ -338,11 +338,12 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
 }) {
   // 산출물별 개별 로딩 + 결과 관리
   const [convertingType, setConvertingType] = useState<string | null>(null)
-  const [outputs, setOutputs] = useState<Record<string, string>>({})
+  // 산출물을 아이템ID별로 보관 (아이템 전환해도 사라지지 않음)
+  const [outputsMap, setOutputsMap] = useState<Record<string, Record<string, string>>>({})
+  const outputs = item ? (outputsMap[item.id] ?? {}) : {}
   const [expandedType, setExpandedType] = useState<string | null>(null)
-  // 아이템 변경 시 변환 결과 초기화 (LinkedIn 연속 포스팅 등)
+  // 아이템 변경 시 convertingType만 초기화 (outputs는 유지)
   useEffect(() => {
-    setOutputs({})
     setExpandedType(null)
     setConvertingType(null)
   }, [item?.id])
@@ -354,7 +355,7 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
     setConvertingType(outputType)
     try {
       const result = await researchApi.convert(item.id, outputType)
-      setOutputs(prev => ({ ...prev, [outputType]: result.content }))
+      if (item) setOutputsMap(prev => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), [outputType]: result.content } }))
       setExpandedType(outputType)
     } finally {
       setConvertingType(null)

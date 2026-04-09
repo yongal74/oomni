@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import {
   agentsApi, feedApi, costApi, issuesApi, schedulesApi, reportsApi,
+  missionsApi,
   api,
   type FeedItem, type Agent, type Issue, type Schedule,
 } from '../lib/api'
@@ -90,7 +91,8 @@ interface TodoItem {
 export default function DashboardPage() {
   const qc = useQueryClient()
   const navigate = useNavigate()
-  const { currentMission, agents, setAgents, setPendingApprovals } = useAppStore()
+  const { currentMission, agents, setAgents, setPendingApprovals, setCurrentMission } = useAppStore()
+
   const [searchParams, setSearchParams] = useSearchParams()
   const [showAddBot, setShowAddBot] = useState(false)
   const [createBotError, setCreateBotError] = useState<string | null>(null)
@@ -112,6 +114,16 @@ export default function DashboardPage() {
   const [newTodoText, setNewTodoText] = useState('')
 
   const missionId = currentMission?.id
+
+  // 앱 재시작 시 store가 리셋되면 미션 자동 로드
+  useEffect(() => {
+    if (!currentMission) {
+      missionsApi.list().then(missions => {
+        if (missions.length > 0) setCurrentMission(missions[0])
+      }).catch(() => {})
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // 에이전트 로드
   const { data: agentsData, isLoading: agentsLoading } = useQuery({

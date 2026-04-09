@@ -344,33 +344,14 @@ ipcMain.handle('google-oauth-start', async () => {
 
   oauthWindow.loadURL('http://localhost:3001/api/auth/google')
 
-  // 콜백 완료 감지 — 토큰이 설정된 후 창 닫기
+  // 구글 콜백 URL 도달 시 → 백엔드가 토큰 설정할 시간(3초) 후 창 닫기
+  // 토큰 폴링은 PinPage 렌더러에서만 하고 main process는 하지 않음
   oauthWindow.webContents.on('did-navigate', (_event, url) => {
-    // 콜백 처리 완료 후 리다이렉트된 최종 페이지 감지
-    if (url.includes('oauth-success') || url.includes('login-success') || url.includes('pending-token')) {
-      setTimeout(() => { if (!oauthWindow.isDestroyed()) oauthWindow.close() }, 500)
+    if (url.includes('/api/auth/google/callback') || url.includes('google/callback')) {
+      // 콜백 처리 완료까지 3초 대기 후 창 닫기
+      setTimeout(() => { if (!oauthWindow.isDestroyed()) oauthWindow.close() }, 3000)
     }
   })
-
-  oauthWindow.webContents.on('did-navigate-in-page', (_event, url) => {
-    if (url.includes('oauth-success') || url.includes('login-success')) {
-      setTimeout(() => { if (!oauthWindow.isDestroyed()) oauthWindow.close() }, 500)
-    }
-  })
-
-  // 백엔드 콜백 완료 폴링 — 토큰이 생기면 창 닫기
-  const closePoller = setInterval(async () => {
-    try {
-      const res = await fetch('http://localhost:3001/api/auth/google/pending-token')
-      const data = await res.json()
-      if (data.token) {
-        clearInterval(closePoller)
-        setTimeout(() => { if (!oauthWindow.isDestroyed()) oauthWindow.close() }, 300)
-      }
-    } catch { /* 무시 */ }
-  }, 800)
-
-  oauthWindow.on('closed', () => clearInterval(closePoller))
 
   return { started: true }
 })
