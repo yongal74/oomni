@@ -285,7 +285,25 @@ function ColorRow({ label, value, onChange }: { label: string; value: string; on
   )
 }
 
-// ── CENTER: 생성된 디자인 미리보기 ──────────────────────────────
+// HTML 추출 — 완성된 블록 우선, 스트리밍 중이면 부분 HTML
+function extractHtml(text: string, allowPartial = false): string | null {
+  // 완성된 코드블록
+  const complete = text.match(/```html([\s\S]*?)```/)
+  if (complete) return complete[1].trim()
+  // 스트리밍 중: 아직 닫히지 않은 블록에서 최소 200자 이상이면 렌더링
+  if (allowPartial) {
+    const partial = text.match(/```html([\s\S]{200,})$/)
+    if (partial) {
+      const html = partial[1].trim()
+      // 최소한 렌더링 가능하도록 닫기
+      if (!html.includes('</body>')) return html + '\n</body></html>'
+      return html
+    }
+  }
+  return null
+}
+
+// ── CENTER: 생성된 디자인 미리보기 (실시간 스트리밍 HTML 프리뷰) ─
 export function DesignCenterPanel({
   agentId,
   streamOutput,
@@ -296,39 +314,31 @@ export function DesignCenterPanel({
   isRunning?: boolean
   screenshotUrl?: string | null
 }) {
-  const { data: feed = [] } = useQuery({
+  const { data: feed = [], refetch } = useQuery({
     queryKey: ['bot-feed', agentId],
     queryFn: () => agentsApi.runs(agentId),
     select: (data: FeedItem[]) => data.filter(f => f.type === 'result'),
-    refetchInterval: 3000,
+    refetchInterval: isRunning ? false : 2000,
   })
 
   const latest = feed[0]
-
-  // HTML 미리보기 추출
-  const extractHtml = (text: string) => {
-    const match = text.match(/```html([\s\S]*?)```/)
-    return match ? match[1].trim() : null
-  }
-
-  const htmlContent = latest?.content ? extractHtml(latest.content) : null
   const [showPreview, setShowPreview] = useState(true)
 
-  if (isRunning) {
-    return (
-      <div className="h-full flex flex-col overflow-hidden">
-        <div className="flex items-center gap-2 px-5 py-3 border-b border-border bg-surface shrink-0">
-          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-          <span className="text-[13px] text-muted">디자인 생성 중... (고품질 출력에 약 2-3분 소요)</span>
-        </div>
-        <div className="h-full overflow-y-auto p-5">
-          <pre className="text-[13px] text-muted leading-relaxed whitespace-pre-wrap font-sans">{streamOutput || ''}</pre>
-        </div>
-      </div>
-    )
-  }
+  // 실행 완료 시 feed 즉시 갱신
+  useEffect(() => {
+    if (!isRunning && streamOutput) {
+      setTimeout(() => refetch(), 500)
+    }
+  }, [isRunning]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!latest && !streamOutput) {
+  // 스트리밍 중: 실시간 HTML 추출 (부분 허용)
+  const liveHtml = isRunning ? extractHtml(streamOutput ?? '', true) : null
+  // 완료 후: feed에서 HTML 추출 (부분 HTML도 허용)
+  const finalHtml = latest?.content ? extractHtml(latest.content, true) : null
+  const displayHtml = liveHtml ?? finalHtml
+
+  // 빈 상태
+  if (!isRunning && !displayHtml && !streamOutput) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-8">
         <Palette size={40} className="text-muted/20" />
@@ -338,7 +348,7 @@ export function DesignCenterPanel({
           <p className="text-[12px] text-muted mt-1">또는 하단 입력창에 직접 입력</p>
         </div>
         <div className="grid grid-cols-3 gap-2 w-full max-w-sm mt-2">
-          {['Linear 스타일', 'Stripe 스타일', 'Apple 스타일'].map(s => (
+          {['다크 랜딩 페이지', 'SaaS 대시보드', '앱 로그인 화면'].map(s => (
             <div key={s} className="bg-surface border border-border rounded-lg p-3 text-center">
               <p className="text-[11px] text-muted">{s}</p>
             </div>
@@ -351,38 +361,45 @@ export function DesignCenterPanel({
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* 탭 바 */}
-      {htmlContent && (
-        <div className="flex items-center gap-1 px-4 py-2 border-b border-border bg-surface shrink-0">
-          <button
-            onClick={() => setShowPreview(true)}
-            className={cn('px-3 py-1.5 rounded text-[12px] transition-colors', showPreview ? 'bg-primary/10 text-primary' : 'text-muted hover:text-text')}
-          >
-            미리보기
-          </button>
-          <button
-            onClick={() => setShowPreview(false)}
-            className={cn('px-3 py-1.5 rounded text-[12px] transition-colors', !showPreview ? 'bg-primary/10 text-primary' : 'text-muted hover:text-text')}
-          >
-            코드
-          </button>
-        </div>
-      )}
+      <div className="flex items-center gap-1 px-4 py-2 border-b border-border bg-surface shrink-0">
+        {isRunning && (
+          <div className="flex items-center gap-1.5 mr-3">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-[11px] text-muted">{liveHtml ? '실시간 프리뷰' : '생성 중...'}</span>
+          </div>
+        )}
+        <button
+          onClick={() => setShowPreview(true)}
+          className={cn('px-3 py-1.5 rounded text-[12px] transition-colors', showPreview ? 'bg-primary/10 text-primary' : 'text-muted hover:text-text')}
+        >
+          미리보기
+        </button>
+        <button
+          onClick={() => setShowPreview(false)}
+          className={cn('px-3 py-1.5 rounded text-[12px] transition-colors', !showPreview ? 'bg-primary/10 text-primary' : 'text-muted hover:text-text')}
+        >
+          코드
+        </button>
+      </div>
 
       <div className="flex-1 overflow-hidden">
-        {htmlContent && showPreview ? (
+        {showPreview && displayHtml ? (
+          // 실시간 HTML 프리뷰 — 스트리밍 중에도 업데이트됨
           <iframe
-            srcDoc={htmlContent}
+            srcDoc={displayHtml}
             className="w-full h-full border-0"
             title="Design Preview"
-            sandbox="allow-scripts"
+            sandbox="allow-scripts allow-same-origin"
           />
         ) : (
           <div className="h-full overflow-y-auto p-5">
-            <p className="text-[11px] text-muted mb-2">
-              {new Date(latest?.created_at ?? Date.now()).toLocaleString('ko-KR')}
-            </p>
+            {latest?.created_at && !isRunning && (
+              <p className="text-[11px] text-muted mb-2">
+                {new Date(latest.created_at).toLocaleString('ko-KR')}
+              </p>
+            )}
             <pre className="text-[12px] text-muted leading-relaxed whitespace-pre-wrap font-mono">
-              {latest?.content ?? streamOutput}
+              {latest?.content ?? streamOutput ?? ''}
             </pre>
           </div>
         )}

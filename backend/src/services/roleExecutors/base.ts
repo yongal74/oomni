@@ -48,7 +48,7 @@ export async function saveTokenUsage(db: DbClient, agentId: string, missionId: s
 }
 
 // Stream Claude API response to SSE, returns full text
-export async function streamClaude(ctx: ExecutorContext, systemPrompt: string, userMessage: string, model = DEFAULT_MODEL): Promise<string> {
+export async function streamClaude(ctx: ExecutorContext, systemPrompt: string, userMessage: string, model = DEFAULT_MODEL, maxTokens = 8192): Promise<string> {
   const client = getAnthropicClient()
   let fullText = ''
   let inputTokens = 0
@@ -56,7 +56,7 @@ export async function streamClaude(ctx: ExecutorContext, systemPrompt: string, u
 
   const stream = await client.messages.create({
     model,
-    max_tokens: 4096,
+    max_tokens: maxTokens,
     system: systemPrompt,
     messages: [{ role: 'user', content: userMessage }],
     stream: true,

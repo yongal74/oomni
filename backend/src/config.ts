@@ -9,8 +9,10 @@ import * as fs from 'fs';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
 import os from 'os';
 
-// .env 파일 로드 (개발 환경)
-dotenvConfig({ path: path.resolve(__dirname, '../../.env') });
+// .env 파일 로드 (개발 환경) — backend/.env 우선, 없으면 루트 .env 폴백
+const backendEnvPath = path.resolve(__dirname, '../.env');
+const rootEnvPath = path.resolve(__dirname, '../../.env');
+dotenvConfig({ path: fs.existsSync(backendEnvPath) ? backendEnvPath : rootEnvPath });
 
 // 설정 파일 경로 — 사용자별 AppData (C: 루트보다 안전)
 const DATA_DIR = process.env.APPDATA
