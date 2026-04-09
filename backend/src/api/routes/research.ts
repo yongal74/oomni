@@ -478,6 +478,44 @@ ${sourceContext}
     }
   });
 
+  // PATCH /api/research/items/:id/outputs — convert 산출물 저장
+  router.patch('/items/:id/outputs', async (req: Request, res: Response) => {
+    try {
+      const { outputs } = req.body as { outputs?: Record<string, string> };
+      if (!outputs || typeof outputs !== 'object') {
+        res.status(400).json({ error: 'outputs 객체가 필요합니다' });
+        return;
+      }
+      await db.query(
+        'UPDATE research_items SET outputs_json = $1 WHERE id = $2',
+        [JSON.stringify(outputs), req.params.id]
+      );
+      res.json({ success: true });
+    } catch (err) {
+      logger.error('[research] PATCH /items/:id/outputs 오류', err);
+      res.status(500).json({ error: '서버 내부 오류' });
+    }
+  });
+
+  // GET /api/research/items/:id/outputs — convert 산출물 조회
+  router.get('/items/:id/outputs', async (req: Request, res: Response) => {
+    try {
+      const result = await db.query(
+        'SELECT outputs_json FROM research_items WHERE id = $1',
+        [req.params.id]
+      );
+      if ((result.rows as unknown[]).length === 0) {
+        res.json({ data: {} });
+        return;
+      }
+      const row = (result.rows as { outputs_json?: string }[])[0];
+      res.json({ data: row?.outputs_json ? JSON.parse(row.outputs_json) : {} });
+    } catch (err) {
+      logger.error('[research] GET /items/:id/outputs 오류', err);
+      res.status(500).json({ error: '서버 내부 오류' });
+    }
+  });
+
   // DELETE /api/research/:id
   router.delete('/:id', async (req: Request, res: Response) => {
     try {

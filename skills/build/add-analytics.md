@@ -157,10 +157,12 @@ export const analytics = {
 
 ## 저장 위치
 
-- `C:/Users/장우경/oomni/backend/src/lib/analytics/`
-- `C:/Users/장우경/oomni/backend/src/hooks/useAnalytics.ts`
-- `C:/Users/장우경/oomni/backend/src/components/providers/PostHogProvider.tsx`
+- 사용자 프로젝트의 `src/lib/analytics/`
+- 사용자 프로젝트의 `src/hooks/useAnalytics.ts`
+- 사용자 프로젝트의 `src/components/providers/PostHogProvider.tsx`
 - `C:/oomni-data/docs/analytics-setup_YYYY-MM-DD.md`
+
+> **주의**: 파일은 반드시 사용자 프로젝트 경로에 저장하세요. OOMNI 앱 소스(`C:/Users/장우경/oomni/`) 경로에는 절대 저장하지 마세요.
 
 ## 추가 인자
 

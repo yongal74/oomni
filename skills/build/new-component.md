@@ -5,8 +5,8 @@
 ## 실행 단계
 
 1. **프로젝트 구조 파악**
-   - `C:/Users/장우경/oomni/backend/package.json` 읽어 프레임워크 버전 확인
-   - `C:/Users/장우경/oomni/frontend/src/components/` 디렉터리 구조 파악
+   - 사용자 프로젝트의 `package.json` 읽어 프레임워크 버전 확인
+   - 사용자 프로젝트의 `src/components/` 디렉터리 구조 파악
    - 기존 컴포넌트 1개 읽어 코딩 스타일, import 패턴 확인
    - `tailwind.config.ts` 읽어 커스텀 색상/폰트/spacing 확인
 
@@ -174,8 +174,10 @@ src/components/[카테고리]/[ComponentName]/
 
 ## 저장 위치
 
-- `C:/Users/장우경/oomni/frontend/src/components/[카테고리]/[ComponentName]/`
+- 사용자 프로젝트의 `src/components/[카테고리]/[ComponentName]/` 폴더
 - `C:/oomni-data/build/components/component-log_YYYY-MM-DD.json` (생성 이력)
+
+> **주의**: 파일은 반드시 사용자 프로젝트 경로에 저장하세요. OOMNI 앱 소스(`C:/Users/장우경/oomni/`) 경로에는 절대 저장하지 마세요.
 
 ## 추가 인자
 

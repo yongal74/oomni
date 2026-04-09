@@ -146,6 +146,7 @@ CREATE TABLE IF NOT EXISTS research_items (
   filter_decision TEXT DEFAULT 'pending',
   next_action TEXT,
   converted_output TEXT,
+  outputs_json TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_research_items_mission_id ON research_items(mission_id);
@@ -287,6 +288,11 @@ const MIGRATIONS: Migration[] = [
     description: 'users 테이블 display_name 컬럼 추가',
     sql: `ALTER TABLE users ADD COLUMN display_name TEXT;`,
     // SQLite는 ALTER TABLE DROP COLUMN을 지원하지 않으므로 rollbackSql 생략
+  },
+  {
+    version: 5,
+    description: 'research_items 테이블 outputs_json 컬럼 추가',
+    sql: `ALTER TABLE research_items ADD COLUMN outputs_json TEXT;`,
   },
 ];
 

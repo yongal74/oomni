@@ -342,10 +342,18 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
   const [outputsMap, setOutputsMap] = useState<Record<string, Record<string, string>>>({})
   const outputs = item ? (outputsMap[item.id] ?? {}) : {}
   const [expandedType, setExpandedType] = useState<string | null>(null)
-  // 아이템 변경 시 convertingType만 초기화 (outputs는 유지)
+  // 아이템 변경 시 convertingType 초기화 + DB에서 outputs 로드 (캐시 미스 시)
   useEffect(() => {
     setExpandedType(null)
     setConvertingType(null)
+    if (!item) return
+    if (!outputsMap[item.id]) {
+      researchApi.loadOutputs(item.id).then(saved => {
+        if (saved && Object.keys(saved).length > 0) {
+          setOutputsMap(prev => ({ ...prev, [item.id]: saved }))
+        }
+      }).catch(() => {})
+    }
   }, [item?.id])
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -355,7 +363,12 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
     setConvertingType(outputType)
     try {
       const result = await researchApi.convert(item.id, outputType)
-      if (item) setOutputsMap(prev => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), [outputType]: result.content } }))
+      if (item) {
+        const newOutputs = { ...(outputsMap[item.id] ?? {}), [outputType]: result.content }
+        setOutputsMap(prev => ({ ...prev, [item.id]: newOutputs }))
+        // DB에 저장 (영속화)
+        researchApi.saveOutputs(item.id, newOutputs).catch(() => {})
+      }
       setExpandedType(outputType)
     } finally {
       setConvertingType(null)

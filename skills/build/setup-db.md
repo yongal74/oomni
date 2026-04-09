@@ -164,11 +164,13 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 ## 저장 위치
 
-- `C:/Users/장우경/oomni/backend/prisma/schema.prisma`
-- `C:/Users/장우경/oomni/backend/prisma/seed.ts`
-- `C:/Users/장우경/oomni/backend/src/lib/prisma.ts`
-- `C:/Users/장우경/oomni/backend/src/lib/db/`
+- 사용자 프로젝트의 `prisma/schema.prisma`
+- 사용자 프로젝트의 `prisma/seed.ts`
+- 사용자 프로젝트의 `src/lib/prisma.ts`
+- 사용자 프로젝트의 `src/lib/db/`
 - `C:/oomni-data/docs/db-setup_YYYY-MM-DD.md`
+
+> **주의**: 파일은 반드시 사용자 프로젝트 경로에 저장하세요. OOMNI 앱 소스(`C:/Users/장우경/oomni/`) 경로에는 절대 저장하지 마세요.
 
 ## 추가 인자
 

@@ -238,12 +238,14 @@ export function PaymentWidget({ orderId, orderName, amount, customerName, custom
 
 ## 저장 위치
 
-- `C:/Users/장우경/oomni/backend/src/lib/payment/`
-- `C:/Users/장우경/oomni/backend/src/components/payment/`
-- `C:/Users/장우경/oomni/backend/src/app/api/payment/`
-- `C:/Users/장우경/oomni/backend/src/app/payment/`
-- `C:/Users/장우경/oomni/backend/prisma/schema.prisma` (수정)
+- 사용자 프로젝트의 `src/lib/payment/`
+- 사용자 프로젝트의 `src/components/payment/`
+- 사용자 프로젝트의 `src/app/api/payment/`
+- 사용자 프로젝트의 `src/app/payment/`
+- 사용자 프로젝트의 `prisma/schema.prisma` (수정)
 - `C:/oomni-data/docs/payment-setup_YYYY-MM-DD.md` (설정 가이드)
+
+> **주의**: 파일은 반드시 사용자 프로젝트 경로에 저장하세요. OOMNI 앱 소스(`C:/Users/장우경/oomni/`) 경로에는 절대 저장하지 마세요.
 
 ## 추가 인자
 

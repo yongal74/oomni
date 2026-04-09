@@ -206,13 +206,15 @@ export const config = {
 
 ## 저장 위치
 
-- `C:/Users/장우경/oomni/backend/src/auth.ts`
-- `C:/Users/장우경/oomni/backend/middleware.ts`
-- `C:/Users/장우경/oomni/backend/src/app/api/auth/`
-- `C:/Users/장우경/oomni/backend/src/app/auth/`
-- `C:/Users/장우경/oomni/backend/src/components/auth/`
-- `C:/Users/장우경/oomni/backend/src/lib/auth.ts`
+- 사용자 프로젝트의 `src/auth.ts`
+- 사용자 프로젝트의 `middleware.ts`
+- 사용자 프로젝트의 `src/app/api/auth/`
+- 사용자 프로젝트의 `src/app/auth/`
+- 사용자 프로젝트의 `src/components/auth/`
+- 사용자 프로젝트의 `src/lib/auth.ts`
 - `C:/oomni-data/docs/auth-setup_YYYY-MM-DD.md`
+
+> **주의**: 파일은 반드시 사용자 프로젝트 경로에 저장하세요. OOMNI 앱 소스(`C:/Users/장우경/oomni/`) 경로에는 절대 저장하지 마세요.
 
 ## 추가 인자
 

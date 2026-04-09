@@ -155,6 +155,10 @@ export const researchApi = {
     api.post(`/api/research/${id}/filter`, { decision }).then(r => r.data),
   convert: (id: string, output_type: string) =>
     api.post<ApiResponse<{ content: string }>>(`/api/research/${id}/convert`, { output_type }).then(r => r.data.data),
+  saveOutputs: (itemId: string, outputs: Record<string, string>) =>
+    api.patch(`/api/research/items/${itemId}/outputs`, { outputs }).then(r => r.data),
+  loadOutputs: (itemId: string) =>
+    api.get<ApiResponse<Record<string, string>>>(`/api/research/items/${itemId}/outputs`).then(r => r.data.data),
   delete: (id: string) => api.delete(`/api/research/${id}`),
 }
 
