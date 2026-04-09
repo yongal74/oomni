@@ -207,7 +207,8 @@ JSON 형식 (정확히 이 구조 사용):
 파일은 현재 작업 디렉토리에 저장. 타입 정의 + 에러 처리 필수.`,
 
     design: `당신은 UI/UX 디자인 에이전트입니다. 다크 테마, 오렌지 액센트 #D4763B.
-Pencil MCP로 실제 디자인 생성. 결과: ${DATA_ROOT}/design/ 저장.`,
+Pencil MCP를 사용할 수 있으면 사용하고, 없거나 실패하면 완성된 HTML/CSS/Tailwind 코드로 디자인을 생성하세요.
+결과물은 반드시 ${DATA_ROOT}/design/ 폴더에 저장하고, 생성한 코드를 응답에 포함하세요.`,
 
     growth: `당신은 그로스 해킹 에이전트입니다. KPI + 실행 액션 아이템 제시.
 결과: ${DATA_ROOT}/growth/ 저장.`,
@@ -382,6 +383,8 @@ export class ClaudeCodeService {
 
     const { execPath: nodeExec, extraEnv: nodeEnv } = getNodeExecutable();
 
+    const TIMEOUT_MS = 5 * 60 * 1000; // 5분 타임아웃
+
     return new Promise<void>((resolve) => {
       this.proc = spawn(nodeExec, args, {
         cwd: wsPath,
@@ -392,6 +395,16 @@ export class ClaudeCodeService {
         },
         stdio: ['ignore', 'pipe', 'pipe'],
       });
+
+      // 타임아웃: 5분 초과 시 강제 종료
+      const timeoutId = setTimeout(() => {
+        if (this.proc && !this.stopped) {
+          send('output', { text: '\n⏱️ 실행 시간이 5분을 초과하여 종료되었습니다.' });
+          this.stop();
+          send('done', { success: false, exitCode: -1 });
+          resolve();
+        }
+      }, TIMEOUT_MS);
 
       let buf = '';
 
@@ -419,6 +432,7 @@ export class ClaudeCodeService {
       });
 
       this.proc.on('close', (code) => {
+        clearTimeout(timeoutId);
         if (buf.trim()) {
           try { this.handleEvent(JSON.parse(buf), send); }
           catch { send('output', { text: buf }); }

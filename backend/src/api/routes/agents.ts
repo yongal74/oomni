@@ -383,8 +383,16 @@ export function agentsRouter(db: DbClient): Router {
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
 
+    // output 텍스트 축적 (실행 기록에 저장용)
+    let accumulatedOutput = '';
     const send = (event: string, data: unknown) => {
       res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      // output/tool_use 이벤트 텍스트 축적
+      if (event === 'output' && data && typeof data === 'object') {
+        const d = data as Record<string, unknown>;
+        if (typeof d.text === 'string') accumulatedOutput += d.text;
+        if (typeof d.chunk === 'string') accumulatedOutput += d.chunk;
+      }
     };
 
     const taskStr = task ?? '정기 실행';
@@ -422,19 +430,21 @@ export function agentsRouter(db: DbClient): Router {
         await routeToExecutor({ agent: agentFull, task: taskStr, db, send });
         send('done', { success: true });
       }
-      // 실행 성공 기록
+      // 실행 성공 기록 (output 포함)
+      const outputToSave = accumulatedOutput.trim().slice(0, 50000); // 최대 50KB
       await db.query(
-        `UPDATE heartbeat_runs SET status='completed', finished_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=$1`,
-        [runId]
+        `UPDATE heartbeat_runs SET status='completed', output=$1, finished_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=$2`,
+        [outputToSave || null, runId]
       ).catch(() => {});
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       await saveFeedItem(db, agentFull.id, 'error', `실행 오류: ${errMsg}`).catch(() => {});
       send('error', { message: errMsg });
-      // 실행 실패 기록
+      // 실행 실패 기록 (output 포함)
+      const outputToSave = accumulatedOutput.trim().slice(0, 50000);
       await db.query(
-        `UPDATE heartbeat_runs SET status='failed', error=$1, finished_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=$2`,
-        [errMsg, runId]
+        `UPDATE heartbeat_runs SET status='failed', output=$1, error=$2, finished_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=$3`,
+        [outputToSave || null, errMsg, runId]
       ).catch(() => {});
     }
 

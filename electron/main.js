@@ -344,18 +344,33 @@ ipcMain.handle('google-oauth-start', async () => {
 
   oauthWindow.loadURL('http://localhost:3001/api/auth/google')
 
-  // 콜백 완료 감지
-  oauthWindow.webContents.on('will-redirect', (_event, url) => {
-    if (url.includes('/api/auth/google/callback')) {
-      setTimeout(() => { if (!oauthWindow.isDestroyed()) oauthWindow.close() }, 2000)
-    }
-  })
-
+  // 콜백 완료 감지 — 토큰이 설정된 후 창 닫기
   oauthWindow.webContents.on('did-navigate', (_event, url) => {
-    if (url.includes('auth/success') || url.includes('로그인')) {
+    // 콜백 처리 완료 후 리다이렉트된 최종 페이지 감지
+    if (url.includes('oauth-success') || url.includes('login-success') || url.includes('pending-token')) {
       setTimeout(() => { if (!oauthWindow.isDestroyed()) oauthWindow.close() }, 500)
     }
   })
+
+  oauthWindow.webContents.on('did-navigate-in-page', (_event, url) => {
+    if (url.includes('oauth-success') || url.includes('login-success')) {
+      setTimeout(() => { if (!oauthWindow.isDestroyed()) oauthWindow.close() }, 500)
+    }
+  })
+
+  // 백엔드 콜백 완료 폴링 — 토큰이 생기면 창 닫기
+  const closePoller = setInterval(async () => {
+    try {
+      const res = await fetch('http://localhost:3001/api/auth/google/pending-token')
+      const data = await res.json()
+      if (data.token) {
+        clearInterval(closePoller)
+        setTimeout(() => { if (!oauthWindow.isDestroyed()) oauthWindow.close() }, 300)
+      }
+    } catch { /* 무시 */ }
+  }, 800)
+
+  oauthWindow.on('closed', () => clearInterval(closePoller))
 
   return { started: true }
 })

@@ -412,6 +412,11 @@ export default function BotDetailPage() {
         center: <OpsCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
         right: <OpsRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} currentRole="ops" content={lastOutput} />,
       }
+      case 'n8n': return {
+        left: <OpsLeftPanel agentId={agent.id} onSkillSelect={handleSkillRun} />,
+        center: <OpsCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
+        right: <OpsRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} currentRole="n8n" content={lastOutput} />,
+      }
       case 'ceo': return {
         left: <CeoLeftPanel missionId={missionId ?? ''} />,
         center: <CeoCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,

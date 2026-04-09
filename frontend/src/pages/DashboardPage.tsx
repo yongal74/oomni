@@ -93,6 +93,7 @@ export default function DashboardPage() {
   const { currentMission, agents, setAgents, setPendingApprovals } = useAppStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const [showAddBot, setShowAddBot] = useState(false)
+  const [createBotError, setCreateBotError] = useState<string | null>(null)
   const preselectedRole = searchParams.get('role')
 
   const [feedItems, setFeedItems] = useState<FeedItem[]>([])
@@ -213,28 +214,18 @@ export default function DashboardPage() {
     onError: (err: unknown) => {
       setCreatingRole(null)
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? '봇 생성에 실패했습니다'
-      alert(msg)
+      setCreateBotError(msg)
     },
   })
 
   // 사이드바 "봇 추가" 버튼: navigate('/dashboard?addBot=true&role=xxx') 시 모달 열기
-  // role 파라미터가 있고 해당 봇이 없으면 자동 생성
+  // role이 있으면 모달에서 해당 role을 미리 선택 상태로 표시
   useEffect(() => {
     if (searchParams.get('addBot') === 'true') {
-      const role = searchParams.get('role')
-      if (role && missionId) {
-        const alreadyExists = agents.find(a => a.role === role)
-        if (!alreadyExists) {
-          setCreatingRole(role)
-          createBot.mutate(role)
-          setSearchParams({})
-          return
-        }
-      }
       setShowAddBot(true)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, missionId])
+  }, [searchParams])
 
   const approve = useMutation({
     mutationFn: (id: string) => feedApi.approve(id),
@@ -641,8 +632,18 @@ export default function DashboardPage() {
           <div className="bg-surface border border-border rounded-xl w-full max-w-2xl">
             <div className="flex items-center justify-between p-4 border-b border-border">
               <h2 className="text-base font-semibold text-text">봇 추가</h2>
-              <button onClick={() => { setShowAddBot(false); setSearchParams({}) }} className="text-muted hover:text-text"><X size={18} /></button>
+              <button onClick={() => { setShowAddBot(false); setSearchParams({}); setCreateBotError(null); createBot.reset() }} className="text-muted hover:text-text"><X size={18} /></button>
             </div>
+            {createBotError && (
+              <div className="mx-4 mt-3 px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-lg text-xs text-red-400">
+                {createBotError}
+              </div>
+            )}
+            {!missionId && (
+              <div className="mx-4 mt-3 px-3 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-xs text-yellow-400">
+                미션을 먼저 생성해주세요.
+              </div>
+            )}
             <div className="p-4 grid grid-cols-2 gap-3">
               {BOT_TEMPLATES.map(tmpl => {
                 const existingAgent = agents.find(a => a.role === tmpl.role)
@@ -654,12 +655,13 @@ export default function DashboardPage() {
                         setShowAddBot(false)
                         setSearchParams({})
                         navigate(`/dashboard/bots/${existingAgent.id}`)
-                      } else {
+                      } else if (missionId) {
+                        setCreateBotError(null)
                         setCreatingRole(tmpl.role)
                         createBot.mutate(tmpl.role)
                       }
                     }}
-                    disabled={createBot.isPending && creatingRole === tmpl.role}
+                    disabled={!missionId || (createBot.isPending && creatingRole === tmpl.role)}
                     className={`text-left p-3 rounded-lg border transition-colors disabled:opacity-50 ${
                       preselectedRole === tmpl.role
                         ? 'border-primary bg-primary/5 hover:border-primary hover:bg-primary/10'

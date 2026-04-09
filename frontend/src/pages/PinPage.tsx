@@ -73,7 +73,17 @@ export default function PinPage() {
     }
   }
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
+    // Google OAuth 설정 여부 확인
+    try {
+      const statusRes = await fetch('http://localhost:3001/api/settings/google-oauth')
+      const statusData = await statusRes.json() as { configured: boolean }
+      if (!statusData.configured) {
+        setError('Google OAuth가 설정되지 않았습니다. 설정 → Google OAuth에서 Client ID/Secret을 입력해주세요.')
+        return
+      }
+    } catch { /* 백엔드 미실행 시 무시하고 진행 */ }
+
     // Electron IPC로 Google OAuth 시작
     if (window.electronAPI?.startGoogleOAuth) {
       window.electronAPI.startGoogleOAuth()
@@ -81,9 +91,18 @@ export default function PinPage() {
       window.open('http://localhost:3001/api/auth/google', '_blank')
     }
 
-    // 1초마다 pending-token 폴링
+    // pending-token 폴링 (30초 타임아웃)
     setGooglePolling(true)
+    setError('')
+    let elapsed = 0
     pollingRef.current = setInterval(async () => {
+      elapsed += 1
+      if (elapsed > 30) {
+        if (pollingRef.current) clearInterval(pollingRef.current)
+        setGooglePolling(false)
+        setError('Google 로그인 시간이 초과되었습니다. 다시 시도해주세요.')
+        return
+      }
       try {
         const res = await fetch('http://localhost:3001/api/auth/google/pending-token')
         const data = await res.json() as { token: string | null }
