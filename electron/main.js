@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, Notification, shell, session, Menu, MenuItem } = require('electron')
 const path = require('path')
 const http = require('http')
+const fs = require('fs')
 let autoUpdater = null
 try {
   autoUpdater = require('electron-updater').autoUpdater
@@ -17,16 +18,17 @@ let mainWindow = null
 // ── 보안: CSP 헤더 ──────────────────────────────────────
 function setupCSP() {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    // file:// 프로토콜 (우리 앱 페이지)에만 CSP 적용
+    // 우리 앱 페이지(file:// 또는 localhost:5174)에만 CSP 적용
     // Firebase OAuth 팝업 페이지의 inline script 차단 방지
-    if (!details.url.startsWith('file://')) {
+    const isAppPage = details.url.startsWith('file://') || details.url.startsWith(`http://localhost:${FRONTEND_PORT}`)
+    if (!isAppPage) {
       return callback({ responseHeaders: details.responseHeaders })
     }
     callback({
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self' file: data:; script-src 'self' file: https://*.firebaseapp.com https://apis.google.com https://www.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: file:; connect-src 'self' http://localhost:3001 ws://localhost:3001 https://*.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://apis.google.com https://firestore.googleapis.com; frame-src https://*.firebaseapp.com https://accounts.google.com https://apis.google.com https://www.google.com"
+          `default-src 'self' file: data: http://localhost:${FRONTEND_PORT}; script-src 'self' file: http://localhost:${FRONTEND_PORT} https://*.firebaseapp.com https://apis.google.com https://www.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: file:; connect-src 'self' http://localhost:3001 http://localhost:${FRONTEND_PORT} ws://localhost:3001 https://*.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://apis.google.com https://firestore.googleapis.com; frame-src https://*.firebaseapp.com https://accounts.google.com https://apis.google.com https://www.google.com`
         ],
       },
     })
@@ -55,6 +57,59 @@ function waitForBackend(retries = 30, intervalMs = 500) {
       }
     }
     check()
+  })
+}
+
+// ── 프론트엔드 정적 파일 HTTP 서버 (프로덕션) ──────────────
+// file:// 대신 http://localhost:5174 서빙 → Firebase 도메인 인증(localhost) 통과
+const FRONTEND_PORT = 5174
+let frontendServer = null
+
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js':   'application/javascript',
+  '.css':  'text/css',
+  '.json': 'application/json',
+  '.png':  'image/png',
+  '.jpg':  'image/jpeg',
+  '.svg':  'image/svg+xml',
+  '.ico':  'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2':'font/woff2',
+  '.ttf':  'font/ttf',
+}
+
+function startFrontendServer(distPath) {
+  return new Promise((resolve) => {
+    frontendServer = http.createServer((req, res) => {
+      let urlPath = req.url.split('?')[0]
+      if (urlPath === '/' || !path.extname(urlPath)) {
+        urlPath = '/index.html'
+      }
+      const filePath = path.join(distPath, urlPath)
+      const ext = path.extname(filePath)
+      fs.readFile(filePath, (err, data) => {
+        if (err) {
+          // SPA 폴백: 모든 경로를 index.html로
+          fs.readFile(path.join(distPath, 'index.html'), (e2, html) => {
+            if (e2) { res.writeHead(404); res.end('Not found'); return }
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+            res.end(html)
+          })
+        } else {
+          res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] ?? 'application/octet-stream' })
+          res.end(data)
+        }
+      })
+    })
+    frontendServer.listen(FRONTEND_PORT, '127.0.0.1', () => {
+      console.log(`[Frontend] http://localhost:${FRONTEND_PORT} 서빙 시작`)
+      resolve()
+    })
+    frontendServer.on('error', (err) => {
+      console.warn('[Frontend] HTTP 서버 시작 실패, file:// 폴백:', err.message)
+      resolve() // 실패해도 진행
+    })
   })
 }
 
@@ -116,9 +171,7 @@ function createWindow() {
       contextIsolation: true,      // 보안: renderer와 main 격리
       nodeIntegration: false,      // 보안: renderer에서 Node.js 비활성화
       sandbox: false,              // preload에서 일부 Node API 필요
-      // production: file:// 기반이므로 webSecurity: false 허용
-      // Firebase signInWithPopup 팝업이 window.opener.postMessage로 결과 전달 시 필요
-      webSecurity: isDev,
+      webSecurity: true,
       allowRunningInsecureContent: false,
     },
     show: false,
@@ -169,9 +222,8 @@ function createWindow() {
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
   } else {
-    // file:// 프로토콜로 직접 서빙 (IPC/preload 완전 호환)
-    // Firebase signInWithPopup은 popup이 firebaseapp.com 도메인에서 열리므로 file:// 무관
-    mainWindow.loadFile(path.join(__dirname, '../frontend/dist/index.html'))
+    // http://localhost:5174 서빙 → Firebase authorized domain(localhost) 통과
+    mainWindow.loadURL(`http://localhost:${FRONTEND_PORT}`)
   }
 
   if (isDev) mainWindow.webContents.openDevTools()
@@ -271,6 +323,11 @@ app.whenReady().then(async () => {
       console.error('[Electron] 백엔드 시작 실패:', err.message)
     }
 
+    // 프론트엔드 HTTP 서버 시작 (Firebase localhost 도메인 인증 통과용)
+    // asarUnpack된 경로: app.asar → app.asar.unpacked
+    const distPath = path.join(__dirname, '../frontend/dist').replace('app.asar', 'app.asar.unpacked')
+    await startFrontendServer(distPath)
+
     // 라이선스 확인 (비동기, 실패해도 앱 실행 차단 안 함)
     checkLicense().then((result) => {
       console.log('[License]', result)
@@ -308,6 +365,7 @@ app.on('web-contents-created', (_, wc) => {
 
 app.on('before-quit', () => {
   // 인-프로세스 백엔드는 앱 종료 시 자동 정리됨
+  if (frontendServer) frontendServer.close()
 })
 
 // ── IPC 핸들러 ───────────────────────────────────────────
