@@ -44,7 +44,7 @@ const FilterSchema = z.object({
 });
 
 const ConvertSchema = z.object({
-  output_type: z.enum(['blog', 'linkedin', 'newsletter', 'report', 'ppt', 'prd', 'archive']),
+  output_type: z.enum(['blog', 'linkedin', 'newsletter', 'report', 'ppt', 'prd', 'archive', 'action_plan']),
 });
 
 function getLLMProvider(): LLMProvider | null {
@@ -445,6 +445,25 @@ ${sourceContext}
         ppt: `다음 리서치 내용을 프레젠테이션 슬라이드 스크립트로 변환하세요. 각 슬라이드를 "## 슬라이드 N: 제목" 형식으로, 핵심 포인트는 불릿으로 작성하세요.`,
         prd: `다음 리서치 내용을 제품 요구사항 문서(PRD)로 변환하세요. 마크다운 형식으로 작성하고, 배경, 목표, 사용자 스토리, 기능 요구사항, 성공 지표를 포함하세요.`,
         archive: `다음 리서치 내용을 아카이브 노트로 요약하세요. 핵심 정보, 출처, 활용 방안을 간결하게 정리하세요.`,
+        action_plan: `다음 리서치 내용을 실행 가능한 액션 플랜으로 변환하세요. 마크다운 형식으로 작성하고, 우선순위별 액션 아이템, 담당자/기한, 기대 효과를 포함하세요.
+
+형식:
+## 핵심 목표
+[1-2문장으로 이번 액션 플랜의 목표]
+
+## 우선순위 액션 아이템
+
+### 🔴 즉시 실행 (이번 주)
+- [ ] [구체적 액션] — 기대 효과: [결과]
+
+### 🟡 단기 실행 (이번 달)
+- [ ] [구체적 액션] — 기대 효과: [결과]
+
+### 🟢 중기 실행 (다음 분기)
+- [ ] [구체적 액션] — 기대 효과: [결과]
+
+## 성공 지표 (KPI)
+[측정 가능한 지표 2-3개]`,
       };
 
       const userPrompt = `${FORMAT_PROMPTS[output_type]}
