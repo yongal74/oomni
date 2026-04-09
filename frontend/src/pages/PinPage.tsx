@@ -69,8 +69,9 @@ export default function PinPage() {
     try {
       await firebaseSignIn()
       navigate('/dashboard', { replace: true })
-    } catch {
-      setError(firebaseError ?? 'Google 로그인에 실패했습니다')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : (firebaseError ?? 'Google 로그인에 실패했습니다')
+      setError(msg)
     } finally {
       setGoogleLoading(false)
     }
