@@ -532,18 +532,18 @@ export default function BotDetailPage() {
           {left}
         </div>
 
-        {/* CENTER — Build 봇은 XTerminal 포함한 세로 분할 */}
-        {agent.role === 'build' ? (
+        {/* CENTER — Build/Design 봇은 XTerminal 포함한 세로 분할 */}
+        {(agent.role === 'build' || agent.role === 'design') ? (
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden">
               {center}
             </div>
-            {/* XTerminal — Build Bot 전용 인터랙티브 터미널 */}
+            {/* XTerminal — Build Bot (Claude Code) + Design Bot (Pencil MCP) 인터랙티브 터미널 */}
             <XTerminal
               agentId={agent.id}
               isRunning={isRunning}
               onExit={() => { setIsRunning(false); setCurrentStage('done') }}
-              className="h-80 shrink-0"
+              className={agent.role === 'design' ? 'h-64 shrink-0' : 'h-80 shrink-0'}
             />
           </div>
         ) : (
@@ -563,7 +563,7 @@ export default function BotDetailPage() {
 
       {/* ── 하단: 스트림 드로어 (Build 봇 제외) + 프롬프트 입력 ── */}
       <div className="shrink-0">
-        {agent.role !== 'build' && (
+        {agent.role !== 'build' && agent.role !== 'design' && (
           <LiveStreamDrawer
             agentId={agent.id}
             task={task}

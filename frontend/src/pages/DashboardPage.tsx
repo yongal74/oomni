@@ -198,8 +198,11 @@ export default function DashboardPage() {
       const res = await api.post(`/api/templates/${templateId}/apply`, { mission_id: missionId })
       return res.data
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['agents'] })
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['agents'] })
+      // 템플릿 적용 후 최신 agents를 즉시 가져와 store 업데이트
+      const updated = await agentsApi.list(missionId)
+      setAgents(updated)
     },
   })
 
@@ -220,6 +223,8 @@ export default function DashboardPage() {
       setCreatingRole(null)
       setShowAddBot(false)
       setSearchParams({})
+      // 즉시 store 업데이트 (navigate 후 DashboardPage 언마운트 전에 반영)
+      setAgents([...agents, newAgent])
       qc.invalidateQueries({ queryKey: ['agents'] })
       if (newAgent?.id) navigate(`/dashboard/bots/${newAgent.id}`)
     },

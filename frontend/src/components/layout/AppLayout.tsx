@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '../../store/app.store'
+import { agentsApi } from '../../lib/api'
 import { Activity, BarChart2, Bell, Calendar, Crown, DollarSign, GitBranch, LayoutDashboard, Plug, Plus, Search, Settings, Ticket, Wrench, Zap } from 'lucide-react'
 import { cn } from '../../lib/utils'
-import { useEffect } from 'react'
 import { oomniWs } from '../../lib/ws'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,8 +53,18 @@ const NAV_SECTIONS: NavSection[] = [
 ]
 
 export function AppLayout() {
-  const { currentMission, pendingApprovals, agents } = useAppStore()
+  const { currentMission, pendingApprovals, agents, setAgents } = useAppStore()
   const navigate = useNavigate()
+
+  // 사이드바 봇 목록 동기화: DashboardPage와 무관하게 항상 최신 agents 유지
+  const { data: agentsData } = useQuery({
+    queryKey: ['agents', currentMission?.id],
+    queryFn: () => agentsApi.list(currentMission?.id),
+    enabled: !!currentMission?.id,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  })
+  useEffect(() => { if (agentsData) setAgents(agentsData) }, [agentsData, setAgents])
 
   useEffect(() => {
     oomniWs.connect()

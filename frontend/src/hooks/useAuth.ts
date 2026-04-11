@@ -36,9 +36,10 @@ async function signInWithElectronOAuth(): Promise<AuthUser> {
     try {
       const res = await fetch('http://localhost:3001/api/auth/google/pending-token')
       if (res.ok) {
-        const data = await res.json() as { session_token?: string; not_ready?: boolean }
-        if (data.session_token) {
-          sessionStorage.setItem('session_token', data.session_token)
+        const data = await res.json() as { token?: string; session_token?: string }
+        const tok = data.token ?? data.session_token
+        if (tok) {
+          sessionStorage.setItem('session_token', tok)
           // 사용자 정보 조회
           const statusRes = await fetch('http://localhost:3001/api/auth/google/status')
           const status = await statusRes.json() as {
