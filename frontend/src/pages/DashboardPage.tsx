@@ -124,8 +124,19 @@ export default function DashboardPage() {
     staleTime: 60000,
   })
   useEffect(() => {
-    if (!currentMission && missionsData && missionsData.length > 0) {
+    if (missionsData === undefined) return // 아직 로딩 중
+    if (missionsData.length === 0) {
+      // DB에 미션이 없으면 stale currentMission 초기화
+      if (currentMission) setCurrentMission(null)
+      return
+    }
+    if (!currentMission) {
+      // 미션 미설정 → 첫 번째 미션 자동 선택
       setCurrentMission(missionsData[0])
+    } else {
+      // 현재 미션이 DB에 실제로 존재하는지 확인 (신규 설치 후 stale ID 방지)
+      const stillExists = missionsData.find(m => m.id === currentMission.id)
+      if (!stillExists) setCurrentMission(missionsData[0])
     }
   }, [currentMission, missionsData, setCurrentMission])
 

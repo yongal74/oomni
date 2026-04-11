@@ -379,6 +379,7 @@ ipcMain.handle('open-external', (_event, url) => {
     'https://console.anthropic.com',
     'https://openrouter.ai',
     'https://n8n.io',
+    'https://www.antigravity.dev',
     'http://localhost:3001',
   ]
   if (allowed.some(a => url.startsWith(a))) {

@@ -189,16 +189,28 @@ export function agentsRouter(db: DbClient): Router {
     }
 
     const { mission_id, name, role, schedule, system_prompt, budget_cents, reports_to } = parsed.data;
+
+    // 미션 존재 여부 사전 확인 (stale mission_id 방지)
+    const missionCheck = await db.query('SELECT id FROM missions WHERE id = $1', [mission_id]);
+    if ((missionCheck.rows as unknown[]).length === 0) {
+      res.status(404).json({ error: '미션을 찾을 수 없습니다. 앱을 새로고침하고 다시 시도하세요.' });
+      return;
+    }
+
     const id = uuidv4();
 
-    const result = await db.query(
-      `INSERT INTO agents (id, mission_id, name, role, schedule, system_prompt, budget_cents, reports_to)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-       RETURNING *`,
-      [id, mission_id, name, role, schedule, system_prompt, budget_cents, reports_to ?? null],
-    );
-
-    res.status(201).json({ data: (result.rows as unknown[])[0] });
+    try {
+      const result = await db.query(
+        `INSERT INTO agents (id, mission_id, name, role, schedule, system_prompt, budget_cents, reports_to)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+         RETURNING *`,
+        [id, mission_id, name, role, schedule, system_prompt, budget_cents, reports_to ?? null],
+      );
+      res.status(201).json({ data: (result.rows as unknown[])[0] });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error: `봇 생성 실패: ${msg}` });
+    }
   });
 
   // GET /api/agents/:id
