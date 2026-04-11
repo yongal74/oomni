@@ -97,6 +97,8 @@ export default function DashboardPage() {
   const [showAddBot, setShowAddBot] = useState(false)
   const [createBotError, setCreateBotError] = useState<string | null>(null)
   const preselectedRole = searchParams.get('role')
+  const [newMissionName, setNewMissionName] = useState('')
+  const [creatingMission, setCreatingMission] = useState(false)
 
   const [feedItems, setFeedItems] = useState<FeedItem[]>([])
   const [creatingRole, setCreatingRole] = useState<string | null>(null)
@@ -115,15 +117,17 @@ export default function DashboardPage() {
 
   const missionId = currentMission?.id
 
-  // 앱 재시작 시 store가 리셋되면 미션 자동 로드
+  // 미션 자동 로드 — React Query로 안정적으로 로드
+  const { data: missionsData } = useQuery({
+    queryKey: ['missions'],
+    queryFn: () => missionsApi.list(),
+    staleTime: 60000,
+  })
   useEffect(() => {
-    if (!currentMission) {
-      missionsApi.list().then(missions => {
-        if (missions.length > 0) setCurrentMission(missions[0])
-      }).catch(() => {})
+    if (!currentMission && missionsData && missionsData.length > 0) {
+      setCurrentMission(missionsData[0])
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [currentMission, missionsData, setCurrentMission])
 
   // 에이전트 로드
   const { data: agentsData, isLoading: agentsLoading } = useQuery({
@@ -699,8 +703,45 @@ export default function DashboardPage() {
               </div>
             )}
             {!missionId && (
-              <div className="mx-4 mt-3 px-3 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-xs text-yellow-400">
-                미션을 먼저 생성해주세요.
+              <div className="mx-4 mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <p className="text-xs text-yellow-400 mb-2">봇을 추가하려면 먼저 미션을 만들어주세요.</p>
+                <div className="flex gap-2">
+                  <input
+                    autoFocus
+                    value={newMissionName}
+                    onChange={e => setNewMissionName(e.target.value)}
+                    onKeyDown={async e => {
+                      if (e.key === 'Enter' && newMissionName.trim()) {
+                        setCreatingMission(true)
+                        try {
+                          const m = await missionsApi.create({ name: newMissionName.trim(), description: '' })
+                          setCurrentMission(m)
+                          setNewMissionName('')
+                          qc.invalidateQueries({ queryKey: ['missions'] })
+                        } finally { setCreatingMission(false) }
+                      }
+                    }}
+                    placeholder="미션 이름 (예: 내 프로젝트)"
+                    className="flex-1 px-2.5 py-1.5 bg-bg border border-border rounded text-xs text-text placeholder-muted focus:outline-none focus:border-primary"
+                  />
+                  <button
+                    disabled={!newMissionName.trim() || creatingMission}
+                    onClick={async () => {
+                      if (!newMissionName.trim()) return
+                      setCreatingMission(true)
+                      try {
+                        const m = await missionsApi.create({ name: newMissionName.trim(), description: '' })
+                        setCurrentMission(m)
+                        setNewMissionName('')
+                        qc.invalidateQueries({ queryKey: ['missions'] })
+                      } finally { setCreatingMission(false) }
+                    }}
+                    className="px-3 py-1.5 bg-primary text-white rounded text-xs disabled:opacity-50 flex items-center gap-1"
+                  >
+                    {creatingMission ? <Loader2 size={11} className="animate-spin" /> : null}
+                    만들기
+                  </button>
+                </div>
               </div>
             )}
             <div className="p-4 grid grid-cols-2 gap-3">

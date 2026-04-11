@@ -554,19 +554,56 @@ export default function BotDetailPage() {
         </div>
 
         {/* CENTER — Build/Design 봇은 XTerminal 포함한 세로 분할 */}
-        {(agent.role === 'build' || agent.role === 'design') ? (
+        {agent.role === 'build' ? (
           <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-hidden">
-              {center}
-            </div>
-            {/* XTerminal — Build Bot (Claude Code) + Design Bot (Pencil MCP) 인터랙티브 터미널 */}
+            <div className="flex-1 overflow-hidden">{center}</div>
+            {/* Build Bot: 항상 XTerminal (Claude Code CLI) */}
             <XTerminal
               agentId={agent.id}
               isRunning={isRunning}
               initialInput={task}
               onExit={() => { setIsRunning(false); setCurrentStage('done') }}
-              className={agent.role === 'design' ? 'h-64 shrink-0' : 'h-80 shrink-0'}
+              className="h-80 shrink-0"
             />
+          </div>
+        ) : agent.role === 'design' ? (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-hidden">{center}</div>
+            {/* Design Bot: Pencil MCP 연결됨 → XTerminal / 미연결 → LiveStreamDrawer(SSE) */}
+            {pencilStatus?.connected ? (
+              <XTerminal
+                agentId={agent.id}
+                isRunning={isRunning}
+                initialInput={task}
+                onExit={() => { setIsRunning(false); setCurrentStage('done') }}
+                className="h-64 shrink-0"
+              />
+            ) : (
+              /* Pencil 미연결: SSE 경로로 HTML 생성 — LiveStreamDrawer 복원 */
+              <div className="shrink-0 border-t border-border bg-[#111] px-4 py-3 flex items-center gap-3">
+                <span className="text-[12px] text-yellow-400">✦ Pencil MCP 미연결 — HTML 생성 모드로 실행됩니다</span>
+                <button
+                  onClick={() => {
+                    const url = 'https://www.antigravity.dev/'
+                    if ((window as { electronAPI?: { openExternal?: (u: string) => void } }).electronAPI?.openExternal) {
+                      (window as { electronAPI?: { openExternal?: (u: string) => void } }).electronAPI!.openExternal!(url)
+                    } else { window.open(url, '_blank') }
+                  }}
+                  className="flex items-center gap-1 text-[11px] text-primary hover:underline"
+                >
+                  Pencil 설치 안내 →
+                </button>
+                <button
+                  onClick={() => {
+                    fetch(`http://localhost:3001/api/agents/${agent.id}/pencil-status`)
+                      .then(r => r.json()).then(setPencilStatus).catch(() => {})
+                  }}
+                  className="text-[11px] text-muted hover:text-text"
+                >
+                  연결 확인
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex-1 overflow-hidden">
@@ -585,7 +622,8 @@ export default function BotDetailPage() {
 
       {/* ── 하단: 스트림 드로어 (Build 봇 제외) + 프롬프트 입력 ── */}
       <div className="shrink-0">
-        {agent.role !== 'build' && agent.role !== 'design' && (
+        {/* Build Bot은 XTerminal만 사용, Design Bot은 Pencil 연결 여부에 따라 분기 */}
+        {agent.role !== 'build' && !(agent.role === 'design' && pencilStatus?.connected) && (
           <LiveStreamDrawer
             agentId={agent.id}
             task={task}

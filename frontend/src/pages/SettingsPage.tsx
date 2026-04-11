@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import {
   Download, Upload, AlertTriangle, CheckCircle, Loader2,
-  User, CreditCard, Key, Database, ExternalLink, X
+  User, CreditCard, Key, Database, ExternalLink, X, Bot, Eye, EyeOff
 } from 'lucide-react'
 import { backupApi, profileApi, paymentsApi, integrationsSettingsApi, settingsApi, type Subscription } from '../lib/api'
 
@@ -90,6 +90,13 @@ export default function SettingsPage() {
   const [intMsg, setIntMsg] = useState<MsgState | null>(null)
   const [intSaving, setIntSaving] = useState(false)
 
+  // Claude API Key
+  const [claudeApiKey, setClaudeApiKey] = useState('')
+  const [claudeApiKeySet, setClaudeApiKeySet] = useState(false)
+  const [showClaudeKey, setShowClaudeKey] = useState(false)
+  const [claudeMsg, setClaudeMsg] = useState<MsgState | null>(null)
+  const [claudeSaving, setClaudeSaving] = useState(false)
+
   // Google OAuth 설정
   const [googleClientId, setGoogleClientId] = useState('')
   const [googleClientSecret, setGoogleClientSecret] = useState('')
@@ -113,6 +120,7 @@ export default function SettingsPage() {
       .finally(() => setSubLoading(false))
     integrationsSettingsApi.get().then(setIntegrations).catch(() => {})
     settingsApi.getGoogleOAuth().then(setGoogleOAuth).catch(() => {})
+    settingsApi.getStatus().then(s => setClaudeApiKeySet(s.api_key_set)).catch(() => {})
   }, [])
 
   // ── 프로필 저장 ──────────────────────────────────────────────────────────
@@ -264,6 +272,27 @@ export default function SettingsPage() {
     } finally {
       setImportLoading(false)
       setPendingFile(null)
+    }
+  }
+
+  // ── Claude API Key 저장 ─────────────────────────────────────────────────
+
+  const handleClaudeApiKeySave = async () => {
+    if (!claudeApiKey.trim()) {
+      setClaudeMsg({ type: 'error', text: 'API 키를 입력해주세요' })
+      return
+    }
+    setClaudeSaving(true)
+    setClaudeMsg(null)
+    try {
+      await settingsApi.setApiKey(claudeApiKey.trim())
+      setClaudeApiKeySet(true)
+      setClaudeApiKey('')
+      setClaudeMsg({ type: 'success', text: 'Claude API 키가 저장되었습니다' })
+    } catch {
+      setClaudeMsg({ type: 'error', text: 'API 키 저장에 실패했습니다. 키를 확인해주세요.' })
+    } finally {
+      setClaudeSaving(false)
     }
   }
 
@@ -447,7 +476,61 @@ export default function SettingsPage() {
         {subMsg && <MsgBox msg={subMsg} />}
       </SectionCard>
 
-      {/* ── 3. 라이선스 섹션 ────────────────────────────────────────── */}
+      {/* ── 3. Claude API Key ───────────────────────────────────────── */}
+      <SectionCard>
+        <SectionTitle icon={<Bot size={16} />} title="Claude API Key" />
+        <p className="text-muted text-sm mb-4">
+          봇 실행에 필요한 Anthropic API 키를 입력하세요.{' '}
+          <a
+            href="https://console.anthropic.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline inline-flex items-center gap-1"
+          >
+            console.anthropic.com <ExternalLink size={11} />
+          </a>
+        </p>
+
+        {/* 현재 설정 상태 */}
+        <div className={`flex items-center gap-2 p-3 rounded-lg border mb-4 ${claudeApiKeySet ? 'bg-green-900/10 border-green-800/30' : 'bg-yellow-900/10 border-yellow-800/30'}`}>
+          {claudeApiKeySet
+            ? <><CheckCircle size={14} className="text-green-400 shrink-0" /><span className="text-[13px] text-green-400">API 키 설정됨 — 봇이 정상 동작합니다</span></>
+            : <><AlertTriangle size={14} className="text-yellow-400 shrink-0" /><span className="text-[13px] text-yellow-400">API 키 미설정 — 봇 실행 시 오류가 발생합니다</span></>
+          }
+        </div>
+
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <input
+              type={showClaudeKey ? 'text' : 'password'}
+              value={claudeApiKey}
+              onChange={(e) => setClaudeApiKey(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleClaudeApiKeySave()}
+              placeholder="sk-ant-api03-..."
+              className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary"
+            />
+            <button
+              onClick={() => setShowClaudeKey(v => !v)}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text"
+              tabIndex={-1}
+            >
+              {showClaudeKey ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+          </div>
+          <button
+            onClick={handleClaudeApiKeySave}
+            disabled={claudeSaving}
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0"
+          >
+            {claudeSaving ? <Loader2 size={13} className="animate-spin" /> : null}
+            저장
+          </button>
+        </div>
+
+        {claudeMsg && <MsgBox msg={claudeMsg} />}
+      </SectionCard>
+
+      {/* ── 4. 라이선스 섹션 ────────────────────────────────────────── */}
       <SectionCard>
         <SectionTitle icon={<Key size={16} />} title="라이선스" />
         <p className="text-muted text-sm mb-5">
