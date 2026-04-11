@@ -6,6 +6,7 @@ import { useAppStore } from '../store/app.store'
 import { Trash2, Settings, ArrowLeft, Send, Square, RotateCcw, Clock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Copy } from 'lucide-react'
 import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
 import { LiveStreamDrawer } from '../components/bot/LiveStreamDrawer'
+import { XTerminal } from '../components/bot/XTerminal'
 import { ResearchLeftPanel, ResearchCenterPanel, ResearchRightPanel } from '../components/bot/panels/ResearchPanel'
 import { BuildLeftPanel, BuildCenterPanel, BuildRightPanel } from '../components/bot/panels/BuildPanel'
 import type { FileNode } from '../lib/api'
@@ -519,36 +520,62 @@ export default function BotDetailPage() {
       ) : (
         <>
       {/* ── 메인 3패널 ────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className={cn(
+        'flex overflow-hidden',
+        agent.role === 'build' ? 'flex-1' : 'flex-1',
+      )}>
         {/* LEFT */}
-        <div className="w-56 border-r border-border overflow-y-auto shrink-0 bg-surface/30">
+        <div className={cn(
+          'border-r border-border overflow-y-auto shrink-0 bg-surface/30',
+          agent.role === 'design' ? 'w-44' : 'w-56',
+        )}>
           {left}
         </div>
 
-        {/* CENTER */}
-        <div className="flex-1 overflow-hidden">
-          {center}
-        </div>
+        {/* CENTER — Build 봇은 XTerminal 포함한 세로 분할 */}
+        {agent.role === 'build' ? (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-hidden">
+              {center}
+            </div>
+            {/* XTerminal — Build Bot 전용 인터랙티브 터미널 */}
+            <XTerminal
+              agentId={agent.id}
+              isRunning={isRunning}
+              onExit={() => { setIsRunning(false); setCurrentStage('done') }}
+              className="h-80 shrink-0"
+            />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-hidden">
+            {center}
+          </div>
+        )}
 
         {/* RIGHT */}
-        <div className="w-64 border-l border-border overflow-y-auto shrink-0 bg-surface/30">
+        <div className={cn(
+          'border-l border-border overflow-y-auto shrink-0 bg-surface/30',
+          agent.role === 'design' ? 'w-52' : 'w-64',
+        )}>
           {right}
         </div>
       </div>
 
-      {/* ── 하단: 스트림 드로어 + 프롬프트 입력 ──────────── */}
+      {/* ── 하단: 스트림 드로어 (Build 봇 제외) + 프롬프트 입력 ── */}
       <div className="shrink-0">
-        <LiveStreamDrawer
-          agentId={agent.id}
-          task={task}
-          isRunning={isRunning}
-          onStageChange={setCurrentStage}
-          onDone={handleDone}
-          onError={() => { setIsRunning(false); setCurrentStage(null) }}
-          onOutputChunk={(chunk) => setStreamOutput(prev => prev + chunk)}
-          onScreenshot={(url) => setDesignScreenshot(url)}
-          esRef={esRef}
-        />
+        {agent.role !== 'build' && (
+          <LiveStreamDrawer
+            agentId={agent.id}
+            task={task}
+            isRunning={isRunning}
+            onStageChange={setCurrentStage}
+            onDone={handleDone}
+            onError={() => { setIsRunning(false); setCurrentStage(null) }}
+            onOutputChunk={(chunk) => setStreamOutput(prev => prev + chunk)}
+            onScreenshot={(url) => setDesignScreenshot(url)}
+            esRef={esRef}
+          />
+        )}
 
         <div className="flex items-end gap-3 px-5 py-4 bg-surface border-t border-border">
           <div className="flex-1">

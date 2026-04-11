@@ -1,6 +1,6 @@
 {
   "name": "oomni-backend",
-  "version": "2.0.1",
+  "version": "2.9.0",
   "description": "OOMNI backend — secure multi-agent heartbeat engine",
   "main": "dist/index.js",
   "type": "commonjs",
@@ -30,6 +30,7 @@
     "firebase-admin": "^13.7.0",
     "helmet": "^8.0.0",
     "node-cron": "^3.0.3",
+    "node-pty": "^1.1.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "remotion": "^4.0.445",

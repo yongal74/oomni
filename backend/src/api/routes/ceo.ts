@@ -1,127 +1,93 @@
 import { Router, type Request, type Response } from 'express';
-import axios from 'axios';
+import Anthropic from '@anthropic-ai/sdk';
 
 type DbClient = { query: (sql: string, params?: unknown[]) => Promise<{ rows: unknown[] }> };
 
 export function ceoRouter(db: DbClient): Router {
   const router = Router();
 
-  // GET /api/ceo/summary
-  router.get('/summary', async (req: Request, res: Response) => {
+  // GET /api/ceo/summary-stream  — SSE 스트리밍 (AI 요약 포함)
+  router.get('/summary-stream', async (req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.flushHeaders();
+
+    const send = (event: string, data: unknown) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
     try {
       const { mission_id } = req.query;
 
-      // Get current mission
+      // 미션 조회
       let mission: unknown = null;
       if (mission_id) {
-        const missionResult = await db.query('SELECT * FROM missions WHERE id = $1', [mission_id]);
-        mission = (missionResult.rows as unknown[])[0] ?? null;
+        const r = await db.query('SELECT * FROM missions WHERE id = $1', [mission_id]);
+        mission = (r.rows as unknown[])[0] ?? null;
       } else {
-        const missionResult = await db.query('SELECT * FROM missions ORDER BY created_at DESC LIMIT 1');
-        mission = (missionResult.rows as unknown[])[0] ?? null;
+        const r = await db.query('SELECT * FROM missions ORDER BY created_at DESC LIMIT 1');
+        mission = (r.rows as unknown[])[0] ?? null;
       }
 
       const activeMissionId = (mission as Record<string, unknown> | null)?.id ?? mission_id;
 
-      // Get agents with last run info
+      // 에이전트 조회
       let agentsResult: { rows: unknown[] } = { rows: [] };
       if (activeMissionId) {
         agentsResult = await db.query(
-          `SELECT
-            a.*,
-            (
-              SELECT f.created_at
-              FROM feed_items f
-              WHERE f.agent_id = a.id
-              ORDER BY f.created_at DESC
-              LIMIT 1
-            ) AS last_run_at,
-            (
-              SELECT f.type
-              FROM feed_items f
-              WHERE f.agent_id = a.id
-              ORDER BY f.created_at DESC
-              LIMIT 1
-            ) AS last_run_status,
-            (
-              SELECT COUNT(*)
-              FROM feed_items f
-              WHERE f.agent_id = a.id
-            ) AS run_count
+          `SELECT a.*,
+            (SELECT f.created_at FROM feed_items f WHERE f.agent_id = a.id ORDER BY f.created_at DESC LIMIT 1) AS last_run_at,
+            (SELECT f.type FROM feed_items f WHERE f.agent_id = a.id ORDER BY f.created_at DESC LIMIT 1) AS last_run_status,
+            (SELECT COUNT(*) FROM feed_items f WHERE f.agent_id = a.id) AS run_count
           FROM agents a
           WHERE a.mission_id = $1
           ORDER BY a.created_at DESC`,
           [activeMissionId],
         );
       }
-
       const agents = agentsResult.rows as Array<Record<string, unknown>>;
 
-      // Feed summary
+      // 피드 요약
       let feedSummary = { total: 0, approvals_pending: 0, errors_today: 0, completed_today: 0 };
       if (activeMissionId) {
-        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-
-        const totalResult = await db.query(
-          `SELECT COUNT(*) as cnt FROM feed_items fi
-           JOIN agents a ON a.id = fi.agent_id
-           WHERE a.mission_id = $1`,
-          [activeMissionId],
-        );
-        const totalRow = (totalResult.rows as Array<Record<string, unknown>>)[0];
-
-        const approvalsResult = await db.query(
-          `SELECT COUNT(*) as cnt FROM feed_items fi
-           JOIN agents a ON a.id = fi.agent_id
-           WHERE a.mission_id = $1
-             AND fi.requires_approval = 1
-             AND fi.approved_at IS NULL
-             AND fi.rejected_at IS NULL`,
-          [activeMissionId],
-        );
-        const approvalsRow = (approvalsResult.rows as Array<Record<string, unknown>>)[0];
-
-        const errorsResult = await db.query(
-          `SELECT COUNT(*) as cnt FROM feed_items fi
-           JOIN agents a ON a.id = fi.agent_id
-           WHERE a.mission_id = $1
-             AND fi.type = 'error'
-             AND fi.created_at >= $2`,
-          [activeMissionId, `${today}T00:00:00.000Z`],
-        );
-        const errorsRow = (errorsResult.rows as Array<Record<string, unknown>>)[0];
-
-        const completedResult = await db.query(
-          `SELECT COUNT(*) as cnt FROM feed_items fi
-           JOIN agents a ON a.id = fi.agent_id
-           WHERE a.mission_id = $1
-             AND fi.type = 'result'
-             AND fi.created_at >= $2`,
-          [activeMissionId, `${today}T00:00:00.000Z`],
-        );
-        const completedRow = (completedResult.rows as Array<Record<string, unknown>>)[0];
-
+        const today = new Date().toISOString().slice(0, 10);
+        const [totalR, approvalsR, errorsR, completedR] = await Promise.all([
+          db.query(`SELECT COUNT(*) as cnt FROM feed_items fi JOIN agents a ON a.id=fi.agent_id WHERE a.mission_id=$1`, [activeMissionId]),
+          db.query(`SELECT COUNT(*) as cnt FROM feed_items fi JOIN agents a ON a.id=fi.agent_id WHERE a.mission_id=$1 AND fi.requires_approval=1 AND fi.approved_at IS NULL AND fi.rejected_at IS NULL`, [activeMissionId]),
+          db.query(`SELECT COUNT(*) as cnt FROM feed_items fi JOIN agents a ON a.id=fi.agent_id WHERE a.mission_id=$1 AND fi.type='error' AND fi.created_at>=$2`, [activeMissionId, `${today}T00:00:00.000Z`]),
+          db.query(`SELECT COUNT(*) as cnt FROM feed_items fi JOIN agents a ON a.id=fi.agent_id WHERE a.mission_id=$1 AND fi.type='result' AND fi.created_at>=$2`, [activeMissionId, `${today}T00:00:00.000Z`]),
+        ]);
         feedSummary = {
-          total: Number(totalRow?.cnt ?? 0),
-          approvals_pending: Number(approvalsRow?.cnt ?? 0),
-          errors_today: Number(errorsRow?.cnt ?? 0),
-          completed_today: Number(completedRow?.cnt ?? 0),
+          total: Number((totalR.rows[0] as Record<string, unknown>)?.cnt ?? 0),
+          approvals_pending: Number((approvalsR.rows[0] as Record<string, unknown>)?.cnt ?? 0),
+          errors_today: Number((errorsR.rows[0] as Record<string, unknown>)?.cnt ?? 0),
+          completed_today: Number((completedR.rows[0] as Record<string, unknown>)?.cnt ?? 0),
         };
       }
 
-      // AI summary
-      let ai_summary = 'Claude API 키를 설정하면 AI 요약이 생성됩니다.';
+      // DB 데이터 즉시 전송 (AI 요약 전에 화면 채우기)
+      send('data', { mission, agents, feed_summary: feedSummary });
+
+      // AI 요약 스트리밍
       const apiKey = process.env.ANTHROPIC_API_KEY;
+      if (!apiKey) {
+        send('ai_summary', { text: 'Claude API 키를 설정하면 AI 요약이 생성됩니다.' });
+        send('done', {});
+        res.end();
+        return;
+      }
 
-      if (apiKey) {
-        try {
-          const missionName = (mission as Record<string, unknown> | null)?.name ?? '(미션 없음)';
-          const activeAgents = agents.filter(a => a.is_active);
-          const agentSummary = agents
-            .map(a => `- ${String(a.name)} (${String(a.role)}): ${a.is_active ? '활성' : '비활성'}, 실행 ${a.run_count ?? 0}회`)
-            .join('\n');
+      send('progress', { message: 'AI 요약 생성 중...' });
 
-          const prompt = `당신은 Solo Factory OS의 CEO 대시보드 AI 어시스턴트입니다.
+      const missionName = (mission as Record<string, unknown> | null)?.name ?? '(미션 없음)';
+      const activeAgents = agents.filter(a => a.is_active);
+      const agentSummary = agents
+        .map(a => `- ${String(a.name)} (${String(a.role)}): ${a.is_active ? '활성' : '비활성'}, 실행 ${a.run_count ?? 0}회`)
+        .join('\n');
+
+      const prompt = `당신은 Solo Factory OS의 CEO 대시보드 AI 어시스턴트입니다.
 다음 현황을 바탕으로 간결한 주간 요약 (3~5문장)을 한국어로 작성해주세요.
 
 미션: ${missionName}
@@ -136,43 +102,79 @@ ${agentSummary || '(봇 없음)'}
 
 위 데이터를 기반으로 현재 팀 상태와 주요 이슈, 다음 액션을 간략히 요약해주세요.`;
 
-          const response = await axios.post(
-            'https://api.anthropic.com/v1/messages',
-            {
-              model: 'claude-haiku-4-5-20251001',
-              max_tokens: 300,
-              messages: [{ role: 'user', content: prompt }],
-            },
-            {
-              headers: {
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01',
-                'content-type': 'application/json',
-              },
-              timeout: 30000,
-            },
-          );
+      const client = new Anthropic({ apiKey });
+      let aiText = '';
 
-          const data = response.data as {
-            content: Array<{ type: string; text: string }>;
-          };
-          const textContent = data.content.find(c => c.type === 'text');
-          if (textContent) {
-            ai_summary = textContent.text;
-          }
-        } catch (_err) {
-          ai_summary = 'AI 요약 생성에 실패했습니다. API 키와 네트워크 상태를 확인해주세요.';
+      const stream = await client.messages.stream({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 300,
+        messages: [{ role: 'user', content: prompt }],
+      });
+
+      for await (const chunk of stream) {
+        if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+          aiText += chunk.delta.text;
+          send('ai_chunk', { text: chunk.delta.text });
         }
       }
 
-      res.json({
-        data: {
-          mission,
-          agents,
-          feed_summary: feedSummary,
-          ai_summary,
-        },
-      });
+      send('ai_summary', { text: aiText });
+      send('done', {});
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      send('error', { message });
+    } finally {
+      res.end();
+    }
+  });
+
+  // GET /api/ceo/summary — 레거시 REST (하위 호환)
+  router.get('/summary', async (req: Request, res: Response) => {
+    try {
+      const { mission_id } = req.query;
+
+      let mission: unknown = null;
+      if (mission_id) {
+        const r = await db.query('SELECT * FROM missions WHERE id = $1', [mission_id]);
+        mission = (r.rows as unknown[])[0] ?? null;
+      } else {
+        const r = await db.query('SELECT * FROM missions ORDER BY created_at DESC LIMIT 1');
+        mission = (r.rows as unknown[])[0] ?? null;
+      }
+
+      const activeMissionId = (mission as Record<string, unknown> | null)?.id ?? mission_id;
+
+      let agentsResult: { rows: unknown[] } = { rows: [] };
+      if (activeMissionId) {
+        agentsResult = await db.query(
+          `SELECT a.*,
+            (SELECT f.created_at FROM feed_items f WHERE f.agent_id = a.id ORDER BY f.created_at DESC LIMIT 1) AS last_run_at,
+            (SELECT f.type FROM feed_items f WHERE f.agent_id = a.id ORDER BY f.created_at DESC LIMIT 1) AS last_run_status,
+            (SELECT COUNT(*) FROM feed_items f WHERE f.agent_id = a.id) AS run_count
+          FROM agents a WHERE a.mission_id = $1 ORDER BY a.created_at DESC`,
+          [activeMissionId],
+        );
+      }
+      const agents = agentsResult.rows as Array<Record<string, unknown>>;
+
+      let feedSummary = { total: 0, approvals_pending: 0, errors_today: 0, completed_today: 0 };
+      if (activeMissionId) {
+        const today = new Date().toISOString().slice(0, 10);
+        const [totalR, approvalsR, errorsR, completedR] = await Promise.all([
+          db.query(`SELECT COUNT(*) as cnt FROM feed_items fi JOIN agents a ON a.id=fi.agent_id WHERE a.mission_id=$1`, [activeMissionId]),
+          db.query(`SELECT COUNT(*) as cnt FROM feed_items fi JOIN agents a ON a.id=fi.agent_id WHERE a.mission_id=$1 AND fi.requires_approval=1 AND fi.approved_at IS NULL AND fi.rejected_at IS NULL`, [activeMissionId]),
+          db.query(`SELECT COUNT(*) as cnt FROM feed_items fi JOIN agents a ON a.id=fi.agent_id WHERE a.mission_id=$1 AND fi.type='error' AND fi.created_at>=$2`, [activeMissionId, `${today}T00:00:00.000Z`]),
+          db.query(`SELECT COUNT(*) as cnt FROM feed_items fi JOIN agents a ON a.id=fi.agent_id WHERE a.mission_id=$1 AND fi.type='result' AND fi.created_at>=$2`, [activeMissionId, `${today}T00:00:00.000Z`]),
+        ]);
+        feedSummary = {
+          total: Number((totalR.rows[0] as Record<string, unknown>)?.cnt ?? 0),
+          approvals_pending: Number((approvalsR.rows[0] as Record<string, unknown>)?.cnt ?? 0),
+          errors_today: Number((errorsR.rows[0] as Record<string, unknown>)?.cnt ?? 0),
+          completed_today: Number((completedR.rows[0] as Record<string, unknown>)?.cnt ?? 0),
+        };
+      }
+
+      res.json({ data: { mission, agents, feed_summary: feedSummary, ai_summary: '' } });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.status(500).json({ error: message });

@@ -6,7 +6,7 @@ interface ElectronAPI {
   openExternal: (url: string) => Promise<void>
   getAppVersion: () => Promise<string>
   showNotification: (opts: { title: string; body: string; urgency?: string }) => Promise<void>
-  startGoogleOAuth: () => Promise<{ started: boolean }>
+  startGoogleOAuth: () => Promise<{ started: boolean; completed: boolean }>
   platform: string
 }
 

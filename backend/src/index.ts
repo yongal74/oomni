@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { loadConfig, loadSettings } from './config';
 import { initDb, shutdownDb } from './db/client';
+import { attachPtyWebSocket } from './services/ptyService';
 import { initVault } from './crypto/vault';
 import { createApp } from './api/app';
 import { OomniWebSocketServer } from './ws/server';
@@ -104,6 +105,9 @@ async function main() {
 
   // 6. WebSocket 서버
   const wss = new OomniWebSocketServer(server);
+
+  // 6a. PTY WebSocket 연결 (Build Bot 터미널)
+  attachPtyWebSocket(server);
 
   // Runner 스트림 이벤트 → WS 브로드캐스트
   runner.on('stream', (data: { agentId: string; chunk: string }) => {

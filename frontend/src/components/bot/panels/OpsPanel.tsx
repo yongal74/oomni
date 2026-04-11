@@ -123,6 +123,60 @@ function CategoryAccordion({
   )
 }
 
+// ── 공식 n8n 템플릿 카테고리 프리셋 ──────────────────────────────────────────
+const N8N_CATEGORIES = [
+  {
+    label: 'Slack 알림',
+    emoji: '💬',
+    prompt: 'n8n.io/workflows, community.n8n.io, blog.n8n.io에서 Slack 연동 공식 템플릿과 커뮤니티 사례를 조회한 뒤, 다음을 구현해줘: 특정 이벤트 발생 시 Slack 채널에 포맷된 메시지 자동 전송. 스레드 답글(thread_ts 보존), 에러 처리와 재시도 로직 포함.',
+  },
+  {
+    label: 'Gmail 자동화',
+    emoji: '📧',
+    prompt: 'n8n.io/workflows, docs.n8n.io/integrations, blog.n8n.io에서 Gmail 자동화 템플릿과 베스트 프랙티스를 조회한 뒤, 다음을 구현해줘: 이메일 수신 시 내용 분석 후 자동 분류/응답. OAuth2 설정, 첨부파일 Binary Data 처리, HTML 템플릿 변수 포함.',
+  },
+  {
+    label: 'GitHub 연동',
+    emoji: '🐙',
+    prompt: 'n8n.io/workflows, github.com/n8n-io/n8n/discussions에서 GitHub 연동 공식 템플릿과 커뮤니티 사례를 조회한 뒤, 다음을 구현해줘: Webhook으로 PR/Issue/Push 이벤트별 분기 처리 → Slack 알림 + 자동 라벨링. Switch 노드로 이벤트 타입 분기.',
+  },
+  {
+    label: '데이터 파이프라인',
+    emoji: '🔄',
+    prompt: 'n8n.io/workflows, docs.n8n.io/integrations, community.n8n.io/c/show-and-tell에서 데이터 파이프라인 패턴을 조회한 뒤, 다음을 구현해줘: 외부 API 페이지네이션 수집 → Loop Over Items → Code 노드 변환 → DB/Google Sheet upsert. Rate limit 처리 포함.',
+  },
+  {
+    label: 'CRM 연동',
+    emoji: '👥',
+    prompt: 'n8n.io/workflows, blog.n8n.io에서 CRM 자동화 템플릿(HubSpot/Salesforce)을 조회한 뒤, 다음을 구현해줘: 리드 생성 → 중복 제거(Merge 노드) → CRM Upsert + 담당자 Slack 알림 + 팔로업 스케줄 자동 등록.',
+  },
+  {
+    label: '스케줄 리포트',
+    emoji: '📊',
+    prompt: 'n8n.io/workflows, community.n8n.io에서 자동 리포트 공식 템플릿을 조회한 뒤, 다음을 구현해줘: Schedule Trigger → DB/API 쿼리 → Code 노드 집계/포맷 → Slack 메시지 + 이메일 발송 → 결과 파일 저장.',
+  },
+  {
+    label: 'AI 자동화',
+    emoji: '🤖',
+    prompt: 'n8n.io/workflows?categories=25, blog.n8n.io에서 AI 자동화 공식 템플릿을 조회한 뒤, 다음을 구현해줘: Webhook → OpenAI/Anthropic API 호출 → JSON 파싱 → 후속 액션(DB저장/슬랙알림). 토큰 비용 최적화와 에러 핸들링 포함.',
+  },
+  {
+    label: 'Notion 연동',
+    emoji: '📝',
+    prompt: 'n8n.io/workflows, docs.n8n.io/integrations/builtin에서 Notion 연동 패턴을 조회한 뒤, 다음을 구현해줘: Webhook 또는 Schedule → Notion DB 쿼리/업데이트 → rich_text 타입 처리 → 관련 팀원 Slack 알림.',
+  },
+  {
+    label: 'Google Sheet',
+    emoji: '📋',
+    prompt: 'n8n.io/workflows, community.n8n.io/c/show-and-tell에서 Google Sheets 자동화 패턴을 조회한 뒤, 다음을 구현해줘: 외부 데이터 → Google Sheets 행 추가/업데이트 + 중복 체크. Batch 처리와 API 할당량 관리 포함.',
+  },
+  {
+    label: 'Webhook 허브',
+    emoji: '🔗',
+    prompt: 'n8n.io/workflows, docs.n8n.io/integrations/builtin, community.n8n.io에서 Webhook 허브 패턴을 조회한 뒤, 다음을 구현해줘: 단일 Webhook 엔드포인트로 여러 서비스 이벤트 수신 → Switch 노드로 분기 → 각 서비스별 처리 플로우. HMAC 서명 검증 포함.',
+  },
+]
+
 // LEFT: 카테고리별 자동화 프리셋 + n8n 상태
 export function OpsLeftPanel({ agentId, onSkillSelect }: { agentId: string; onSkillSelect?: (task: string) => void }) {
   const [n8nLocal, setN8nLocal] = useState<'checking' | 'online' | 'offline'>('checking')
@@ -225,6 +279,24 @@ export function OpsLeftPanel({ agentId, onSkillSelect }: { agentId: string; onSk
       <div className="flex items-center gap-1.5 px-1">
         <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_4px_1px_rgba(59,130,246,0.5)]" />
         <span className="text-[10px] text-muted">활성화된 자동화 스케줄</span>
+      </div>
+
+      {/* 공식 n8n 템플릿 카테고리 */}
+      <div>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2">📚 멀티소스 학습 템플릿</p>
+        <div className="flex flex-wrap gap-1.5">
+          {N8N_CATEGORIES.map(cat => (
+            <button
+              key={cat.label}
+              onClick={() => onSkillSelect?.(cat.prompt)}
+              title={cat.prompt}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border bg-bg text-xs text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+            >
+              <span>{cat.emoji}</span>
+              <span>{cat.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 카테고리별 자동화 프리셋 */}

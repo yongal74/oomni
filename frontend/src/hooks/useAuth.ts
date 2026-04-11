@@ -22,10 +22,16 @@ const isElectron = (): boolean => typeof window !== 'undefined' && !!window.elec
 async function signInWithElectronOAuth(): Promise<AuthUser> {
   if (!window.electronAPI) throw new Error('Electron API를 사용할 수 없습니다')
 
-  await window.electronAPI.startGoogleOAuth()
+  // OAuth 창이 닫힐 때까지 대기 (완료 or 사용자 취소 모두 resolve)
+  const result = await window.electronAPI.startGoogleOAuth()
 
-  // pending-token 폴링 (1초 간격, 최대 120회)
-  for (let i = 0; i < 120; i++) {
+  // 사용자가 창을 그냥 닫은 경우 (콜백 미도달) → 즉시 중단
+  if (!result.completed) {
+    throw new Error('Google 로그인이 취소되었습니다.')
+  }
+
+  // 콜백 도달 확인 → pending-token 폴링 (1초 간격, 최대 30회)
+  for (let i = 0; i < 30; i++) {
     await new Promise(r => setTimeout(r, 1000))
     try {
       const res = await fetch('http://localhost:3001/api/auth/google/pending-token')

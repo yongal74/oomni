@@ -389,29 +389,39 @@ ipcMain.handle('open-external', (_event, url) => {
 ipcMain.handle('get-app-version', () => app.getVersion())
 
 // ── Google OAuth IPC 핸들러 ───────────────────────────────
-ipcMain.handle('google-oauth-start', async () => {
-  const oauthWindow = new BrowserWindow({
-    width: 500,
-    height: 700,
-    webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: false },
-    title: 'Google 로그인',
-    autoHideMenuBar: true,
-    parent: mainWindow,
-    modal: false,
-  })
+ipcMain.handle('google-oauth-start', () => {
+  return new Promise((resolve) => {
+    const oauthWindow = new BrowserWindow({
+      width: 500,
+      height: 700,
+      webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: false },
+      title: 'Google 로그인',
+      autoHideMenuBar: true,
+      parent: mainWindow,
+      modal: false,
+    })
 
-  oauthWindow.loadURL('http://localhost:3001/api/auth/google')
+    oauthWindow.loadURL('http://localhost:3001/api/auth/google')
 
-  // 구글 콜백 URL 도달 시 → 백엔드가 토큰 설정할 시간(3초) 후 창 닫기
-  // 토큰 폴링은 PinPage 렌더러에서만 하고 main process는 하지 않음
-  oauthWindow.webContents.on('did-navigate', (_event, url) => {
-    if (url.includes('/api/auth/google/callback') || url.includes('google/callback')) {
-      // 콜백 처리 완료까지 3초 대기 후 창 닫기
-      setTimeout(() => { if (!oauthWindow.isDestroyed()) oauthWindow.close() }, 3000)
+    let callbackReached = false
+
+    // did-navigate + did-redirect-navigation 모두 감지 (Google OAuth 리다이렉트 체인 대응)
+    const onNavigate = (_event, url) => {
+      if (!callbackReached && (url.includes('/api/auth/google/callback') || url.includes('google/callback'))) {
+        callbackReached = true
+        // 백엔드가 pendingGoogleToken 세팅할 시간 2초 확보 후 창 닫기
+        setTimeout(() => { if (!oauthWindow.isDestroyed()) oauthWindow.close() }, 2000)
+      }
     }
-  })
 
-  return { started: true }
+    oauthWindow.webContents.on('did-navigate', onNavigate)
+    oauthWindow.webContents.on('did-redirect-navigation', onNavigate)
+
+    // 창이 닫힐 때 (완료 or 사용자 수동 닫기) Promise 해결 → 프론트가 결과 확인 가능
+    oauthWindow.on('closed', () => {
+      resolve({ started: true, completed: callbackReached })
+    })
+  })
 })
 
 // ── 알림 IPC 핸들러 ──────────────────────────────────────
