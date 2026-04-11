@@ -68,6 +68,7 @@ export default function BotDetailPage() {
   const esRef = useRef<EventSource | null>(null)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [quota, setQuota] = useState<{ plan: string; runCount: number; limit: number; exceeded: boolean; remaining: number } | null>(null)
+  const [pencilStatus, setPencilStatus] = useState<{ connected: boolean } | null>(null)
 
   const { data: agent, isLoading } = useQuery<Agent>({
     queryKey: ['agent', id],
@@ -97,6 +98,16 @@ export default function BotDetailPage() {
   useEffect(() => {
     paymentsApi.quota().then(setQuota).catch(() => {})
   }, [])
+
+  // Design Bot: Pencil MCP 연동 상태 조회
+  useEffect(() => {
+    if (agent?.role === 'design') {
+      fetch(`http://localhost:3001/api/agents/${id}/pencil-status`)
+        .then(r => r.json())
+        .then(setPencilStatus)
+        .catch(() => {})
+    }
+  }, [agent?.role, id])
 
   // ?autorun= URL 파라미터 처리 — 대시보드 프리셋 클릭 시 자동 실행
   useEffect(() => {
@@ -457,6 +468,16 @@ export default function BotDetailPage() {
               )}>
                 {agent.is_active ? '● 활성' : '○ 비활성'}
               </span>
+              {agent.role === 'design' && pencilStatus !== null && (
+                <span className={cn(
+                  'text-xs px-2 py-1 rounded-full font-medium',
+                  pencilStatus.connected
+                    ? 'bg-purple-500/15 text-purple-400'
+                    : 'bg-border text-muted'
+                )}>
+                  {pencilStatus.connected ? '✦ Pencil MCP 연결됨' : '✦ Pencil MCP 미연결'}
+                </span>
+              )}
             </div>
             <div className="text-sm text-muted mt-0.5">{ROLE_LABEL[agent.role]} Bot</div>
           </div>
@@ -542,6 +563,7 @@ export default function BotDetailPage() {
             <XTerminal
               agentId={agent.id}
               isRunning={isRunning}
+              initialInput={task}
               onExit={() => { setIsRunning(false); setCurrentStage('done') }}
               className={agent.role === 'design' ? 'h-64 shrink-0' : 'h-80 shrink-0'}
             />

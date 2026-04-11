@@ -253,6 +253,16 @@ export default function DashboardPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['feed', 'approvals'] }),
   })
 
+  // CEO Bot 최신 브리핑
+  const ceoAgent = agents.find(a => a.role === 'ceo')
+  const { data: ceoRuns } = useQuery({
+    queryKey: ['ceo-runs', ceoAgent?.id],
+    queryFn: () => agentsApi.heartbeatRuns(ceoAgent!.id, 1),
+    enabled: !!ceoAgent?.id,
+    staleTime: 60000,
+  })
+  const latestCeoRun = ceoRuns?.[0]
+
   // KPI 계산
   const runningBots = agents.filter(a => a.is_active).length
   const totalCost = (costData?.data as Record<string, unknown>)?.total_cost_usd as number ?? 0
@@ -474,6 +484,38 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* CEO 브리핑 위젯 */}
+      {ceoAgent && (
+        <div className="bg-surface border border-border rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-base">👔</span>
+              <h3 className="text-[13px] font-medium text-text">CEO 브리핑</h3>
+              {latestCeoRun?.status === 'completed' && (
+                <span className="text-[10px] text-muted">
+                  {new Date(latestCeoRun.started_at).toLocaleString('ko-KR')}
+                </span>
+              )}
+            </div>
+            <Link to="/dashboard/ceo" className="text-[12px] text-primary hover:underline">
+              전체 보기 →
+            </Link>
+          </div>
+          {latestCeoRun?.output ? (
+            <p className="text-[12px] text-dim leading-relaxed line-clamp-4 whitespace-pre-wrap">
+              {latestCeoRun.output}
+            </p>
+          ) : (
+            <div className="flex items-center gap-2 text-[12px] text-muted py-2">
+              <Link to={`/dashboard/bots/${ceoAgent.id}`} className="text-primary hover:underline">
+                CEO Bot 실행하기
+              </Link>
+              <span>— 전체 봇 현황 브리핑을 생성합니다</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 탭 바 */}
       <div className="bg-surface border border-border rounded-lg overflow-hidden">

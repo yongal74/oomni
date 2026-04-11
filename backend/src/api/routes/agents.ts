@@ -3,10 +3,12 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import { ParallelExecutor, type ParallelResult } from '../../services/parallelExecutor';
 import { saveFeedItem } from '../../services/roleExecutors/base';
 import { ClaudeCodeService } from '../../services/claudeCodeService';
 import { routeToExecutor } from '../../services/roleExecutors';
+import { killPtySession } from '../../services/ptyService';
 
 // ── Workspace file tree types ────────────────────────────────────────────────
 interface FileNode {
@@ -499,6 +501,33 @@ export function agentsRouter(db: DbClient): Router {
     const last_run_at = rows.length > 0 ? rows[0].created_at : null;
 
     res.json({ data: { total_runs, success_count, error_count, last_run_at } });
+  });
+
+  // DELETE /api/agents/:id/terminal — PTY 세션 강제 종료 (세션 초기화)
+  router.delete('/:id/terminal', (req: Request, res: Response) => {
+    killPtySession(String(req.params.id));
+    res.json({ ok: true });
+  });
+
+  // GET /api/agents/:id/pencil-status — Pencil MCP 연동 상태 확인
+  router.get('/:id/pencil-status', (_req: Request, res: Response) => {
+    const antigravityBase = path.join(os.homedir(), '.antigravity', 'extensions');
+    try {
+      if (!fs.existsSync(antigravityBase)) {
+        res.json({ connected: false, reason: 'antigravity_not_found' });
+        return;
+      }
+      const entries = fs.readdirSync(antigravityBase);
+      const pencilExt = entries.find(e => e.startsWith('highagency.pencildev'));
+      if (!pencilExt) {
+        res.json({ connected: false, reason: 'pencil_ext_not_found' });
+        return;
+      }
+      const exePath = path.join(antigravityBase, pencilExt, 'out', 'mcp-server-windows-x64.exe');
+      res.json({ connected: fs.existsSync(exePath), exePath });
+    } catch {
+      res.json({ connected: false, reason: 'error' });
+    }
   });
 
   // DELETE /api/agents/:id

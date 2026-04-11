@@ -9,26 +9,28 @@ import { useEffect, useRef, useState } from 'react'
 import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
 import { WebLinksAddon } from 'xterm-addon-web-links'
-import { Square, Maximize2, Minimize2 } from 'lucide-react'
+import { Square, Maximize2, Minimize2, RotateCcw } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import 'xterm/css/xterm.css'
 
 interface Props {
   agentId: string
   isRunning: boolean
+  initialInput?: string   // 연결 직후 PTY에 자동 전송할 초기 입력 (task 텍스트)
   onExit?: (code: number) => void
   className?: string
 }
 
 const WS_URL = 'ws://localhost:3001'
 
-export function XTerminal({ agentId, isRunning, onExit, className }: Props) {
+export function XTerminal({ agentId, isRunning, initialInput, onExit, className }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const [connected, setConnected] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const [resetting, setResetting] = useState(false)
 
   // 터미널 초기화
   useEffect(() => {
@@ -124,6 +126,14 @@ export function XTerminal({ agentId, isRunning, onExit, className }: Props) {
           term.write(msg.data)
         } else if (msg.type === 'connected') {
           term.writeln('\x1b[1;32m✓ 연결됨\x1b[0m — 입력을 시작하세요\r\n')
+          // initialInput이 있으면 PTY에 자동 전송 (task 텍스트 → Claude Code 실행)
+          if (initialInput?.trim()) {
+            setTimeout(() => {
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'input', data: initialInput.trim() + '\n' }))
+              }
+            }, 800)
+          }
         } else if (msg.type === 'exit') {
           const code = msg.exitCode ?? 0
           term.writeln(`\r\n\x1b[90m[프로세스 종료: 코드 ${code}]\x1b[0m`)
@@ -172,6 +182,21 @@ export function XTerminal({ agentId, isRunning, onExit, className }: Props) {
     wsRef.current?.close()
   }
 
+  // 세션 초기화: PTY 세션 강제 종료 후 터미널 클리어
+  const handleResetSession = async () => {
+    setResetting(true)
+    try {
+      await fetch(`http://localhost:3001/api/agents/${agentId}/terminal`, { method: 'DELETE' })
+      wsRef.current?.close()
+      wsRef.current = null
+      setConnected(false)
+      termRef.current?.clear()
+      termRef.current?.writeln('\x1b[33m⟳ 세션 초기화됨 — 실행 버튼을 눌러 새로 시작하세요\x1b[0m\r\n')
+    } finally {
+      setResetting(false)
+    }
+  }
+
   return (
     <div className={cn(
       'flex flex-col border-t border-border bg-[#0d0d0d] transition-all duration-200',
@@ -203,6 +228,15 @@ export function XTerminal({ agentId, isRunning, onExit, className }: Props) {
               종료
             </button>
           )}
+          <button
+            onClick={handleResetSession}
+            disabled={resetting}
+            title="봇 세션 초기화 — PTY 세션을 완전히 리셋합니다"
+            className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] text-[#888] hover:text-yellow-400 hover:bg-yellow-500/10 transition-colors disabled:opacity-40"
+          >
+            <RotateCcw size={10} className={resetting ? 'animate-spin' : ''} />
+            세션초기화
+          </button>
           <button
             onClick={() => setExpanded(e => !e)}
             title={expanded ? '원래 크기' : '전체화면'}
