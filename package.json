@@ -10,7 +10,7 @@
     "dev:electron": "wait-on http://localhost:5174 http://localhost:3001/api/health && cross-env ELECTRON_IS_DEV=true electron .",
     "build": "cd frontend && npm run build && cd ../backend && npm run build",
     "rebuild-sqlite": "cd backend && npx electron-rebuild -f -w better-sqlite3 --electron-version 33.4.11",
-    "rebuild-native": "cd backend && npx electron-rebuild -f --module-dir . --only better-sqlite3,node-pty --electron-version 33.4.11",
+    "rebuild-native": "cd backend && npx electron-rebuild -f --module-dir . --only better-sqlite3 --electron-version 33.4.11",
     "package": "npm run build && npm run rebuild-native && electron-builder",
     "test": "cd backend && npm test"
   },
