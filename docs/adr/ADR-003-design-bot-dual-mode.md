@@ -1,7 +1,7 @@
 # ADR-003: Design Bot 이중 실행 모드 (SSE vs PTY)
 
 **날짜**: 2026-04
-**상태**: 채택됨 (v2.9.3)
+**상태**: 수정됨 (v2.9.3 채택 → v2.9.5 UX 변경)
 
 ---
 
@@ -55,3 +55,32 @@ GET /api/agents/:id/pencil-status → { connected: boolean }
 - `frontend/src/pages/BotDetailPage.tsx` — 모드 분기 로직
 - `backend/src/api/routes/agents.ts` — `/pencil-status` 엔드포인트
 - `backend/src/services/ptyService.ts` — Pencil MCP config 자동 주입
+
+---
+
+## v2.9.5 수정사항
+
+### 문제 (자동 분기 방식의 한계)
+
+자동 분기 방식(`pencil-status` API 조회)이 실제 사용에서 UX 혼란을 유발했다:
+- Pencil이 설치되어 있어도 사용자가 SSE 모드로 빠르게 HTML 생성하고 싶은 경우가 있음
+- 자동으로 XTerminal이 열리면 CLI 사용에 익숙하지 않은 사용자는 당황
+- 모드 전환 방법을 몰라 이탈
+
+### 변경된 결정
+
+**기본값을 SSE(LiveStreamDrawer)로 고정하고, 수동으로 Pencil 모드 전환**
+
+```
+기본 상태: pencilModeEnabled = false → LiveStreamDrawer (SSE)
+사용자가 "Pencil 모드로 전환" 클릭 → pencilModeEnabled = true → XTerminal (PTY)
+```
+
+- `pencilModeEnabled` state가 모드를 결정
+- Pencil 설치 여부와 관계없이 항상 SSE로 시작
+- Pencil 미설치 상태에서 Pencil 모드 전환 시도 시 설치 안내 표시
+
+### 근거
+- 사용자 의도 명시성: 사용자가 직접 선택해야 모드가 바뀜
+- 신규 사용자 온보딩: 복잡한 CLI 환경 노출 최소화
+- Pencil 설치 유도: 배너를 통해 자연스럽게 안내

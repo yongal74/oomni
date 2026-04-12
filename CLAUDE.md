@@ -32,7 +32,7 @@
 - 버그 수정: x.x.X (patch)
 - 기능 추가: x.X.0 (minor)
 - 상용화 전환: X.0.0 (major)
-- 현재 버전: **v2.9.3**
+- 현재 버전: **v2.9.5**
 
 ## 프로젝트 컨텍스트
 OOMNI는 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼입니다.
@@ -57,10 +57,25 @@ OOMNI는 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼입니다
 - `attachPtyWebSocket`: `/api/agents/:id/terminal` 경로 처리
 - **절대로** `{ server, path }` 옵션으로 WebSocketServer 생성 금지 → 다른 경로 소켓 파괴
 
-### Design Bot 실행 모드
-- Pencil MCP 연결됨 → XTerminal (PTY, Claude Code + Pencil MCP)
-- Pencil MCP 미연결 → LiveStreamDrawer (SSE, HTML 생성)
-- 모드 판별: `GET /api/agents/:id/pencil-status`
+### Design Bot 실행 모드 (v2.9.5~)
+- **기본값**: LiveStreamDrawer (SSE, HTML 생성) — Pencil 설치 여부 무관
+- **수동 전환**: UI에서 "Pencil 모드로 전환" 버튼 → XTerminal (PTY, Claude Code + Pencil MCP)
+- `pencilModeEnabled` state로 관리 (BotDetailPage)
+- ~~자동 분기(pencil-status API) 방식은 v2.9.5에서 제거됨~~ (UX 혼란 원인)
+
+### Build Bot PTY 주의사항 (v2.9.5~)
+- `initialInput` 자동전송 완전 제거 — Claude Code CLI 실행 직후 자동 입력 시 exit code 1 발생
+- 대신 `taskHint` prop으로 터미널 상단에 힌트 텍스트만 표시
+- 사용자가 직접 명령어를 입력하는 방식으로 동작
+
+### CEO 봇 role CHECK constraint (v2.9.5~)
+- DB schema migration v6: agents 테이블에 `ceo` role CHECK constraint 추가
+- 이전 버전에서 CEO 봇 추가 실패했던 근본 원인: role 컬럼 제약 없음 → INSERT 실패
+
+### 봇간 산출물 전달 (v2.9.5~)
+- XTerminal에 `onOutputCapture` prop 추가
+- PTY 출력에서 ANSI 이스케이프 코드 제거 후 누적 텍스트를 상위 컴포넌트로 전달
+- BotDetailPage에서 이전 봇 결과물을 다음 봇 초기 컨텍스트로 주입 가능
 
 ### CEO/봇 추가 이슈 방지
 - Zustand `persist`로 `currentMission`이 localStorage에 저장됨
