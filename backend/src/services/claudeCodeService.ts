@@ -101,7 +101,7 @@ function findPencilMcpExe(): string | null {
     return process.env.PENCIL_MCP_PATH;
   }
   const homeDir = os.homedir();
-  const antigravityBase = path.join(homeDir, '.antigravity', 'extensions');
+  const antigravityBase = path.join(homeDir, '.gemini', 'antigravity', 'extensions');
   if (!fs.existsSync(antigravityBase)) return null;
 
   // 버전에 상관없이 pencildev 확장 탐색

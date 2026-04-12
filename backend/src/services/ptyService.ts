@@ -55,7 +55,7 @@ function getApiKey(): string {
 
 function getMcpConfig(agentId: string): string | null {
   // Pencil MCP 경로 (Design bot용이지만 Build bot도 사용 가능)
-  const antigravityBase = path.join(os.homedir(), '.antigravity', 'extensions');
+  const antigravityBase = path.join(os.homedir(), '.gemini', 'antigravity', 'extensions');
   if (!fs.existsSync(antigravityBase)) return null;
 
   try {

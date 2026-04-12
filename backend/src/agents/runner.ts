@@ -70,7 +70,7 @@ const ROLE_INSTRUCTIONS: Record<AgentRole, string> = {
 function buildMcpConfig(role: string): string | null {
   if (role !== 'design') return null;
 
-  const antigravityBase = path.join(os.homedir(), '.antigravity', 'extensions');
+  const antigravityBase = path.join(os.homedir(), '.gemini', 'antigravity', 'extensions');
   if (!fs.existsSync(antigravityBase)) return null;
 
   const entries = fs.readdirSync(antigravityBase);

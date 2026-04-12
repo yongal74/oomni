@@ -65,6 +65,13 @@ export function schedulesRouter(db: DbClient): Router {
       }
 
       const { agent_id, mission_id, name, trigger_type, trigger_value, is_active } = parsed.data;
+
+      const agentCheck = await db.query('SELECT id FROM agents WHERE id = $1', [agent_id]);
+      if ((agentCheck.rows as unknown[]).length === 0) {
+        res.status(404).json({ error: '에이전트를 찾을 수 없습니다' });
+        return;
+      }
+
       const id = uuidv4();
 
       const result = await db.query(

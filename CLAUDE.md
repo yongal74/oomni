@@ -32,7 +32,7 @@
 - 버그 수정: x.x.X (patch)
 - 기능 추가: x.X.0 (minor)
 - 상용화 전환: X.0.0 (major)
-- 현재 버전: **v2.9.5**
+- 현재 버전: **v2.9.6**
 
 ## 프로젝트 컨텍스트
 OOMNI는 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼입니다.
@@ -68,9 +68,22 @@ OOMNI는 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼입니다
 - 대신 `taskHint` prop으로 터미널 상단에 힌트 텍스트만 표시
 - 사용자가 직접 명령어를 입력하는 방식으로 동작
 
-### CEO 봇 role CHECK constraint (v2.9.5~)
+### CEO 봇 role CHECK constraint (v2.9.6 수정 완료)
 - DB schema migration v6: agents 테이블에 `ceo` role CHECK constraint 추가
-- 이전 버전에서 CEO 봇 추가 실패했던 근본 원인: role 컬럼 제약 없음 → INSERT 실패
+- **v2.9.5 버그**: migration v6가 `foreign_keys=ON` 상태에서 `DROP TABLE agents_v5` 실패 → 매 앱 시작마다 롤백 반복 → `ceo` role 계속 거부
+- **v2.9.6 수정**: `client.ts`에서 `runMigrations()` 호출 전후로 `foreign_keys=OFF/ON` 래핑 → migration v6 정상 실행
+
+### Reports API 버그 (v2.9.6 수정 완료)
+- **버그**: `reports.ts`의 에이전트 목록 쿼리에서 `WHERE a.mission_id = ?` — 테이블 alias `a` 없이 사용 → `no such column: a.mission_id`
+- **수정**: `WHERE mission_id = ?` 로 alias 제거
+
+### Schedules FK 오류 (v2.9.6 수정 완료)
+- **버그**: `POST /api/schedules`에서 존재하지 않는 `agent_id`로 INSERT 시 FOREIGN KEY 제약 오류
+- **수정**: INSERT 전 `agent_id` 존재 여부 확인 로직 추가 (404 반환)
+
+### Pencil MCP 경로 (v2.9.6 수정 완료)
+- **버그**: Pencil MCP 서버 경로를 `~/.antigravity/extensions`에서 탐색 → 현재 설치 경로 불일치
+- **수정**: `~/.gemini/antigravity/extensions`로 변경 (4개 파일: claudeCodeService, ptyService, runner, agents route)
 
 ### 봇간 산출물 전달 (v2.9.5~)
 - XTerminal에 `onOutputCapture` prop 추가

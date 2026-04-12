@@ -624,7 +624,7 @@ export default function BotDetailPage() {
                     onClick={() => setPencilModeEnabled(true)}
                     className="flex items-center gap-1 px-2.5 py-1 rounded text-[11px] bg-purple-500/15 text-purple-400 hover:bg-purple-500/25 transition-colors"
                   >
-                    ✦ Pencil 연결하기
+                    ✦ Pencil 연결 확인
                   </button>
                 ) : (
                   <button

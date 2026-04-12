@@ -67,7 +67,7 @@ export function reportsRouter(db: DbClient): Router {
 
       // 미션 필터 조건 구성
       const agentWhere = mission_id
-        ? `WHERE a.mission_id = ?`
+        ? `WHERE mission_id = ?`
         : '';
       const agentParams: unknown[] = mission_id ? [mission_id] : [];
 

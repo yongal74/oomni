@@ -2,7 +2,7 @@
 
 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼. Research → Build → Design → Growth → Ops 봇이 파이프라인으로 연결되어 팀 없이 팀처럼 일합니다.
 
-**현재 버전**: v2.9.3 | **플랫폼**: Windows 10/11 x64 | **다운로드**: [yongal74.github.io/oomni](https://yongal74.github.io/oomni/)
+**현재 버전**: v2.9.6 | **플랫폼**: Windows 10/11 x64 | **다운로드**: [yongal74.github.io/oomni](https://yongal74.github.io/oomni/)
 
 ---
 
@@ -25,7 +25,7 @@
 ### 요구사항
 - Windows 10/11 x64
 - [Anthropic API 키](https://console.anthropic.com) (Claude 사용)
-- (선택) [Pencil](https://www.antigravity.dev/) — Design Bot PTY 모드 사용 시
+- (선택) [Pencil](https://www.antigravity.dev/) — Design Bot PTY 모드 사용 시 (`~/.gemini/antigravity` 경로에 설치)
 
 ### 설치
 1. [최신 릴리즈](https://github.com/yongal74/oomni/releases/latest)에서 `OOMNI Setup X.X.X.exe` 다운로드
@@ -81,16 +81,16 @@ NODE_ENV=development
 - **Frontend**: React + Zustand(상태) + React Query(서버 상태) + TailwindCSS
 - **DB**: SQLite (`C:/oomni-data/oomni.db`) — PostgreSQL 호환 인터페이스
 
-### Design Bot 실행 모드
+### Design Bot 실행 모드 (v2.9.5~)
 ```
-Pencil MCP 설치됨? ──YES──► XTerminal (PTY)
-                              Claude Code + Pencil MCP
-        │
-       NO
-        ▼
-    LiveStreamDrawer (SSE)
-    HTML 생성 모드
+기본값: LiveStreamDrawer (SSE) — HTML 생성 모드
+   │
+   └─ UI에서 "Pencil 모드로 전환" 버튼 클릭
+         ▼
+      XTerminal (PTY)
+      Claude Code + Pencil MCP
 ```
+> 자동 분기 방식은 v2.9.5에서 제거됨 (CLI 미숙 사용자 혼란 방지)
 
 ---
 
@@ -155,6 +155,8 @@ oomni/
 
 | 버전 | 주요 변경 |
 |------|-----------|
+| v2.9.6 | CEO/Build bot role CHECK 제약 버그 수정, Reports mission_id 쿼리 수정, Schedules agent 존재 검증 추가, Pencil MCP 경로 수정 |
+| v2.9.5 | CEO role DB 마이그레이션, Build Bot exit code 1 수정, 봇간 산출물 전달, Design Bot 수동 전환 |
 | v2.9.3 | Build Bot WebSocket 오류 수정, CEO 봇 추가 실패 수정, Pencil 설치 버튼, Settings Claude API Key |
 | v2.9.2 | XTerminal initialInput, Pencil MCP 상태 뱃지, 세션 초기화 버튼 |
 | v2.9.1 | 소셜 로그인, 미션 인라인 생성, CEO 봇 SSE |

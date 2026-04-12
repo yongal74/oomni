@@ -523,7 +523,7 @@ export function agentsRouter(db: DbClient): Router {
 
   // GET /api/agents/:id/pencil-status — Pencil MCP 연동 상태 확인
   router.get('/:id/pencil-status', (_req: Request, res: Response) => {
-    const antigravityBase = path.join(os.homedir(), '.antigravity', 'extensions');
+    const antigravityBase = path.join(os.homedir(), '.gemini', 'antigravity', 'extensions');
     try {
       if (!fs.existsSync(antigravityBase)) {
         res.json({ connected: false, reason: 'antigravity_not_found' });

@@ -83,7 +83,10 @@ export function initDb(): DbClient {
   }
 
   // 버전 기반 마이그레이션 실행
+  // DDL(테이블 재생성) 마이그레이션 중 DROP TABLE이 FK 제약으로 막히지 않도록 일시 비활성화
+  db.pragma('foreign_keys = OFF');
   const migrationResults = runMigrations(db);
+  db.pragma('foreign_keys = ON');
   const failedMigrations = migrationResults.filter(
     r => r.status === 'failed' || r.status === 'rolled_back'
   );
