@@ -224,9 +224,11 @@ export default function DashboardPage() {
   // 봇 생성
   const createBot = useMutation({
     mutationFn: async (role: string) => {
+      // missionId 없으면 봇 생성 불가 — DB 외래키 오류 전에 프론트에서 차단
+      if (!missionId) throw new Error('미션을 먼저 선택하거나 생성해주세요.')
       const tmpl = BOT_TEMPLATES.find(t => t.role === role)!
       return agentsApi.create({
-        mission_id: missionId!,
+        mission_id: missionId,
         name: tmpl.name,
         role: role as Agent['role'],
         schedule: 'manual',

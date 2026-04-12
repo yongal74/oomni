@@ -106,17 +106,16 @@ function getOrCreateSession(agentId: string, cols = 120, rows = 35): PtySession 
     FORCE_COLOR: '3',
   };
 
+  // Electron 패키징 환경: process.execPath = OOMNI.exe → ELECTRON_RUN_AS_NODE=1로 Node.js로 실행
+  // 개발 환경: process.execPath = node.exe → 그대로 사용
   if (isElectron) {
     env.ELECTRON_RUN_AS_NODE = '1';
   }
 
-  // Windows: cmd.exe 셸로 node 실행
-  const shell = process.platform === 'win32' ? 'cmd.exe' : '/bin/bash';
-  const shellArgs = process.platform === 'win32'
-    ? ['/c', `"${nodeExec}" ${args.map(a => `"${a}"`).join(' ')}`]
-    : ['-c', `"${nodeExec}" ${args.map(a => `'${a}'`).join(' ')}`];
-
-  const ptyProcess = pty.spawn(shell, shellArgs, {
+  // node-pty(ConPTY)로 직접 spawn — cmd.exe 래퍼 제거
+  // cmd.exe /c "path" 방식은 Windows ACP(한글 경로 장우경 등)에서 인코딩 오류 발생
+  // ConPTY는 CreateProcessW(UTF-16) 사용으로 유니코드 경로 정상 처리
+  const ptyProcess = pty.spawn(nodeExec, args, {
     name: 'xterm-256color',
     cols,
     rows,

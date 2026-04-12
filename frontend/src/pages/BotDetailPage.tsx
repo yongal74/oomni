@@ -47,14 +47,15 @@ export default function BotDetailPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const qc = useQueryClient()
-  const { currentMission, agents: allAgents } = useAppStore()
+  const { currentMission, agents: allAgents, pendingBotInput, setPendingBotInput } = useAppStore()
   const missionId = currentMission?.id
 
   const [activeTab, setActiveTab] = useState<'main' | 'history'>('main')
   const [historyLimit, setHistoryLimit] = useState(20)
   const [expandedRuns, setExpandedRuns] = useState<Set<string>>(new Set())
 
-  const [task, setTask] = useState('')
+  // 이전 봇에서 전달된 pendingBotInput을 task 초기값으로 사용
+  const [task, setTask] = useState(() => pendingBotInput ?? '')
   const [isRunning, setIsRunning] = useState(false)
   const [currentStage, setCurrentStage] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
@@ -97,6 +98,14 @@ export default function BotDetailPage() {
   // 무료 플랜 사용량 조회
   useEffect(() => {
     paymentsApi.quota().then(setQuota).catch(() => {})
+  }, [])
+
+  // pendingBotInput 소비 — 마운트 직후 한 번만 클리어 (다음 봇이 다시 읽지 않도록)
+  useEffect(() => {
+    if (pendingBotInput) {
+      setPendingBotInput(null)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Design Bot: Pencil MCP 연동 상태 조회
@@ -197,7 +206,10 @@ export default function BotDetailPage() {
   }
 
   const handleNextBot = () => {
-    if (nextBot) navigate(`/dashboard/bots/${nextBot.id}`)
+    if (!nextBot) return
+    // 현재 봇의 최신 결과물을 다음 봇 입력으로 전달
+    if (lastOutput) setPendingBotInput(lastOutput)
+    navigate(`/dashboard/bots/${nextBot.id}`)
   }
 
   if (isLoading) return (
@@ -469,14 +481,23 @@ export default function BotDetailPage() {
                 {agent.is_active ? '● 활성' : '○ 비활성'}
               </span>
               {agent.role === 'design' && pencilStatus !== null && (
-                <span className={cn(
-                  'text-xs px-2 py-1 rounded-full font-medium',
-                  pencilStatus.connected
-                    ? 'bg-purple-500/15 text-purple-400'
-                    : 'bg-border text-muted'
-                )}>
-                  {pencilStatus.connected ? '✦ Pencil MCP 연결됨' : '✦ Pencil MCP 미연결'}
-                </span>
+                <button
+                  onClick={() => {
+                    // Pencil 연결됨: 상태만 표시 / 미연결: antigravity 실행 안내
+                    if (!pencilStatus.connected) {
+                      alert('Pencil MCP를 사용하려면 Antigravity 앱을 먼저 실행하세요.\n\nAntigravity가 실행 중이라면 아래 "연결 확인" 버튼을 눌러주세요.')
+                    }
+                  }}
+                  className={cn(
+                    'text-xs px-2 py-1 rounded-full font-medium transition-colors',
+                    pencilStatus.connected
+                      ? 'bg-purple-500/15 text-purple-400'
+                      : 'bg-border text-muted hover:bg-yellow-500/10 hover:text-yellow-400'
+                  )}
+                  title={pencilStatus.connected ? 'Pencil MCP 연결 중' : 'Antigravity 앱을 실행하면 자동 연결됩니다'}
+                >
+                  {pencilStatus.connected ? '✦ Pencil MCP 연결됨' : '✦ Pencil MCP 미연결 — 클릭'}
+                </button>
               )}
             </div>
             <div className="text-sm text-muted mt-0.5">{ROLE_LABEL[agent.role]} Bot</div>
