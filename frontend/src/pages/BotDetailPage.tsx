@@ -70,6 +70,9 @@ export default function BotDetailPage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [quota, setQuota] = useState<{ plan: string; runCount: number; limit: number; exceeded: boolean; remaining: number } | null>(null)
   const [pencilStatus, setPencilStatus] = useState<{ connected: boolean } | null>(null)
+  // Design Bot: 사용자가 명시적으로 Pencil 모드를 선택했는지 여부
+  // 기본은 SSE(HTML 생성) 모드 → "Pencil 연결" 버튼 클릭 시 XTerminal 모드로 전환
+  const [pencilModeEnabled, setPencilModeEnabled] = useState(false)
 
   const { data: agent, isLoading } = useQuery<Agent>({
     queryKey: ['agent', id],
@@ -578,51 +581,74 @@ export default function BotDetailPage() {
         {agent.role === 'build' ? (
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden">{center}</div>
-            {/* Build Bot: 항상 XTerminal (Claude Code CLI) */}
+            {/* Build Bot: 항상 XTerminal (Claude Code CLI 인터랙티브)
+                - isRunning=true 시 새 세션 시작, 이후 사용자가 직접 타이핑
+                - initialInput 자동전송 제거: Claude Code 초기화 전 입력 → exit code 1 유발
+                - taskHint: 태스크를 힌트로만 표시, 자동전송 없음
+                - onOutputCapture: PTY 출력 → lastOutput 업데이트 → 다음 봇 전달 */}
             <XTerminal
               agentId={agent.id}
               isRunning={isRunning}
-              initialInput={task}
+              taskHint={task}
               onExit={() => { setIsRunning(false); setCurrentStage('done') }}
+              onOutputCapture={(text) => setLastOutput(text)}
               className="h-80 shrink-0"
             />
           </div>
         ) : agent.role === 'design' ? (
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden">{center}</div>
-            {/* Design Bot: Pencil MCP 연결됨 → XTerminal / 미연결 → LiveStreamDrawer(SSE) */}
-            {pencilStatus?.connected ? (
+            {/* Design Bot:
+                - 기본: SSE 모드 (HTML 생성, Pencil 없이 바로 실행 가능)
+                - pencilModeEnabled && pencilStatus?.connected: XTerminal + Pencil MCP 모드
+                사용자가 명시적으로 "Pencil 연결" 버튼 클릭 후 전환 */}
+            {pencilModeEnabled && pencilStatus?.connected ? (
               <XTerminal
                 agentId={agent.id}
                 isRunning={isRunning}
-                initialInput={task}
+                taskHint={task}
                 onExit={() => { setIsRunning(false); setCurrentStage('done') }}
+                onOutputCapture={(text) => setLastOutput(text)}
                 className="h-64 shrink-0"
               />
             ) : (
-              /* Pencil 미연결: SSE 경로로 HTML 생성 — LiveStreamDrawer 복원 */
+              /* 기본 SSE 모드 + Pencil 연결 안내 바 */
               <div className="shrink-0 border-t border-border bg-[#111] px-4 py-3 flex items-center gap-3">
-                <span className="text-[12px] text-yellow-400">✦ Pencil MCP 미연결 — HTML 생성 모드로 실행됩니다</span>
-                <button
-                  onClick={() => {
-                    const url = 'https://www.antigravity.dev/'
-                    if ((window as { electronAPI?: { openExternal?: (u: string) => void } }).electronAPI?.openExternal) {
-                      (window as { electronAPI?: { openExternal?: (u: string) => void } }).electronAPI!.openExternal!(url)
-                    } else { window.open(url, '_blank') }
-                  }}
-                  className="flex items-center gap-1 text-[11px] text-primary hover:underline"
-                >
-                  Pencil 설치 안내 →
-                </button>
-                <button
-                  onClick={() => {
-                    fetch(`http://localhost:3001/api/agents/${agent.id}/pencil-status`)
-                      .then(r => r.json()).then(setPencilStatus).catch(() => {})
-                  }}
-                  className="text-[11px] text-muted hover:text-text"
-                >
-                  연결 확인
-                </button>
+                {pencilModeEnabled ? (
+                  <span className="text-[12px] text-red-400">✦ Antigravity 앱이 실행되지 않았거나 Pencil MCP 설치 필요</span>
+                ) : (
+                  <span className="text-[12px] text-muted">✦ HTML 생성 모드 — Pencil MCP로 전환하면 .pen 파일 직접 생성</span>
+                )}
+                {pencilStatus?.connected ? (
+                  <button
+                    onClick={() => setPencilModeEnabled(true)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded text-[11px] bg-purple-500/15 text-purple-400 hover:bg-purple-500/25 transition-colors"
+                  >
+                    ✦ Pencil 연결하기
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      fetch(`http://localhost:3001/api/agents/${agent.id}/pencil-status`)
+                        .then(r => r.json()).then((s) => {
+                          setPencilStatus(s)
+                          if (s.connected) setPencilModeEnabled(true)
+                          else alert('Antigravity 앱을 먼저 실행하세요.\n실행 후 이 버튼을 다시 눌러주세요.')
+                        }).catch(() => {})
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded text-[11px] bg-border text-muted hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
+                  >
+                    Pencil 연결 확인
+                  </button>
+                )}
+                {pencilModeEnabled && (
+                  <button
+                    onClick={() => setPencilModeEnabled(false)}
+                    className="text-[11px] text-muted hover:text-text"
+                  >
+                    HTML 모드로 돌아가기
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -644,7 +670,7 @@ export default function BotDetailPage() {
       {/* ── 하단: 스트림 드로어 (Build 봇 제외) + 프롬프트 입력 ── */}
       <div className="shrink-0">
         {/* Build Bot은 XTerminal만 사용, Design Bot은 Pencil 연결 여부에 따라 분기 */}
-        {agent.role !== 'build' && !(agent.role === 'design' && pencilStatus?.connected) && (
+        {agent.role !== 'build' && !(agent.role === 'design' && pencilModeEnabled && pencilStatus?.connected) && (
           <LiveStreamDrawer
             agentId={agent.id}
             task={task}

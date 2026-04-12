@@ -16,18 +16,24 @@ import 'xterm/css/xterm.css'
 interface Props {
   agentId: string
   isRunning: boolean
-  initialInput?: string   // 연결 직후 PTY에 자동 전송할 초기 입력 (task 텍스트)
+  /** @deprecated 자동전송 제거됨 — Claude Code 초기화 전 입력이 exit code 1 유발 */
+  initialInput?: string
+  /** 연결 후 터미널에 힌트로 표시할 태스크 텍스트 (자동 전송하지 않음) */
+  taskHint?: string
   onExit?: (code: number) => void
+  /** PTY 출력 누적 텍스트를 부모에 전달 (산출물 전달용) */
+  onOutputCapture?: (text: string) => void
   className?: string
 }
 
 const WS_URL = 'ws://localhost:3001'
 
-export function XTerminal({ agentId, isRunning, initialInput, onExit, className }: Props) {
+export function XTerminal({ agentId, isRunning, taskHint, onExit, onOutputCapture, className }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
+  const outputBufRef = useRef<string>('')  // PTY 출력 누적 (ANSI 제거 후)
   const [connected, setConnected] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [resetting, setResetting] = useState(false)
@@ -124,15 +130,16 @@ export function XTerminal({ agentId, isRunning, initialInput, onExit, className 
         const msg = JSON.parse(e.data as string) as { type: string; data?: string; exitCode?: number }
         if (msg.type === 'output' && msg.data) {
           term.write(msg.data)
+          // ANSI 이스케이프 제거 후 텍스트 누적 (산출물 전달용)
+          const plain = msg.data.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/\x1b\][^\x07]*\x07/g, '')
+          outputBufRef.current += plain
+          onOutputCapture?.(outputBufRef.current)
         } else if (msg.type === 'connected') {
-          term.writeln('\x1b[1;32m✓ 연결됨\x1b[0m — 입력을 시작하세요\r\n')
-          // initialInput이 있으면 PTY에 자동 전송 (task 텍스트 → Claude Code 실행)
-          if (initialInput?.trim()) {
-            setTimeout(() => {
-              if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'input', data: initialInput.trim() + '\n' }))
-              }
-            }, 800)
+          outputBufRef.current = ''
+          term.writeln('\x1b[1;32m✓ Claude Code 연결됨\x1b[0m\r\n')
+          if (taskHint?.trim()) {
+            term.writeln(`\x1b[90m💡 태스크 힌트: ${taskHint.trim()}\x1b[0m`)
+            term.writeln('\x1b[90m(위 내용을 참고해 아래에 직접 입력하세요)\x1b[0m\r\n')
           }
         } else if (msg.type === 'exit') {
           const code = msg.exitCode ?? 0
