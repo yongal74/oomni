@@ -82,6 +82,55 @@ export function initDb(): DbClient {
     // 이미 존재하면 무시
   }
 
+  // ── agents_v5 잔재 방어 패치 ──────────────────────────────────────────
+  // migration v6 (agents RENAME → agents_v5) 가 부분 적용된 채 크래시/중단된 경우
+  // DB에 agents_v5가 남아있을 수 있음. 앱 시작 시 자동 복구.
+  try {
+    const tables = (db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table'"
+    ).all() as { name: string }[]).map(r => r.name);
+
+    const hasV5  = tables.includes('agents_v5');
+    const hasAgents = tables.includes('agents');
+
+    if (hasV5 && !hasAgents) {
+      // agents_v5만 있고 agents가 없음: migration v6 완료 처리
+      logger.info('[DB] agents_v5 발견 (agents 없음) — migration v6 재완성 시작');
+      db.pragma('foreign_keys = OFF');
+      db.exec(`
+        CREATE TABLE agents (
+          id            TEXT PRIMARY KEY,
+          mission_id    TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+          name          TEXT NOT NULL,
+          role          TEXT NOT NULL CHECK (role IN (
+                          'research','build','design','content','growth','ops','integration','n8n','ceo'
+                        )),
+          schedule      TEXT NOT NULL DEFAULT 'manual' CHECK (schedule IN ('manual','hourly','daily','weekly')),
+          system_prompt TEXT NOT NULL DEFAULT '',
+          budget_cents  INTEGER NOT NULL DEFAULT 500 CHECK (budget_cents >= 0),
+          is_active     INTEGER NOT NULL DEFAULT 1,
+          reports_to    TEXT REFERENCES agents(id) ON DELETE SET NULL,
+          created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        );
+        INSERT INTO agents SELECT * FROM agents_v5;
+        DROP TABLE agents_v5;
+      `);
+      db.pragma('foreign_keys = ON');
+      // schema_migrations에 v6 applied 기록 (중복 방지)
+      db.prepare(
+        `INSERT OR IGNORE INTO schema_migrations (version, description, status, applied_at)
+         VALUES (6, 'agents 테이블 role CHECK에 ceo 추가 (repair)', 'applied', datetime('now'))`
+      ).run();
+      logger.info('[DB] agents_v5 → agents 복구 완료');
+    } else if (hasV5 && hasAgents) {
+      // 둘 다 있음: agents_v5는 쓰레기, 삭제
+      logger.info('[DB] agents_v5 잔재 발견 (agents 존재) — agents_v5 삭제');
+      db.exec('DROP TABLE IF EXISTS agents_v5;');
+    }
+  } catch (repairErr) {
+    logger.error('[DB] agents_v5 repair 실패:', repairErr);
+  }
+
   // 버전 기반 마이그레이션 실행
   // DDL(테이블 재생성) 마이그레이션 중 DROP TABLE이 FK 제약으로 막히지 않도록 일시 비활성화
   db.pragma('foreign_keys = OFF');

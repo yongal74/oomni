@@ -16,6 +16,10 @@ import 'xterm/css/xterm.css'
 interface Props {
   agentId: string
   isRunning: boolean
+  /** true: 마운트 즉시 연결 (isRunning 무관) — Antigravity IDE 스타일 항상-켜진 터미널 */
+  alwaysOn?: boolean
+  /** true: PowerShell/bash 셸 모드 / false(기본): Claude Code CLI 모드 */
+  shellMode?: boolean
   /** @deprecated 자동전송 제거됨 — Claude Code 초기화 전 입력이 exit code 1 유발 */
   initialInput?: string
   /** 연결 후 터미널에 힌트로 표시할 태스크 텍스트 (자동 전송하지 않음) */
@@ -28,7 +32,7 @@ interface Props {
 
 const WS_URL = 'ws://localhost:3001'
 
-export function XTerminal({ agentId, isRunning, taskHint, onExit, onOutputCapture, className }: Props) {
+export function XTerminal({ agentId, isRunning, alwaysOn, shellMode, taskHint, onExit, onOutputCapture, className }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
@@ -84,8 +88,13 @@ export function XTerminal({ agentId, isRunning, taskHint, onExit, onOutputCaptur
     termRef.current = term
     fitAddonRef.current = fitAddon
 
-    term.writeln('\x1b[1;32mOOMNI Build Terminal\x1b[0m — Claude Code 인터랙티브 모드')
-    term.writeln('\x1b[90m봇을 실행하면 연결됩니다...\x1b[0m\r\n')
+    if (alwaysOn) {
+      term.writeln('\x1b[1;32mOOMNI Terminal\x1b[0m — 워크스페이스 셸')
+      term.writeln('\x1b[90m연결 중...\x1b[0m\r\n')
+    } else {
+      term.writeln('\x1b[1;32mOOMNI Build Terminal\x1b[0m — Claude Code 인터랙티브 모드')
+      term.writeln('\x1b[90m봇을 실행하면 연결됩니다...\x1b[0m\r\n')
+    }
 
     // 리사이즈 감지
     const observer = new ResizeObserver(() => {
@@ -100,9 +109,10 @@ export function XTerminal({ agentId, isRunning, taskHint, onExit, onOutputCaptur
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // isRunning 변경 시 WebSocket 연결/해제
+  // isRunning 또는 alwaysOn 변경 시 WebSocket 연결/해제
   useEffect(() => {
-    if (!isRunning) {
+    // alwaysOn: 마운트 즉시 연결 / 일반: isRunning=true 시 연결
+    if (!alwaysOn && !isRunning) {
       // 실행 중지 시 연결 유지 (터미널 내용 보존)
       return
     }
@@ -116,7 +126,8 @@ export function XTerminal({ agentId, isRunning, taskHint, onExit, onOutputCaptur
 
     const cols = term.cols
     const rows = term.rows
-    const url = `${WS_URL}/api/agents/${agentId}/terminal?cols=${cols}&rows=${rows}`
+    const modeParam = shellMode ? '&mode=shell' : ''
+    const url = `${WS_URL}/api/agents/${agentId}/terminal?cols=${cols}&rows=${rows}${modeParam}`
     const ws = new WebSocket(url)
     wsRef.current = ws
 
@@ -136,10 +147,15 @@ export function XTerminal({ agentId, isRunning, taskHint, onExit, onOutputCaptur
           onOutputCapture?.(outputBufRef.current)
         } else if (msg.type === 'connected') {
           outputBufRef.current = ''
-          term.writeln('\x1b[1;32m✓ Claude Code 연결됨\x1b[0m\r\n')
-          if (taskHint?.trim()) {
-            term.writeln(`\x1b[90m💡 태스크 힌트: ${taskHint.trim()}\x1b[0m`)
-            term.writeln('\x1b[90m(위 내용을 참고해 아래에 직접 입력하세요)\x1b[0m\r\n')
+          if (shellMode) {
+            term.writeln('\x1b[1;32m✓ 터미널 연결됨\x1b[0m — 워크스페이스 셸\r\n')
+            term.writeln('\x1b[90m💡 claude --dangerously-skip-permissions 로 Claude Code 실행\x1b[0m\r\n')
+          } else {
+            term.writeln('\x1b[1;32m✓ Claude Code 연결됨\x1b[0m\r\n')
+            if (taskHint?.trim()) {
+              term.writeln(`\x1b[90m💡 태스크 힌트: ${taskHint.trim()}\x1b[0m`)
+              term.writeln('\x1b[90m(위 내용을 참고해 아래에 직접 입력하세요)\x1b[0m\r\n')
+            }
           }
         } else if (msg.type === 'exit') {
           const code = msg.exitCode ?? 0
@@ -180,7 +196,7 @@ export function XTerminal({ agentId, isRunning, taskHint, onExit, onOutputCaptur
       wsRef.current = null
       setConnected(false)
     }
-  }, [isRunning, agentId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isRunning, alwaysOn, agentId, shellMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleKill = () => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -218,7 +234,7 @@ export function XTerminal({ agentId, isRunning, taskHint, onExit, onOutputCaptur
             connected ? 'bg-green-500 animate-pulse' : 'bg-[#444]',
           )} />
           <span className="text-xs font-mono text-[#888]">
-            {connected ? 'Claude Code — 인터랙티브' : '터미널'}
+            {connected ? (shellMode ? 'Terminal — 워크스페이스 셸' : 'Claude Code — 인터랙티브') : '터미널'}
           </span>
           {connected && (
             <span className="text-[10px] text-[#555] font-mono">ws://localhost:3001</span>

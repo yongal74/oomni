@@ -486,9 +486,10 @@ export default function BotDetailPage() {
               {agent.role === 'design' && pencilStatus !== null && (
                 <button
                   onClick={() => {
-                    // Pencil 연결됨: 상태만 표시 / 미연결: antigravity 실행 안내
                     if (!pencilStatus.connected) {
-                      alert('Pencil MCP를 사용하려면 Antigravity 앱을 먼저 실행하세요.\n\nAntigravity가 실행 중이라면 아래 "연결 확인" 버튼을 눌러주세요.')
+                      // alert 대신 연결 확인 재시도
+                      fetch(`http://localhost:3001/api/agents/${id}/pencil-status`)
+                        .then(r => r.json()).then(setPencilStatus).catch(() => {})
                     }
                   }}
                   className={cn(
@@ -581,14 +582,16 @@ export default function BotDetailPage() {
         {agent.role === 'build' ? (
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden">{center}</div>
-            {/* Build Bot: 항상 XTerminal (Claude Code CLI 인터랙티브)
-                - isRunning=true 시 새 세션 시작, 이후 사용자가 직접 타이핑
-                - initialInput 자동전송 제거: Claude Code 초기화 전 입력 → exit code 1 유발
-                - taskHint: 태스크를 힌트로만 표시, 자동전송 없음
+            {/* Build Bot: 항상-켜진 PowerShell 터미널 (Antigravity IDE 스타일)
+                - alwaysOn: 페이지 마운트 시 즉시 PowerShell 연결, isRunning 무관
+                - shellMode: powershell.exe 실행 (사용자가 claude 명령 직접 입력)
+                - taskHint: 태스크를 힌트로 표시
                 - onOutputCapture: PTY 출력 → lastOutput 업데이트 → 다음 봇 전달 */}
             <XTerminal
               agentId={agent.id}
               isRunning={isRunning}
+              alwaysOn
+              shellMode
               taskHint={task}
               onExit={() => { setIsRunning(false); setCurrentStage('done') }}
               onOutputCapture={(text) => setLastOutput(text)}
@@ -599,57 +602,70 @@ export default function BotDetailPage() {
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden">{center}</div>
             {/* Design Bot:
-                - 기본: SSE 모드 (HTML 생성, Pencil 없이 바로 실행 가능)
+                - 기본: SSE 모드 (HTML 생성) + 하단 항상-켜진 PowerShell 터미널
                 - pencilModeEnabled && pencilStatus?.connected: XTerminal + Pencil MCP 모드
-                사용자가 명시적으로 "Pencil 연결" 버튼 클릭 후 전환 */}
+                - 터미널에서 Antigravity / claude 명령 직접 실행 가능 */}
             {pencilModeEnabled && pencilStatus?.connected ? (
               <XTerminal
                 agentId={agent.id}
                 isRunning={isRunning}
+                alwaysOn
+                shellMode
                 taskHint={task}
                 onExit={() => { setIsRunning(false); setCurrentStage('done') }}
                 onOutputCapture={(text) => setLastOutput(text)}
                 className="h-64 shrink-0"
               />
             ) : (
-              /* 기본 SSE 모드 + Pencil 연결 안내 바 */
-              <div className="shrink-0 border-t border-border bg-[#111] px-4 py-3 flex items-center gap-3">
-                {pencilModeEnabled ? (
-                  <span className="text-[12px] text-red-400">✦ Antigravity 앱이 실행되지 않았거나 Pencil MCP 설치 필요</span>
-                ) : (
-                  <span className="text-[12px] text-muted">✦ HTML 생성 모드 — Pencil MCP로 전환하면 .pen 파일 직접 생성</span>
-                )}
-                {pencilStatus?.connected ? (
-                  <button
-                    onClick={() => setPencilModeEnabled(true)}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded text-[11px] bg-purple-500/15 text-purple-400 hover:bg-purple-500/25 transition-colors"
-                  >
-                    ✦ Pencil 연결 확인
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      fetch(`http://localhost:3001/api/agents/${agent.id}/pencil-status`)
-                        .then(r => r.json()).then((s) => {
-                          setPencilStatus(s)
-                          if (s.connected) setPencilModeEnabled(true)
-                          else alert('Antigravity 앱을 먼저 실행하세요.\n실행 후 이 버튼을 다시 눌러주세요.')
-                        }).catch(() => {})
-                    }}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded text-[11px] bg-border text-muted hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
-                  >
-                    Pencil 연결 확인
-                  </button>
-                )}
-                {pencilModeEnabled && (
-                  <button
-                    onClick={() => setPencilModeEnabled(false)}
-                    className="text-[11px] text-muted hover:text-text"
-                  >
-                    HTML 모드로 돌아가기
-                  </button>
-                )}
-              </div>
+              /* 기본 SSE 모드 + Pencil 연결 안내 바 + 항상-켜진 터미널 */
+              <>
+                <div className="shrink-0 border-t border-border bg-[#111] px-4 py-2 flex items-center gap-3">
+                  {pencilModeEnabled ? (
+                    <span className="text-[12px] text-red-400">✦ Antigravity 앱이 실행되지 않았거나 Pencil MCP 설치 필요</span>
+                  ) : (
+                    <span className="text-[12px] text-muted">✦ HTML 생성 모드 — Pencil MCP로 전환하면 .pen 파일 직접 생성</span>
+                  )}
+                  {pencilStatus?.connected ? (
+                    <button
+                      onClick={() => setPencilModeEnabled(true)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded text-[11px] bg-purple-500/15 text-purple-400 hover:bg-purple-500/25 transition-colors"
+                    >
+                      ✦ Pencil 모드 전환
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        fetch(`http://localhost:3001/api/agents/${agent.id}/pencil-status`)
+                          .then(r => r.json()).then((s) => {
+                            setPencilStatus(s)
+                            if (s.connected) setPencilModeEnabled(true)
+                          }).catch(() => {})
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded text-[11px] bg-border text-muted hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
+                    >
+                      Pencil 연결 확인
+                    </button>
+                  )}
+                  {pencilModeEnabled && (
+                    <button
+                      onClick={() => setPencilModeEnabled(false)}
+                      className="text-[11px] text-muted hover:text-text"
+                    >
+                      HTML 모드로 돌아가기
+                    </button>
+                  )}
+                </div>
+                <XTerminal
+                  agentId={`${agent.id}-shell`}
+                  isRunning={isRunning}
+                  alwaysOn
+                  shellMode
+                  taskHint={task}
+                  onExit={() => {}}
+                  onOutputCapture={(text) => setLastOutput(text)}
+                  className="h-48 shrink-0"
+                />
+              </>
             )}
           </div>
         ) : (

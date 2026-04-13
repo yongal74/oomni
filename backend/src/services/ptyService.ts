@@ -78,25 +78,18 @@ function getMcpConfig(agentId: string): string | null {
   }
 }
 
-/** PTY 세션 생성 또는 기존 세션 반환 */
-function getOrCreateSession(agentId: string, cols = 120, rows = 35): PtySession {
+/** PTY 세션 생성 또는 기존 세션 반환
+ * @param shellMode true → PowerShell(Windows)/bash(Linux) 셸 직접 실행
+ *                  false(기본) → Claude Code CLI 인터랙티브 모드
+ */
+function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = false): PtySession {
   const existing = sessions.get(agentId);
   if (existing) return existing;
 
   const wsPath = path.join(WORKSPACE_ROOT, agentId);
   fs.mkdirSync(wsPath, { recursive: true });
 
-  const cliPath = getCliPath();
-  const nodeExec = getNodeExecutable();
   const apiKey = getApiKey();
-
-  const isElectron = process.versions && 'electron' in process.versions;
-
-  // Claude Code CLI args — 인터랙티브 모드 (--print 없음)
-  const args = [cliPath, '--dangerously-skip-permissions'];
-
-  const mcpCfg = getMcpConfig(agentId);
-  if (mcpCfg) args.push('--mcp-config', mcpCfg);
 
   const env: Record<string, string> = {
     ...Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== undefined)) as Record<string, string>,
@@ -106,16 +99,38 @@ function getOrCreateSession(agentId: string, cols = 120, rows = 35): PtySession 
     FORCE_COLOR: '3',
   };
 
-  // Electron 패키징 환경: process.execPath = OOMNI.exe → ELECTRON_RUN_AS_NODE=1로 Node.js로 실행
-  // 개발 환경: process.execPath = node.exe → 그대로 사용
-  if (isElectron) {
-    env.ELECTRON_RUN_AS_NODE = '1';
+  let spawnExec: string;
+  let spawnArgs: string[];
+
+  if (shellMode) {
+    // ── 셸 모드: PowerShell(Windows) / bash(Linux/Mac) ──────────────────
+    // Antigravity IDE 스타일 — 사용자가 직접 명령 실행
+    if (process.platform === 'win32') {
+      spawnExec = 'powershell.exe';
+      spawnArgs = ['-NoLogo'];
+    } else {
+      spawnExec = process.env.SHELL ?? '/bin/bash';
+      spawnArgs = [];
+    }
+  } else {
+    // ── Claude Code CLI 모드 (기존) ───────────────────────────────────────
+    const cliPath = getCliPath();
+    const nodeExec = getNodeExecutable();
+    const isElectron = process.versions && 'electron' in process.versions;
+
+    if (isElectron) {
+      env.ELECTRON_RUN_AS_NODE = '1';
+    }
+
+    spawnExec = nodeExec;
+    spawnArgs = [cliPath, '--dangerously-skip-permissions'];
+
+    const mcpCfg = getMcpConfig(agentId);
+    if (mcpCfg) spawnArgs.push('--mcp-config', mcpCfg);
   }
 
   // node-pty(ConPTY)로 직접 spawn — cmd.exe 래퍼 제거
-  // cmd.exe /c "path" 방식은 Windows ACP(한글 경로 장우경 등)에서 인코딩 오류 발생
-  // ConPTY는 CreateProcessW(UTF-16) 사용으로 유니코드 경로 정상 처리
-  const ptyProcess = pty.spawn(nodeExec, args, {
+  const ptyProcess = pty.spawn(spawnExec, spawnArgs, {
     name: 'xterm-256color',
     cols,
     rows,
@@ -192,12 +207,13 @@ export function attachPtyWebSocket(server: import('http').Server): void {
     wss.handleUpgrade(req, socket, head, (ws) => {
       const agentId = match[1];
 
-      // 쿼리 파라미터에서 cols/rows 파싱
+      // 쿼리 파라미터에서 cols/rows/mode 파싱
       const qs = new URLSearchParams(url.split('?')[1] ?? '');
       const cols = parseInt(qs.get('cols') ?? '120', 10);
       const rows = parseInt(qs.get('rows') ?? '35', 10);
+      const shellMode = qs.get('mode') === 'shell';
 
-      const session = getOrCreateSession(agentId, cols, rows);
+      const session = getOrCreateSession(agentId, cols, rows, shellMode);
       session.clients.add(ws);
 
       // 접속 확인 메시지

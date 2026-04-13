@@ -319,13 +319,22 @@ function ResearchCard({
   )
 }
 
-const RESEARCH_SKILLS = [
+// 기본 스킬
+const RESEARCH_SKILLS_CORE = [
   { label: 'AI 트렌드 수집', prompt: '/collect 이번 주 AI/스타트업 트렌드 수집하고 신호강도 채점해줘' },
   { label: '경쟁사 분석', prompt: '/collect 주요 경쟁 서비스 분석 리포트 작성해줘' },
   { label: '신호강도 채점', prompt: '/score 수집된 리서치 아이템들을 신호강도 0-100으로 채점해줘' },
   { label: '보고서 변환', prompt: '/convert-report 리서치 결과를 구조화된 인사이트 보고서로 변환해줘' },
   { label: '주간 다이제스트', prompt: '/weekly-digest 이번 주 리서치 결과를 요약한 주간 다이제스트를 작성해줘' },
 ]
+
+// 퍼스트 무버 / SEO 스킬
+const RESEARCH_SKILLS_SEO = [
+  { label: '🔴 트렌드 알림', prompt: '/trend-alert 지금 급상승 트렌드 감지하고 퍼스트 무버 포스트 초안 만들어줘', highlight: true },
+  { label: 'SEO 채점', prompt: '/score --mode seo 수집된 아이템을 SEO 기준(퍼스트무버·CPC·검색의도)으로 채점해줘' },
+  { label: '키워드 채점', prompt: '/keyword-score 현재 트렌드에서 롱테일 키워드 추출하고 Volume/KD/CPC 채점해줘' },
+]
+
 
 // RIGHT: 클릭한 아이템 상세 + 다음봇 연결
 export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload }: {
@@ -401,11 +410,12 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
   }
 
   if (!item) return (
-    <div className="p-4 h-full flex flex-col gap-4">
+    <div className="p-4 h-full flex flex-col gap-4 overflow-y-auto">
+      {/* 기본 수집/채점 */}
       <div>
-        <p className="text-xs text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2">수집 · 채점</p>
         <div className="flex flex-wrap gap-1.5">
-          {RESEARCH_SKILLS.map(skill => (
+          {RESEARCH_SKILLS_CORE.map(skill => (
             <button
               key={skill.label}
               onClick={() => onSkillSelect?.(skill.prompt)}
@@ -415,6 +425,53 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
               {skill.label}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* 퍼스트 무버 / SEO */}
+      <div>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2">퍼스트 무버 · SEO</p>
+        <div className="flex flex-wrap gap-1.5">
+          {RESEARCH_SKILLS_SEO.map(skill => (
+            <button
+              key={skill.label}
+              onClick={() => onSkillSelect?.(skill.prompt)}
+              title={skill.prompt}
+              className={cn(
+                'px-2.5 py-1.5 rounded-lg border text-xs transition-colors',
+                (skill as { highlight?: boolean }).highlight
+                  ? 'border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 font-medium'
+                  : 'border-border bg-bg text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5'
+              )}
+            >
+              {skill.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* AIWX 블로그 포스트 */}
+      <div>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2">AIWX 블로그</p>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            onClick={() => onSkillSelect?.('/aiwx-post CLAUDE_BLOG.md 필체로 Blogger HTML 포스트 작성해줘')}
+            className="px-2.5 py-1.5 rounded-lg border border-orange-500/40 bg-orange-500/5 text-xs text-orange-400 hover:bg-orange-500/15 transition-colors font-medium"
+          >
+            ✦ AIWX 포스트 작성
+          </button>
+          <button
+            onClick={() => onSkillSelect?.('/trend-alert 지금 급상승 트렌드 감지하고 즉시 AIWX 포스트 초안 만들어줘')}
+            className="px-2.5 py-1.5 rounded-lg border border-red-500/30 bg-red-500/5 text-xs text-red-400 hover:bg-red-500/15 transition-colors font-medium"
+          >
+            🔴 트렌드→포스트 자동화
+          </button>
+          <button
+            onClick={() => onSkillSelect?.('/keyword-score 현재 트렌드에서 롱테일 키워드 추출하고 AIWX 포스트 주제 추천해줘')}
+            className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-xs text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+          >
+            키워드 추천
+          </button>
         </div>
       </div>
       {onFileUpload && (
@@ -529,13 +586,37 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
 
       {/* 빠른 실행 */}
       <div>
-        <p className="text-xs text-muted uppercase tracking-widest mb-2.5">빠른 실행</p>
-        <div className="flex flex-wrap gap-1.5">
-          {RESEARCH_SKILLS.map(skill => (
+        <p className="text-xs text-muted uppercase tracking-widest mb-2">수집 · 채점</p>
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {RESEARCH_SKILLS_CORE.map(skill => (
             <button
               key={skill.label}
               onClick={() => onSkillSelect?.(skill.prompt)}
               title={skill.prompt}
+              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-xs text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+            >
+              {skill.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2">AIWX 블로그</p>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            onClick={() => onSkillSelect?.(`/aiwx-post ${item?.title ? `"${item.title}" 주제로 ` : ''}CLAUDE_BLOG.md 필체로 Blogger HTML 포스트 작성해줘`)}
+            className="px-2.5 py-1.5 rounded-lg border border-orange-500/40 bg-orange-500/5 text-xs text-orange-400 hover:bg-orange-500/15 transition-colors font-medium"
+          >
+            ✦ AIWX 포스트 작성
+          </button>
+          <button
+            onClick={() => onSkillSelect?.('/trend-alert 지금 급상승 트렌드 감지하고 즉시 AIWX 포스트 초안 만들어줘')}
+            className="px-2.5 py-1.5 rounded-lg border border-red-500/30 bg-red-500/5 text-xs text-red-400 hover:bg-red-500/15 transition-colors font-medium"
+          >
+            🔴 트렌드→자동화
+          </button>
+          {RESEARCH_SKILLS_SEO.slice(1).map(skill => (
+            <button
+              key={skill.label}
+              onClick={() => onSkillSelect?.(skill.prompt)}
               className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-xs text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
             >
               {skill.label}
