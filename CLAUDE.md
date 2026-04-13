@@ -32,7 +32,7 @@
 - 버그 수정: x.x.X (patch)
 - 기능 추가: x.X.0 (minor)
 - 상용화 전환: X.0.0 (major)
-- 현재 버전: **v2.9.7**
+- 현재 버전: **v2.9.8**
 
 ## 프로젝트 컨텍스트
 OOMNI는 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼입니다.
@@ -57,27 +57,61 @@ OOMNI는 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼입니다
 - `attachPtyWebSocket`: `/api/agents/:id/terminal` 경로 처리
 - **절대로** `{ server, path }` 옵션으로 WebSocketServer 생성 금지 → 다른 경로 소켓 파괴
 
-### Design Bot 실행 모드 (v2.9.7~)
-- **기본값**: LiveStreamDrawer (SSE, HTML 생성) + 하단 항상-켜진 PowerShell 터미널
-- **수동 전환**: "Pencil 모드 전환" 버튼 → XTerminal (PTY, Claude Code + Pencil MCP)
-- `pencilModeEnabled` state로 관리 (BotDetailPage)
-- Pencil MCP 미연결 클릭 시 `alert()` 팝업 제거됨 — pencil-status API 자동 재확인으로 교체
+### Design Bot UI (v2.9.8~)
+- **좌측 패널 제거** — 더 넓은 작업 공간
+- **ResizableSplit**: 상단(디자인 미리보기) + 하단(터미널) 드래그로 크기 조절
+  - `ResizableSplit` 컴포넌트 BotDetailPage 내부에 인라인 정의 (별도 파일 아님)
+- **Pencil 강제 시작 버튼**: 미리보기 툴바에 위치, `designTerminalRef.current?.send('claude --dangerously-skip-permissions')` 주입
+- **하단 채팅 입력 제거** — 터미널에서 직접 명령 입력
+- **우측 빠른실행 → 터미널 주입**: `onSkillSelect=(s) => designTerminalRef.current?.send(s)`
+- `pencilModeEnabled` state 제거됨 (v2.9.8에서 단일 터미널 모드로 통합)
+
+### Build Bot UI (v2.9.8~)
+- **ResizableSplit**: 상단(코드 에디터) + 하단(터미널) 드래그로 크기 조절
+- **하단 채팅 입력 제거** — 터미널에서 직접 명령 입력
+- **우측 빠른실행 → 터미널 주입**: `onSkillSelect=(s) => terminalRef.current?.send(s)`
+- `terminalRef`: `useRef<XTerminalRef>(null)`, `designTerminalRef`: `useRef<XTerminalRef>(null)`
+
+### XTerminal forwardRef (v2.9.8~)
+- `XTerminalRef` interface: `send(text: string): void`, `focus(): void`
+- `send()`: `ws.send(JSON.stringify({ type: 'input', data: text + '\r' }))` — Enter 포함 자동 주입
+- `forwardRef`로 export, 부모에서 `ref.current?.send(text)` 호출 가능
+- **주의**: Design/Build 봇의 "빠른실행" 버튼은 이제 모두 terminalRef.send()로 처리
 
 ### Build/Design Bot 터미널 (v2.9.7~) — Antigravity IDE 스타일
 - **alwaysOn** prop: 페이지 마운트 즉시 WebSocket 연결 (isRunning 무관)
 - **shellMode** prop: `powershell.exe` (Windows) / `/bin/bash` (Linux/Mac) 직접 실행
-  - Build Bot: `alwaysOn + shellMode` → 항상-켜진 PowerShell 워크스페이스 터미널
-  - Design Bot SSE 모드: 하단에 추가 PowerShell 터미널 (agentId: `{id}-shell`)
 - WebSocket URL: `/api/agents/:id/terminal?cols=&rows=&mode=shell`
 - 사용자가 직접 `claude --dangerously-skip-permissions` 입력으로 Claude Code 실행
 - **이전 방식(Claude Code 자동 spawn)은 exit code 1 유발** → shellMode로 완전 전환
 
-### CEO Bot agents_v5 repair (v2.9.7~)
-- migration v6 실행 중 크래시 시 DB에 `agents_v5`만 남고 `agents`가 없는 불안정 상태 발생 가능
-- **v2.9.7 수정**: `initDb()`에 방어 repair 패치 추가
-  - `agents_v5` 있고 `agents` 없음 → 새 `agents` 생성 + 데이터 복사 + `agents_v5` 삭제
-  - `agents_v5` 있고 `agents` 도 있음 → `agents_v5` 삭제
-  - repair 후 `schema_migrations`에 v6 applied 기록 (중복 방지)
+### DB agents_v5 repair (v2.9.8 완전 수정)
+- **근본 원인**: SCHEMA_SQL(`CREATE TABLE IF NOT EXISTS agents`)이 repair 전에 실행 → 빈 `agents` 생성 → repair가 데이터 있는 `agents_v5`를 단순 삭제
+- **v2.9.8 수정**: repair 로직을 `db.exec(SCHEMA_SQL)` 호출 **전**으로 이동
+  - Case A: `agents_v5` 있고 `agents` 없음 → `AGENTS_TABLE_SQL`로 테이블 생성 + 데이터 복사 + drop
+  - Case B1: 둘 다 있고 `agents`가 비어있음 + `agents_v5`에 데이터 → 복사 후 drop
+  - Case B2: `agents`에 데이터 있음 → `agents_v5` 잔재만 삭제
+- `AGENTS_TABLE_SQL` 상수로 분리 (재사용 가능)
+
+### CEO Bot 모델 (v2.9.8~)
+- `CEO_MODEL = 'claude-opus-4-6'` → **`DEFAULT_MODEL = 'claude-sonnet-4-6'`** 으로 변경
+- 이유: API 키에 따라 Opus 접근 불가 케이스 존재 → Sonnet으로 통일
+
+### Research Bot SEO 채점 (v2.9.8~)
+- **신호강도 0-100**: 콘텐츠(60%) + SEO(40%) 기준
+  - 콘텐츠: 시장성(20) + 시의성(20) + 자동화가능성(15) + 콘텐츠확장성(15)
+  - SEO: 검색의도(10) + 퍼스트무버(10) + CPC(10) + 경쟁도(5) + AIWX적합도(5)
+- **계층별 소스**: 🔴실시간(Google Trends/X트렌딩/YouTube급상승/Reddit r/trending) / 🟡중기(Product Hunt/HN/TechCrunch) / 🟢니치(Quora/Google연관검색)
+- **ITEM 블록 필드**: `seo_volume`, `seo_kd`, `seo_cpc`, `first_mover` 추가
+- `first_mover: true` → `🔴퍼스트무버` 태그 자동 추가
+
+### AIWX 블로그 포스트 기능 (v2.9.8~)
+- **엔드포인트**: `POST /api/research/aiwx-post`
+- **파라미터**: `{ item_id?, book_num?: 1-7, publish?: boolean }`
+- **7권 책**: 철학이 필요한 시간/나는 누구인가/경계에서/자유롭다는 것/보이지 않는 것을 보는 법/우리는 무엇으로 사는가/인간이란 무엇인가
+- **저장 경로**: `C:/oomni-data/research/aiwx-posts/aiwx-post_{date}_{slug}.md`
+- **발행**: `python C:/GGAdsense/publish_post.py {filePath}` (60s timeout)
+- **UI**: `AiwxPostPanel` 컴포넌트 (ResearchPanel 우측) — 책 선택 + 생성 + 발행 버튼
 
 ### CEO 봇 role CHECK constraint (v2.9.6 수정 완료)
 - DB schema migration v6: agents 테이블에 `ceo` role CHECK constraint 추가
@@ -118,13 +152,13 @@ OOMNI는 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼입니다
 Research → Content → Build → Design → Growth → Ops → CEO
 
 ## 봇 역할별 실행 방식
-| 봇 | 실행 방식 | 비고 |
-|----|-----------|------|
-| Research | SSE (LiveStreamDrawer) | 웹 리서치 결과 스트리밍 |
-| Content | SSE (LiveStreamDrawer) | 콘텐츠 생성 스트리밍 |
-| Build | PTY (XTerminal) | Claude Code CLI 인터랙티브 |
-| Design | PTY or SSE | Pencil MCP 연결 여부에 따라 자동 분기 |
-| Growth/Ops/CEO | SSE (LiveStreamDrawer) | 결과 스트리밍 |
+| 봇 | 실행 방식 | 하단 입력 | 비고 |
+|----|-----------|-----------|------|
+| Research | SSE (LiveStreamDrawer) | ✅ 채팅 입력 | 리서치 결과 스트리밍 |
+| Content | SSE (LiveStreamDrawer) | ✅ 채팅 입력 | 콘텐츠 생성 스트리밍 |
+| Build | PTY (XTerminal, ResizableSplit) | ❌ 터미널 직접 입력 | 코드에디터(위)+터미널(아래) |
+| Design | PTY (XTerminal, ResizableSplit) | ❌ 터미널 직접 입력 | 미리보기(위)+터미널(아래), 좌측패널 없음 |
+| Growth/Ops/CEO | SSE (LiveStreamDrawer) | ✅ 채팅 입력 | 결과 스트리밍 |
 
 ## 코드 작성 원칙
 1. 모든 결과물은 반드시 파일로 저장
