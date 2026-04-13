@@ -1,10 +1,31 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { researchApi, type ResearchItem } from '../../../lib/api'
-import { Check, Eye, X, FileText, Copy, Upload, Download } from 'lucide-react'
+import { Check, Eye, X, FileText, Copy, Upload, Download, Send, BookOpen } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { ArchiveButton } from '../shared/ArchiveButton'
 import { NextBotDropdown } from '../shared/NextBotDropdown'
+
+// AIWX 7권 책 목록
+const AIWX_BOOKS = [
+  { num: 1, name: '철학이 필요한 시간', short: '철학' },
+  { num: 2, name: '나는 누구인가', short: '자아' },
+  { num: 3, name: '경계에서', short: '경계' },
+  { num: 4, name: '자유롭다는 것', short: '자유' },
+  { num: 5, name: '보이지 않는 것을 보는 법', short: '통찰' },
+  { num: 6, name: '우리는 무엇으로 사는가', short: '삶' },
+  { num: 7, name: '인간이란 무엇인가', short: '인간' },
+]
+
+interface AiwxPostState {
+  bookNum: number
+  generating: boolean
+  publishing: boolean
+  content: string
+  filePath: string
+  error: string
+  publishResult: { success: boolean; error?: string } | null
+}
 
 interface Props {
   missionId: string
@@ -14,12 +35,16 @@ interface Props {
 }
 
 const DEFAULT_SOURCES = [
-  { label: 'TechCrunch', emoji: '📰' },
-  { label: 'Product Hunt', emoji: '🚀' },
-  { label: 'Hacker News', emoji: '🔶' },
-  { label: 'YouTube 최신', emoji: '▶️' },
-  { label: 'Reddit r/artificial', emoji: '🤖' },
-  { label: 'Reddit r/startups', emoji: '💼' },
+  { label: 'Google Trends', emoji: '🔴' },
+  { label: 'X 트렌딩', emoji: '🔴' },
+  { label: 'YouTube 급상승', emoji: '🔴' },
+  { label: 'Reddit r/trending', emoji: '🔴' },
+  { label: 'Product Hunt', emoji: '🟡' },
+  { label: 'Hacker News', emoji: '🟡' },
+  { label: 'TechCrunch', emoji: '🟡' },
+  { label: 'Reddit r/startups', emoji: '🟢' },
+  { label: 'Quora 질문', emoji: '🟢' },
+  { label: 'Google 연관검색', emoji: '🟢' },
 ]
 const DEFAULT_KEYWORDS = ['AI startup', 'Claude API', 'SaaS growth']
 
@@ -336,6 +361,125 @@ const RESEARCH_SKILLS_SEO = [
 ]
 
 
+// AIWX 포스트 패널 컴포넌트
+function AiwxPostPanel({ item }: { item?: ResearchItem | null }) {
+  const [state, setState] = useState<AiwxPostState>({
+    bookNum: 1, generating: false, publishing: false,
+    content: '', filePath: '', error: '', publishResult: null,
+  })
+
+  const handleGenerate = async () => {
+    setState(s => ({ ...s, generating: true, error: '', content: '', filePath: '', publishResult: null }))
+    try {
+      const res = await researchApi.aiwxPost({ item_id: item?.id, book_num: state.bookNum, publish: false })
+      setState(s => ({ ...s, generating: false, content: res.content, filePath: res.file_path }))
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : '생성 실패'
+      setState(s => ({ ...s, generating: false, error: msg }))
+    }
+  }
+
+  const handlePublish = async () => {
+    setState(s => ({ ...s, publishing: true, error: '', publishResult: null }))
+    try {
+      const res = await researchApi.aiwxPost({ item_id: item?.id, book_num: state.bookNum, publish: true })
+      setState(s => ({ ...s, publishing: false, publishResult: res.publish_result ?? { success: true } }))
+      if (res.content && !state.content) setState(s => ({ ...s, content: res.content, filePath: res.file_path }))
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : '발행 실패'
+      setState(s => ({ ...s, publishing: false, error: msg }))
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted uppercase tracking-widest">AIWX 블로그 포스트</p>
+
+      {/* 책 선택 */}
+      <div>
+        <p className="text-[10px] text-muted/70 mb-1.5">최진석교수 책 선택</p>
+        <div className="flex flex-wrap gap-1">
+          {AIWX_BOOKS.map(b => (
+            <button
+              key={b.num}
+              onClick={() => setState(s => ({ ...s, bookNum: b.num, content: '', publishResult: null }))}
+              title={b.name}
+              className={cn(
+                'px-2 py-1 rounded text-[10px] border transition-colors',
+                state.bookNum === b.num
+                  ? 'border-orange-400/60 bg-orange-500/15 text-orange-300 font-medium'
+                  : 'border-border bg-bg text-muted hover:border-orange-400/40 hover:text-orange-300'
+              )}
+            >
+              {b.num}. {b.short}
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] text-muted/50 mt-1">선택: {AIWX_BOOKS[state.bookNum - 1]?.name}</p>
+      </div>
+
+      {/* 액션 버튼 */}
+      <div className="flex gap-2">
+        <button
+          onClick={handleGenerate}
+          disabled={state.generating || state.publishing}
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-orange-500/40 bg-orange-500/5 text-xs text-orange-400 hover:bg-orange-500/15 transition-colors disabled:opacity-40 font-medium"
+        >
+          <BookOpen size={12} />
+          {state.generating ? '생성 중...' : '✦ 포스트 생성'}
+        </button>
+        <button
+          onClick={handlePublish}
+          disabled={state.generating || state.publishing}
+          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-blue-500/40 bg-blue-500/5 text-xs text-blue-400 hover:bg-blue-500/15 transition-colors disabled:opacity-40"
+        >
+          <Send size={12} />
+          {state.publishing ? '발행 중...' : '발행'}
+        </button>
+      </div>
+
+      {/* 에러 */}
+      {state.error && (
+        <p className="text-[11px] text-red-400 bg-red-500/10 rounded px-2 py-1">{state.error}</p>
+      )}
+
+      {/* 발행 결과 */}
+      {state.publishResult && (
+        <p className={cn(
+          'text-[11px] rounded px-2 py-1',
+          state.publishResult.success
+            ? 'text-green-400 bg-green-500/10'
+            : 'text-red-400 bg-red-500/10'
+        )}>
+          {state.publishResult.success ? '✓ Blogger 발행 완료' : `✗ ${state.publishResult.error ?? '발행 실패'}`}
+        </p>
+      )}
+
+      {/* 생성된 콘텐츠 미리보기 */}
+      {state.content && (
+        <div className="bg-bg rounded-lg border border-border">
+          <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
+            <span className="text-[10px] text-muted">생성된 포스트</span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => navigator.clipboard.writeText(state.content)}
+                className="p-1 text-muted hover:text-text rounded hover:bg-border/30"
+                title="클립보드 복사"
+              >
+                <Copy size={10} />
+              </button>
+            </div>
+          </div>
+          <pre className="text-[11px] text-dim leading-relaxed whitespace-pre-wrap p-3 max-h-40 overflow-y-auto">{state.content}</pre>
+          {state.filePath && (
+            <p className="text-[10px] text-muted/50 px-3 pb-2 truncate">저장: {state.filePath}</p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // RIGHT: 클릭한 아이템 상세 + 다음봇 연결
 export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload }: {
   item: ResearchItem | null
@@ -452,27 +596,7 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
 
       {/* AIWX 블로그 포스트 */}
       <div>
-        <p className="text-xs text-muted uppercase tracking-widest mb-2">AIWX 블로그</p>
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={() => onSkillSelect?.('/aiwx-post CLAUDE_BLOG.md 필체로 Blogger HTML 포스트 작성해줘')}
-            className="px-2.5 py-1.5 rounded-lg border border-orange-500/40 bg-orange-500/5 text-xs text-orange-400 hover:bg-orange-500/15 transition-colors font-medium"
-          >
-            ✦ AIWX 포스트 작성
-          </button>
-          <button
-            onClick={() => onSkillSelect?.('/trend-alert 지금 급상승 트렌드 감지하고 즉시 AIWX 포스트 초안 만들어줘')}
-            className="px-2.5 py-1.5 rounded-lg border border-red-500/30 bg-red-500/5 text-xs text-red-400 hover:bg-red-500/15 transition-colors font-medium"
-          >
-            🔴 트렌드→포스트 자동화
-          </button>
-          <button
-            onClick={() => onSkillSelect?.('/keyword-score 현재 트렌드에서 롱테일 키워드 추출하고 AIWX 포스트 주제 추천해줘')}
-            className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-xs text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
-          >
-            키워드 추천
-          </button>
-        </div>
+        <AiwxPostPanel item={null} />
       </div>
       {onFileUpload && (
         <div>
@@ -584,45 +708,9 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
         />
       )}
 
-      {/* 빠른 실행 */}
+      {/* AIWX 블로그 포스트 — 선택된 아이템 기반 */}
       <div>
-        <p className="text-xs text-muted uppercase tracking-widest mb-2">수집 · 채점</p>
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {RESEARCH_SKILLS_CORE.map(skill => (
-            <button
-              key={skill.label}
-              onClick={() => onSkillSelect?.(skill.prompt)}
-              title={skill.prompt}
-              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-xs text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
-            >
-              {skill.label}
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-muted uppercase tracking-widest mb-2">AIWX 블로그</p>
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={() => onSkillSelect?.(`/aiwx-post ${item?.title ? `"${item.title}" 주제로 ` : ''}CLAUDE_BLOG.md 필체로 Blogger HTML 포스트 작성해줘`)}
-            className="px-2.5 py-1.5 rounded-lg border border-orange-500/40 bg-orange-500/5 text-xs text-orange-400 hover:bg-orange-500/15 transition-colors font-medium"
-          >
-            ✦ AIWX 포스트 작성
-          </button>
-          <button
-            onClick={() => onSkillSelect?.('/trend-alert 지금 급상승 트렌드 감지하고 즉시 AIWX 포스트 초안 만들어줘')}
-            className="px-2.5 py-1.5 rounded-lg border border-red-500/30 bg-red-500/5 text-xs text-red-400 hover:bg-red-500/15 transition-colors font-medium"
-          >
-            🔴 트렌드→자동화
-          </button>
-          {RESEARCH_SKILLS_SEO.slice(1).map(skill => (
-            <button
-              key={skill.label}
-              onClick={() => onSkillSelect?.(skill.prompt)}
-              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-xs text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
-            >
-              {skill.label}
-            </button>
-          ))}
-        </div>
+        <AiwxPostPanel item={item} />
       </div>
 
       {onFileUpload && (

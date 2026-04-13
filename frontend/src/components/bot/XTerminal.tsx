@@ -5,13 +5,20 @@
  * - xterm.js: 색상, 스피너, Tab 완성, Ctrl+C 모두 동작
  * - WebSocket: 키보드 입력 → 백엔드 PTY → 결과 스트리밍
  */
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
 import { WebLinksAddon } from 'xterm-addon-web-links'
 import { Square, Maximize2, Minimize2, RotateCcw } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import 'xterm/css/xterm.css'
+
+export interface XTerminalRef {
+  /** 터미널에 텍스트 주입 (Enter 포함) */
+  send(text: string): void
+  /** 터미널 포커스 */
+  focus(): void
+}
 
 interface Props {
   agentId: string
@@ -32,7 +39,10 @@ interface Props {
 
 const WS_URL = 'ws://localhost:3001'
 
-export function XTerminal({ agentId, isRunning, alwaysOn, shellMode, taskHint, onExit, onOutputCapture, className }: Props) {
+export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
+  { agentId, isRunning, alwaysOn, shellMode, taskHint, onExit, onOutputCapture, className }: Props,
+  ref
+) {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
@@ -41,6 +51,17 @@ export function XTerminal({ agentId, isRunning, alwaysOn, shellMode, taskHint, o
   const [connected, setConnected] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [resetting, setResetting] = useState(false)
+
+  useImperativeHandle(ref, () => ({
+    send(text: string) {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'input', data: text + '\r' }))
+      }
+    },
+    focus() {
+      termRef.current?.focus()
+    },
+  }))
 
   // 터미널 초기화
   useEffect(() => {
@@ -279,4 +300,4 @@ export function XTerminal({ agentId, isRunning, alwaysOn, shellMode, taskHint, o
       />
     </div>
   )
-}
+})

@@ -160,6 +160,10 @@ export const researchApi = {
   loadOutputs: (itemId: string) =>
     api.get<ApiResponse<Record<string, string>>>(`/api/research/items/${itemId}/outputs`).then(r => r.data.data),
   delete: (id: string) => api.delete(`/api/research/${id}`),
+  aiwxPost: (data: { item_id?: string; book_num?: number; publish?: boolean }) =>
+    api.post<{ content: string; file_path: string; publish_result?: { success: boolean; error?: string } }>(
+      '/api/research/aiwx-post', data, { timeout: 120000 }
+    ).then(r => r.data),
 }
 
 // 설정 (Bearer 없이 직접 호출, 온보딩용)

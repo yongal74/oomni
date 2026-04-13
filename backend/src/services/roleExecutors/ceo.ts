@@ -1,4 +1,4 @@
-import { streamClaude, saveFeedItem, CEO_MODEL, type ExecutorContext } from './base'
+import { streamClaude, saveFeedItem, DEFAULT_MODEL, type ExecutorContext } from './base'
 
 const SYSTEM_PROMPT = `당신은 AI 스타트업의 CEO 비서입니다.
 모든 봇의 활동을 종합하여 CEO에게 명확한 브리핑을 제공합니다.
@@ -66,7 +66,7 @@ ${JSON.stringify(costSummary.rows, null, 2)}
 위 데이터를 바탕으로 CEO 브리핑을 작성해주세요.`
 
   send('stage', { stage: 'briefing', label: 'CEO 브리핑 생성 중...' })
-  const briefing = await streamClaude(ctx, agent.system_prompt || SYSTEM_PROMPT, userMessage, CEO_MODEL)
+  const briefing = await streamClaude(ctx, agent.system_prompt || SYSTEM_PROMPT, userMessage, DEFAULT_MODEL)
 
   send('stage', { stage: 'done', label: '완료' })
   await saveFeedItem(db, agent.id, 'result', briefing, true) // requires approval

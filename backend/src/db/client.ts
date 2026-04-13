@@ -25,11 +25,7 @@ const BOOL_COLS = new Set(['is_active', 'requires_approval']);
 function normalizeRow(row: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(row)) {
-    if (BOOL_COLS.has(k)) {
-      out[k] = v === 1 || v === true;
-    } else {
-      out[k] = v;
-    }
+    out[k] = BOOL_COLS.has(k) ? (v === 1 || v === true) : v;
   }
   return out;
 }
@@ -51,6 +47,22 @@ export interface DbClient {
 
 let db: Database.Database | null = null;
 
+// agents 테이블 재생성 SQL (migration v6 기준 — ceo role 포함)
+const AGENTS_TABLE_SQL = `CREATE TABLE agents (
+  id            TEXT PRIMARY KEY,
+  mission_id    TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+  name          TEXT NOT NULL,
+  role          TEXT NOT NULL CHECK (role IN (
+                  'research','build','design','content','growth','ops','integration','n8n','ceo'
+                )),
+  schedule      TEXT NOT NULL DEFAULT 'manual' CHECK (schedule IN ('manual','hourly','daily','weekly')),
+  system_prompt TEXT NOT NULL DEFAULT '',
+  budget_cents  INTEGER NOT NULL DEFAULT 500 CHECK (budget_cents >= 0),
+  is_active     INTEGER NOT NULL DEFAULT 1,
+  reports_to    TEXT REFERENCES agents(id) ON DELETE SET NULL,
+  created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+)`;
+
 export function initDb(): DbClient {
   logger.info('[DB] SQLite 초기화 중...');
 
@@ -62,80 +74,103 @@ export function initDb(): DbClient {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
 
-  // 기본 스키마 적용 (IF NOT EXISTS로 멱등)
-  db.exec(SCHEMA_SQL);
-
-  // 구버전 DB 방어 패치: token_usage.mission_id 컬럼이 없으면 추가
-  // (CREATE TABLE IF NOT EXISTS는 기존 테이블의 누락 컬럼을 추가하지 않으므로 별도 처리)
+  // ── 사전 복구 (SCHEMA_SQL 실행 전!) ────────────────────────────────────────
+  // 핵심 이유: SCHEMA_SQL의 CREATE TABLE IF NOT EXISTS agents 가 먼저 실행되면
+  // agents_v5 안의 실제 데이터를 잃게 됨. 반드시 SCHEMA_SQL 전에 처리해야 함.
   try {
-    db.exec("ALTER TABLE token_usage ADD COLUMN mission_id TEXT DEFAULT ''");
-    logger.info('[DB] token_usage.mission_id 컬럼 추가 완료 (구버전 DB 마이그레이션)');
-  } catch {
-    // 이미 존재하면 무시 ("duplicate column name" 오류)
-  }
-
-  // 구버전 DB 방어 패치: heartbeat_runs.task 컬럼이 없으면 추가
-  try {
-    db.exec("ALTER TABLE heartbeat_runs ADD COLUMN task TEXT DEFAULT ''");
-    logger.info('[DB] heartbeat_runs.task 컬럼 추가 완료');
-  } catch {
-    // 이미 존재하면 무시
-  }
-
-  // ── agents_v5 잔재 방어 패치 ──────────────────────────────────────────
-  // migration v6 (agents RENAME → agents_v5) 가 부분 적용된 채 크래시/중단된 경우
-  // DB에 agents_v5가 남아있을 수 있음. 앱 시작 시 자동 복구.
-  try {
-    const tables = (db.prepare(
+    const existingTables = (db.prepare(
       "SELECT name FROM sqlite_master WHERE type='table'"
     ).all() as { name: string }[]).map(r => r.name);
 
-    const hasV5  = tables.includes('agents_v5');
-    const hasAgents = tables.includes('agents');
+    const hasV5     = existingTables.includes('agents_v5');
+    const hasAgents = existingTables.includes('agents');
 
     if (hasV5 && !hasAgents) {
-      // agents_v5만 있고 agents가 없음: migration v6 완료 처리
-      logger.info('[DB] agents_v5 발견 (agents 없음) — migration v6 재완성 시작');
+      // Case A: agents_v5만 있고 agents 없음 → 데이터 보존하며 복구
+      logger.info('[DB] Pre-repair A: agents_v5 발견(agents 없음) — 복구 시작');
       db.pragma('foreign_keys = OFF');
-      db.exec(`
-        CREATE TABLE agents (
-          id            TEXT PRIMARY KEY,
-          mission_id    TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
-          name          TEXT NOT NULL,
-          role          TEXT NOT NULL CHECK (role IN (
-                          'research','build','design','content','growth','ops','integration','n8n','ceo'
-                        )),
-          schedule      TEXT NOT NULL DEFAULT 'manual' CHECK (schedule IN ('manual','hourly','daily','weekly')),
-          system_prompt TEXT NOT NULL DEFAULT '',
-          budget_cents  INTEGER NOT NULL DEFAULT 500 CHECK (budget_cents >= 0),
-          is_active     INTEGER NOT NULL DEFAULT 1,
-          reports_to    TEXT REFERENCES agents(id) ON DELETE SET NULL,
-          created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-        );
-        INSERT INTO agents SELECT * FROM agents_v5;
-        DROP TABLE agents_v5;
-      `);
-      db.pragma('foreign_keys = ON');
-      // schema_migrations에 v6 applied 기록 (중복 방지)
+
+      // schema_migrations가 아직 없을 수 있으므로 먼저 생성
+      db.exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
+        version        INTEGER PRIMARY KEY,
+        description    TEXT,
+        status         TEXT NOT NULL DEFAULT 'applied' CHECK(status IN ('applied','rolled_back')),
+        applied_at     TEXT NOT NULL DEFAULT (datetime('now')),
+        rolled_back_at TEXT
+      )`);
+
+      db.exec(`${AGENTS_TABLE_SQL};
+        INSERT OR IGNORE INTO agents SELECT * FROM agents_v5;
+        DROP TABLE agents_v5;`);
+
       db.prepare(
         `INSERT OR IGNORE INTO schema_migrations (version, description, status, applied_at)
-         VALUES (6, 'agents 테이블 role CHECK에 ceo 추가 (repair)', 'applied', datetime('now'))`
+         VALUES (6, 'agents 복구 from agents_v5 (pre-repair A)', 'applied', datetime('now'))`
       ).run();
-      logger.info('[DB] agents_v5 → agents 복구 완료');
+
+      db.pragma('foreign_keys = ON');
+      logger.info('[DB] Pre-repair A: agents 복구 완료');
+
     } else if (hasV5 && hasAgents) {
-      // 둘 다 있음: agents_v5는 쓰레기, 삭제
-      logger.info('[DB] agents_v5 잔재 발견 (agents 존재) — agents_v5 삭제');
-      db.exec('DROP TABLE IF EXISTS agents_v5;');
+      // Case B: 둘 다 있음 — 어느 쪽에 데이터가 있는지 확인
+      const agentsCnt = (db.prepare('SELECT COUNT(*) as c FROM agents').get() as { c: number }).c;
+      const v5Cnt     = (db.prepare('SELECT COUNT(*) as c FROM agents_v5').get() as { c: number }).c;
+
+      if (agentsCnt === 0 && v5Cnt > 0) {
+        // agents는 빈 상태(SCHEMA_SQL이 이미 빈 테이블 만든 경우), agents_v5에 실제 데이터
+        logger.info('[DB] Pre-repair B1: agents 비어있음+agents_v5 데이터 있음 — 복구');
+        db.pragma('foreign_keys = OFF');
+        db.exec('INSERT OR IGNORE INTO agents SELECT * FROM agents_v5; DROP TABLE agents_v5;');
+        db.pragma('foreign_keys = ON');
+
+        db.exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
+          version INTEGER PRIMARY KEY, description TEXT,
+          status TEXT NOT NULL DEFAULT 'applied' CHECK(status IN ('applied','rolled_back')),
+          applied_at TEXT NOT NULL DEFAULT (datetime('now')),
+          rolled_back_at TEXT
+        )`);
+        db.prepare(
+          `INSERT OR IGNORE INTO schema_migrations (version, description, status, applied_at)
+           VALUES (6, 'agents 복구 from agents_v5 (pre-repair B1)', 'applied', datetime('now'))`
+        ).run();
+        logger.info('[DB] Pre-repair B1: 복구 완료');
+      } else {
+        // agents에 데이터 있거나 둘 다 비어있음 — agents_v5 잔재 삭제
+        logger.info(`[DB] Pre-repair B2: agents(${agentsCnt}행) 있음 — agents_v5 잔재 삭제`);
+        db.pragma('foreign_keys = OFF');
+        db.exec('DROP TABLE IF EXISTS agents_v5;');
+        db.pragma('foreign_keys = ON');
+      }
     }
-  } catch (repairErr) {
-    logger.error('[DB] agents_v5 repair 실패:', repairErr);
+    // hasV5=false, hasAgents=false → SCHEMA_SQL이 정상 생성
+    // hasV5=false, hasAgents=true  → 정상 상태
+  } catch (preRepairErr) {
+    logger.error('[DB] Pre-repair 실패 (무시하고 계속):', preRepairErr);
+  }
+
+  // 기본 스키마 적용 (IF NOT EXISTS로 멱등)
+  db.exec(SCHEMA_SQL);
+
+  // 구버전 DB 방어 패치: 누락 컬럼 추가
+  const columnPatches = [
+    { sql: "ALTER TABLE token_usage ADD COLUMN mission_id TEXT DEFAULT ''",   label: 'token_usage.mission_id' },
+    { sql: "ALTER TABLE heartbeat_runs ADD COLUMN task TEXT DEFAULT ''",       label: 'heartbeat_runs.task' },
+  ];
+  for (const patch of columnPatches) {
+    try {
+      db.exec(patch.sql);
+      logger.info(`[DB] ${patch.label} 컬럼 추가 완료 (구버전 DB 마이그레이션)`);
+    } catch {
+      // 이미 존재하면 무시 ("duplicate column name" 오류)
+    }
   }
 
   // 버전 기반 마이그레이션 실행
-  // DDL(테이블 재생성) 마이그레이션 중 DROP TABLE이 FK 제약으로 막히지 않도록 일시 비활성화
+  // DDL 마이그레이션 중 FK 제약으로 막히지 않도록 일시 비활성화
   db.pragma('foreign_keys = OFF');
   const migrationResults = runMigrations(db);
   db.pragma('foreign_keys = ON');
+
   const failedMigrations = migrationResults.filter(
     r => r.status === 'failed' || r.status === 'rolled_back'
   );
@@ -183,8 +218,6 @@ function createClient(): DbClient {
           if (info.changes > 0) {
             const tableName = extractTableName(cleanSql);
             if (tableName) {
-              // INSERT → 첫 번째 파라미터가 id
-              // UPDATE ... WHERE id = ? → 마지막 파라미터가 id
               const isUpdate = cleanSql.toUpperCase().trimStart().startsWith('UPDATE');
               const rowId = isUpdate
                 ? normalizedParams[normalizedParams.length - 1]

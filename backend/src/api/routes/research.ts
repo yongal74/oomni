@@ -10,11 +10,15 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { logger } from '../../logger';
 import { LLMProvider } from '../../agents/llm-provider';
+
+const execFileAsync = promisify(execFile);
 
 type DbClient = { query: (sql: string, params?: unknown[]) => Promise<{ rows: unknown[] }> };
 
@@ -542,6 +546,148 @@ ${sourceContext}
       res.status(204).send();
     } catch (err) {
       logger.error('[research] DELETE /:id 오류', err);
+      res.status(500).json({ error: '서버 내부 오류' });
+    }
+  });
+
+  // POST /api/research/aiwx-post — AIWX 블로그 포스트 생성 + 선택적 Blogger 발행
+  router.post('/aiwx-post', async (req: Request, res: Response) => {
+    try {
+      const { item_id, book_num, publish = false } = req.body as {
+        item_id?: string;
+        book_num?: number;
+        publish?: boolean;
+      };
+
+      // 리서치 아이템 조회 (item_id 있는 경우)
+      let itemTitle = '';
+      let itemSummary = '';
+      let itemContent = '';
+
+      if (item_id) {
+        const itemResult = await db.query('SELECT * FROM research_items WHERE id = $1', [item_id]);
+        if ((itemResult.rows as unknown[]).length > 0) {
+          const row = (itemResult.rows as Record<string, unknown>[])[0];
+          itemTitle   = String(row.title   ?? '');
+          itemSummary = String(row.summary ?? '');
+          itemContent = String(row.content ?? row.summary ?? '');
+        }
+      }
+
+      const llm = getLLMProvider();
+      if (!llm) {
+        res.status(503).json({ error: 'AI API 키가 설정되지 않았습니다' });
+        return;
+      }
+
+      // 책별 설정
+      const BOOK_CONFIG: Record<number, { name: string; chars: string; audience: string; tone: string; labels: string[] }> = {
+        1: { name: '데이터가 흐르는 조직',    chars: '1200~1800자', audience: 'IT 임원·CDO',         tone: '전략적',    labels: ['AI와 구조', '데이터플로우'] },
+        2: { name: 'AI×WEB3 온체인 혁명',     chars: '1500~2500자', audience: '금융 임원·핀테크',     tone: '비즈니스',  labels: ['AI×금융', '온체인', 'WEB3전략'] },
+        3: { name: '무의식의 혁명',            chars: '1000~1500자', audience: '30~50대 직장인',      tone: '공감·철학', labels: ['AI와 삶', '무의식', '마음챙김'] },
+        4: { name: 'AI 시대의 솔로프리너',     chars: '1500~2500자', audience: '1인 창업자·프리랜서', tone: '실전',      labels: ['AI와 생존', '솔로프리너', '바이브코딩'] },
+        5: { name: 'AI 프로메테우스',          chars: '1200~1800자', audience: '일반 독자·AI 관심층', tone: '스토리',    labels: ['AI와 삶', 'SF와AI', 'AI철학'] },
+        6: { name: 'K-스테이블코인',           chars: '1500~2000자', audience: '금융인·정책 관심층',  tone: '분석',      labels: ['AI×금융', '스테이블코인'] },
+        7: { name: 'AI 디지털 초혁신',         chars: '1200~1800자', audience: '기업 임원·전략기획',  tone: '전략',      labels: ['AI와 구조', '디지털혁신'] },
+      };
+      const book = BOOK_CONFIG[book_num ?? 5] ?? BOOK_CONFIG[5];
+
+      const systemPrompt = `당신은 AIWX 블로그(https://aiwx2035.blogspot.com)의 전속 콘텐츠 에디터입니다.
+블로그 컨셉: "AI 시대를 먼저 읽습니다" | 주언어: 한국어
+
+[글쓰기 스타일 — 반드시 준수]
+1. 합쇼체(~습니다) 기본, 3~4문장마다 ~요 또는 ~죠로 호흡 전환
+2. 최진석 교수체: 간결함(한 문장 한 생각), 질문 유발, 스토리텔링, 깊이+쉬움
+3. 금지 사항: 이모지(본문 내), "~인데요/~거든요" 과잉, "정말/매우/굉장히" 남용, 결론 없이 끝나기
+
+[포스트 표준 구조 — 모든 글에 적용]
+① 제목 (30자 이내, 검색 의도 + 공감 유발)
+② 리드 문단 — 실제 뉴스/데이터/사건으로 시작 (2~3문장)
+③ 소제목 4개:
+   1. 배경/문제 + 실제 사례
+   2. 핵심 인사이트 + 실제 사례
+   3. 실전 적용 + 구체적 행동 3가지
+   4. 요약 + 한 줄 메시지
+④ CTA — 다음 글 예고 or 뉴스레터 구독 안내
+
+[이 포스트 설정]
+- 책: ${book.name}
+- 글자수: ${book.chars}
+- 독자: ${book.audience}
+- 톤: ${book.tone}
+- 라벨: ${book.labels.join(', ')}
+
+[출력 형식]
+===== POST 1 =====
+제목: [제목]
+라벨: [라벨1, 라벨2, 라벨3]
+
+[본문 전문]
+
+===== POST 2 =====
+제목: [제목]
+라벨: [라벨1, 라벨2, 라벨3]
+
+[본문 전문]`;
+
+      const userPrompt = `다음 리서치 내용을 바탕으로 AIWX 블로그 포스트 2개를 작성해주세요.
+
+제목/주제: ${itemTitle || '최신 AI 트렌드'}
+요약: ${itemSummary || ''}
+내용: ${itemContent || itemSummary || '최신 AI/스타트업 트렌드 분석'}
+
+${book.name} 독자층(${book.audience})에 맞는 2개의 독립적인 블로그 포스트를 작성하세요.`;
+
+      const completion = await llm.complete({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        agentRole: 'content',
+        tier: 'balanced',
+        maxTokens: 4096,
+      });
+
+      const generatedContent = completion.content;
+
+      // 파일 저장 (C:/oomni-data/research/aiwx-posts/)
+      const dataRoot = process.platform === 'win32' ? 'C:/oomni-data' : path.join(os.homedir(), 'oomni-data');
+      const aiwxDir  = path.join(dataRoot, 'research', 'aiwx-posts');
+      fs.mkdirSync(aiwxDir, { recursive: true });
+
+      const slug     = (itemTitle || 'post').slice(0, 30).replace(/[^\w가-힣]/g, '-');
+      const dateStr  = new Date().toISOString().slice(0, 10);
+      const filename = `aiwx-post_${dateStr}_${slug}.md`;
+      const filePath = path.join(aiwxDir, filename);
+      fs.writeFileSync(filePath, generatedContent, 'utf-8');
+
+      // Blogger 발행 (publish=true 인 경우만)
+      let publishResult: { success: boolean; error?: string } = { success: false };
+      if (publish) {
+        const publishScript = 'C:/GGAdsense/publish_post.py';
+        if (fs.existsSync(publishScript)) {
+          try {
+            await execFileAsync('python', [publishScript, filePath], { timeout: 60000 });
+            publishResult = { success: true };
+          } catch (publishErr) {
+            const errMsg = publishErr instanceof Error ? publishErr.message : String(publishErr);
+            publishResult = { success: false, error: errMsg };
+            logger.warn('[research] Blogger 발행 오류:', errMsg);
+          }
+        } else {
+          publishResult = { success: false, error: 'C:/GGAdsense/publish_post.py 파일을 찾을 수 없습니다' };
+        }
+      }
+
+      res.json({
+        data: {
+          content: generatedContent,
+          file_path: filePath,
+          publish_result: publishResult,
+        },
+      });
+    } catch (err) {
+      logger.error('[research] POST /aiwx-post 오류', err);
       res.status(500).json({ error: '서버 내부 오류' });
     }
   });

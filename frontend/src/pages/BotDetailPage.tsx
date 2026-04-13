@@ -6,7 +6,7 @@ import { useAppStore } from '../store/app.store'
 import { Trash2, Settings, ArrowLeft, Send, Square, RotateCcw, Clock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Copy } from 'lucide-react'
 import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
 import { LiveStreamDrawer } from '../components/bot/LiveStreamDrawer'
-import { XTerminal } from '../components/bot/XTerminal'
+import { XTerminal, type XTerminalRef } from '../components/bot/XTerminal'
 import { ResearchLeftPanel, ResearchCenterPanel, ResearchRightPanel } from '../components/bot/panels/ResearchPanel'
 import { BuildLeftPanel, BuildCenterPanel, BuildRightPanel } from '../components/bot/panels/BuildPanel'
 import type { FileNode } from '../lib/api'
@@ -14,7 +14,7 @@ import { ContentLeftPanel, ContentCenterPanel, ContentRightPanel } from '../comp
 import { GrowthLeftPanel, GrowthCenterPanel, GrowthRightPanel } from '../components/bot/panels/GrowthPanel'
 import { OpsLeftPanel, OpsCenterPanel, OpsRightPanel } from '../components/bot/panels/OpsPanel'
 import { CeoLeftPanel, CeoCenterPanel, CeoRightPanel } from '../components/bot/panels/CeoPanel'
-import { DesignLeftPanel, DesignCenterPanel, DesignRightPanel } from '../components/bot/panels/DesignPanel'
+import { DesignCenterPanel, DesignRightPanel } from '../components/bot/panels/DesignPanel'
 import { CommonLeftPanel, CommonCenterPanel, CommonRightPanel } from '../components/bot/panels/GenericPanel'
 import { cn } from '../lib/utils'
 import type { ResearchItem } from '../lib/api'
@@ -42,6 +42,59 @@ const PLACEHOLDER: Record<string, string> = {
   default:     '봇에게 지시사항을 입력하세요...',
 }
 
+// 세로 분할 — 드래그로 위/아래 크기 조절
+function ResizableSplit({
+  top, bottom, initialTopPercent = 50, minTopPx = 80, minBottomPx = 60,
+}: {
+  top: React.ReactNode
+  bottom: React.ReactNode
+  initialTopPercent?: number
+  minTopPx?: number
+  minBottomPx?: number
+}) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [topPercent, setTopPercent] = useState(initialTopPercent)
+  const dragging = useRef(false)
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    dragging.current = true
+    const container = containerRef.current
+    if (!container) return
+    const onMove = (ev: MouseEvent) => {
+      if (!dragging.current || !container) return
+      const rect = container.getBoundingClientRect()
+      const topH = Math.max(minTopPx, Math.min(rect.height - minBottomPx, ev.clientY - rect.top))
+      setTopPercent((topH / rect.height) * 100)
+    }
+    const onUp = () => {
+      dragging.current = false
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  return (
+    <div ref={containerRef} className="flex flex-col h-full overflow-hidden">
+      <div style={{ height: `${topPercent}%` }} className="overflow-hidden min-h-0">
+        {top}
+      </div>
+      <div
+        onMouseDown={onMouseDown}
+        className="h-1.5 bg-[#1a1a1a] hover:bg-primary/40 cursor-row-resize shrink-0 flex items-center justify-center select-none group"
+        title="드래그하여 크기 조절"
+      >
+        <div className="w-10 h-0.5 rounded-full bg-[#333] group-hover:bg-primary/60 transition-colors" />
+      </div>
+      <div style={{ height: `${100 - topPercent}%` }} className="overflow-hidden min-h-0">
+        {bottom}
+      </div>
+    </div>
+  )
+}
+
 export default function BotDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -61,18 +114,16 @@ export default function BotDetailPage() {
   const [showSettings, setShowSettings] = useState(false)
   const [selectedResearchItem, setSelectedResearchItem] = useState<ResearchItem | null>(null)
   const [contentType, setContentType] = useState('blog')
-  const [designTemplate, setDesignTemplate] = useState('landing')
-  const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null)
+const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null)
   const [streamOutput, setStreamOutput] = useState('')
   const [lastOutput, setLastOutput] = useState('')  // 다음봇 전달용 최신 결과물
   const [designScreenshot, setDesignScreenshot] = useState<string | null>(null)
   const esRef = useRef<EventSource | null>(null)
+  const terminalRef = useRef<XTerminalRef>(null)       // Build Bot 터미널 주입
+  const designTerminalRef = useRef<XTerminalRef>(null)  // Design Bot 터미널 주입
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [quota, setQuota] = useState<{ plan: string; runCount: number; limit: number; exceeded: boolean; remaining: number } | null>(null)
   const [pencilStatus, setPencilStatus] = useState<{ connected: boolean } | null>(null)
-  // Design Bot: 사용자가 명시적으로 Pencil 모드를 선택했는지 여부
-  // 기본은 SSE(HTML 생성) 모드 → "Pencil 연결" 버튼 클릭 시 XTerminal 모드로 전환
-  const [pencilModeEnabled, setPencilModeEnabled] = useState(false)
 
   const { data: agent, isLoading } = useQuery<Agent>({
     queryKey: ['agent', id],
@@ -399,17 +450,33 @@ export default function BotDetailPage() {
           selectedFilePath={selectedBuildFile?.path ?? null}
           onFileSelect={setSelectedBuildFile}
         />,
-        center: <BuildCenterPanel
-          agentId={agent.id}
-          selectedFile={selectedBuildFile}
-          isRunning={isRunning}
-          streamContent={streamOutput}
+        center: <ResizableSplit
+          initialTopPercent={45}
+          minTopPx={100}
+          minBottomPx={80}
+          top={<BuildCenterPanel
+            agentId={agent.id}
+            selectedFile={selectedBuildFile}
+            isRunning={isRunning}
+            streamContent={streamOutput}
+          />}
+          bottom={<XTerminal
+            ref={terminalRef}
+            agentId={agent.id}
+            isRunning={isRunning}
+            alwaysOn
+            shellMode
+            taskHint={task}
+            onExit={() => { setIsRunning(false); setCurrentStage('done') }}
+            onOutputCapture={(text) => setLastOutput(text)}
+            className="h-full"
+          />}
         />,
         right: <BuildRightPanel
           agentId={agent.id}
           nextBotName={nextBot?.name}
           onNextBot={handleNextBot}
-          onSkillSelect={(skill: string) => setTask(skill)}
+          onSkillSelect={(skill: string) => terminalRef.current?.send(skill)}
           currentRole="build"
           content={lastOutput}
         />,
@@ -450,9 +517,54 @@ export default function BotDetailPage() {
         right: <CeoRightPanel missionId={missionId ?? ''} agentId={agent.id} onSkillSelect={(s: string) => setTask(s)} currentRole="ceo" content={lastOutput} />,
       }
       case 'design': return {
-        left: <DesignLeftPanel selectedTemplate={designTemplate} onTemplateChange={setDesignTemplate} onApplyTemplate={(prompt) => setTask(prompt)} />,
-        center: <DesignCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} screenshotUrl={designScreenshot} />,
-        right: <DesignRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="design" content={lastOutput} />,
+        left: null,  // 좌측 패널 제거
+        center: <ResizableSplit
+          initialTopPercent={55}
+          minTopPx={80}
+          minBottomPx={80}
+          top={
+            <div className="h-full flex flex-col overflow-hidden">
+              {/* Pencil 모드 강제 진입 툴바 */}
+              <div className="shrink-0 border-b border-[#222] bg-[#111] px-3 py-1.5 flex items-center gap-2">
+                <span className="text-[11px] text-muted">✦ Antigravity 디자인 미리보기</span>
+                <div className="flex-1" />
+                {pencilStatus?.connected ? (
+                  <button
+                    onClick={() => designTerminalRef.current?.send('claude --dangerously-skip-permissions')}
+                    className="text-[11px] px-2 py-0.5 rounded bg-purple-500/15 text-purple-400 hover:bg-purple-500/25 transition-colors"
+                  >
+                    ✦ Pencil 강제 시작
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      fetch(`http://localhost:3001/api/agents/${agent.id}/pencil-status`)
+                        .then(r => r.json()).then(setPencilStatus).catch(() => {})
+                    }}
+                    className="text-[11px] px-2 py-0.5 rounded bg-border text-muted hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
+                  >
+                    Pencil 연결 확인
+                  </button>
+                )}
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <DesignCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} screenshotUrl={designScreenshot} />
+              </div>
+            </div>
+          }
+          bottom={<XTerminal
+            ref={designTerminalRef}
+            agentId={agent.id}
+            isRunning={isRunning}
+            alwaysOn
+            shellMode
+            taskHint={task}
+            onExit={() => { setIsRunning(false); setCurrentStage('done') }}
+            onOutputCapture={(text) => setLastOutput(text)}
+            className="h-full"
+          />}
+        />,
+        right: <DesignRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s) => designTerminalRef.current?.send(s)} currentRole="design" content={lastOutput} />,
       }
       default: return {
         left: <CommonLeftPanel agent={agent} onUpdate={(d) => update.mutate(d as Partial<Agent>)} />,
@@ -566,127 +678,28 @@ export default function BotDetailPage() {
       ) : (
         <>
       {/* ── 메인 3패널 ────────────────────────────────────── */}
-      <div className={cn(
-        'flex overflow-hidden',
-        agent.role === 'build' ? 'flex-1' : 'flex-1',
-      )}>
-        {/* LEFT */}
-        <div className={cn(
-          'border-r border-border overflow-y-auto shrink-0 bg-surface/30',
-          agent.role === 'design' ? 'w-44' : 'w-56',
-        )}>
-          {left}
-        </div>
-
-        {/* CENTER — Build/Design 봇은 XTerminal 포함한 세로 분할 */}
-        {agent.role === 'build' ? (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-hidden">{center}</div>
-            {/* Build Bot: 항상-켜진 PowerShell 터미널 (Antigravity IDE 스타일)
-                - alwaysOn: 페이지 마운트 시 즉시 PowerShell 연결, isRunning 무관
-                - shellMode: powershell.exe 실행 (사용자가 claude 명령 직접 입력)
-                - taskHint: 태스크를 힌트로 표시
-                - onOutputCapture: PTY 출력 → lastOutput 업데이트 → 다음 봇 전달 */}
-            <XTerminal
-              agentId={agent.id}
-              isRunning={isRunning}
-              alwaysOn
-              shellMode
-              taskHint={task}
-              onExit={() => { setIsRunning(false); setCurrentStage('done') }}
-              onOutputCapture={(text) => setLastOutput(text)}
-              className="h-80 shrink-0"
-            />
-          </div>
-        ) : agent.role === 'design' ? (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-hidden">{center}</div>
-            {/* Design Bot:
-                - 기본: SSE 모드 (HTML 생성) + 하단 항상-켜진 PowerShell 터미널
-                - pencilModeEnabled && pencilStatus?.connected: XTerminal + Pencil MCP 모드
-                - 터미널에서 Antigravity / claude 명령 직접 실행 가능 */}
-            {pencilModeEnabled && pencilStatus?.connected ? (
-              <XTerminal
-                agentId={agent.id}
-                isRunning={isRunning}
-                alwaysOn
-                shellMode
-                taskHint={task}
-                onExit={() => { setIsRunning(false); setCurrentStage('done') }}
-                onOutputCapture={(text) => setLastOutput(text)}
-                className="h-64 shrink-0"
-              />
-            ) : (
-              /* 기본 SSE 모드 + Pencil 연결 안내 바 + 항상-켜진 터미널 */
-              <>
-                <div className="shrink-0 border-t border-border bg-[#111] px-4 py-2 flex items-center gap-3">
-                  {pencilModeEnabled ? (
-                    <span className="text-[12px] text-red-400">✦ Antigravity 앱이 실행되지 않았거나 Pencil MCP 설치 필요</span>
-                  ) : (
-                    <span className="text-[12px] text-muted">✦ HTML 생성 모드 — Pencil MCP로 전환하면 .pen 파일 직접 생성</span>
-                  )}
-                  {pencilStatus?.connected ? (
-                    <button
-                      onClick={() => setPencilModeEnabled(true)}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded text-[11px] bg-purple-500/15 text-purple-400 hover:bg-purple-500/25 transition-colors"
-                    >
-                      ✦ Pencil 모드 전환
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        fetch(`http://localhost:3001/api/agents/${agent.id}/pencil-status`)
-                          .then(r => r.json()).then((s) => {
-                            setPencilStatus(s)
-                            if (s.connected) setPencilModeEnabled(true)
-                          }).catch(() => {})
-                      }}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded text-[11px] bg-border text-muted hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
-                    >
-                      Pencil 연결 확인
-                    </button>
-                  )}
-                  {pencilModeEnabled && (
-                    <button
-                      onClick={() => setPencilModeEnabled(false)}
-                      className="text-[11px] text-muted hover:text-text"
-                    >
-                      HTML 모드로 돌아가기
-                    </button>
-                  )}
-                </div>
-                <XTerminal
-                  agentId={`${agent.id}-shell`}
-                  isRunning={isRunning}
-                  alwaysOn
-                  shellMode
-                  taskHint={task}
-                  onExit={() => {}}
-                  onOutputCapture={(text) => setLastOutput(text)}
-                  className="h-48 shrink-0"
-                />
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="flex-1 overflow-hidden">
-            {center}
+      <div className="flex flex-1 overflow-hidden">
+        {/* LEFT — Design Bot은 좌측 패널 없음 */}
+        {left && (
+          <div className="border-r border-border overflow-y-auto shrink-0 bg-surface/30 w-56">
+            {left}
           </div>
         )}
 
+        {/* CENTER */}
+        <div className="flex-1 overflow-hidden">
+          {center}
+        </div>
+
         {/* RIGHT */}
-        <div className={cn(
-          'border-l border-border overflow-y-auto shrink-0 bg-surface/30',
-          agent.role === 'design' ? 'w-52' : 'w-64',
-        )}>
+        <div className="border-l border-border overflow-y-auto shrink-0 bg-surface/30 w-64">
           {right}
         </div>
       </div>
 
-      {/* ── 하단: 스트림 드로어 (Build 봇 제외) + 프롬프트 입력 ── */}
-      <div className="shrink-0">
-        {/* Build Bot은 XTerminal만 사용, Design Bot은 Pencil 연결 여부에 따라 분기 */}
-        {agent.role !== 'build' && !(agent.role === 'design' && pencilModeEnabled && pencilStatus?.connected) && (
+      {/* ── 하단: 스트림 드로어 + 프롬프트 입력 (Build/Design은 터미널 사용) ── */}
+      {agent.role !== 'build' && agent.role !== 'design' && (
+        <div className="shrink-0">
           <LiveStreamDrawer
             agentId={agent.id}
             task={task}
@@ -698,76 +711,63 @@ export default function BotDetailPage() {
             onScreenshot={(url) => setDesignScreenshot(url)}
             esRef={esRef}
           />
-        )}
 
-        <div className="flex items-end gap-3 px-5 py-4 bg-surface border-t border-border">
-          <div className="flex-1">
-            <textarea
-              value={task}
-              onChange={e => setTask(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={placeholder}
-              rows={1}
-              disabled={isRunning}
-              className={cn(
-                'w-full bg-bg border border-border rounded-xl px-4 py-3 text-base text-text placeholder-muted/60',
-                'focus:outline-none focus:border-primary/60 resize-none leading-relaxed',
-                'transition-colors disabled:opacity-50 max-h-36 overflow-y-auto'
-              )}
-              onInput={e => {
-                const el = e.currentTarget
-                el.style.height = 'auto'
-                el.style.height = Math.min(el.scrollHeight, 144) + 'px'
-              }}
-            />
+          <div className="flex items-end gap-3 px-5 py-4 bg-surface border-t border-border">
+            <div className="flex-1">
+              <textarea
+                value={task}
+                onChange={e => setTask(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={placeholder}
+                rows={1}
+                disabled={isRunning}
+                className={cn(
+                  'w-full bg-bg border border-border rounded-xl px-4 py-3 text-base text-text placeholder-muted/60',
+                  'focus:outline-none focus:border-primary/60 resize-none leading-relaxed',
+                  'transition-colors disabled:opacity-50 max-h-36 overflow-y-auto'
+                )}
+                onInput={e => {
+                  const el = e.currentTarget
+                  el.style.height = 'auto'
+                  el.style.height = Math.min(el.scrollHeight, 144) + 'px'
+                }}
+              />
+            </div>
+
+            <button
+              onClick={handleReset}
+              title="입력창과 결과를 모두 초기화합니다"
+              className="flex items-center gap-1.5 px-3 py-3 rounded-xl text-sm transition-colors shrink-0 text-muted hover:text-text hover:bg-surface border border-border"
+            >
+              <RotateCcw size={14} />
+              Reset
+            </button>
+
+            {isRunning ? (
+              <button
+                onClick={handleCancel}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors shrink-0 bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30"
+              >
+                <Square size={14} />
+                취소
+              </button>
+            ) : (
+              <button
+                onClick={handleRun}
+                disabled={!task.trim()}
+                className={cn(
+                  'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors shrink-0',
+                  'bg-primary text-white hover:bg-primary-hover',
+                  'disabled:opacity-40 disabled:cursor-not-allowed'
+                )}
+              >
+                <Send size={14} />
+                실행
+              </button>
+            )}
           </div>
-
-          {/* 무료 플랜 사용량 배지 — 테스트 중 비활성화 */}
-          {/* {quota?.plan === 'free' && (
-            <button
-              onClick={() => setShowUpgradeModal(true)}
-              className="shrink-0 text-xs px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
-              title="무료 플랜 사용량"
-            >
-              {quota.runCount}/{quota.limit} 실행
-            </button>
-          )} */}
-
-          {/* Reset 버튼 — 항상 표시 */}
-          <button
-            onClick={handleReset}
-            title="입력창과 결과를 모두 초기화합니다"
-            className="flex items-center gap-1.5 px-3 py-3 rounded-xl text-sm transition-colors shrink-0 text-muted hover:text-text hover:bg-surface border border-border"
-          >
-            <RotateCcw size={14} />
-            Reset
-          </button>
-
-          {/* 실행 중: 취소 버튼 / 대기 중: 실행 버튼 */}
-          {isRunning ? (
-            <button
-              onClick={handleCancel}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors shrink-0 bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30"
-            >
-              <Square size={14} />
-              취소
-            </button>
-          ) : (
-            <button
-              onClick={handleRun}
-              disabled={!task.trim()}
-              className={cn(
-                'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors shrink-0',
-                'bg-primary text-white hover:bg-primary-hover',
-                'disabled:opacity-40 disabled:cursor-not-allowed'
-              )}
-            >
-              <Send size={14} />
-              실행
-            </button>
-          )}
         </div>
-      </div>
+      )}
         </>
       )}
 
