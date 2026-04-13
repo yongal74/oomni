@@ -32,7 +32,7 @@
 - 버그 수정: x.x.X (patch)
 - 기능 추가: x.X.0 (minor)
 - 상용화 전환: X.0.0 (major)
-- 현재 버전: **v2.9.6**
+- 현재 버전: **v2.9.7**
 
 ## 프로젝트 컨텍스트
 OOMNI는 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼입니다.
@@ -57,21 +57,32 @@ OOMNI는 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼입니다
 - `attachPtyWebSocket`: `/api/agents/:id/terminal` 경로 처리
 - **절대로** `{ server, path }` 옵션으로 WebSocketServer 생성 금지 → 다른 경로 소켓 파괴
 
-### Design Bot 실행 모드 (v2.9.5~)
-- **기본값**: LiveStreamDrawer (SSE, HTML 생성) — Pencil 설치 여부 무관
-- **수동 전환**: UI에서 "Pencil 모드로 전환" 버튼 → XTerminal (PTY, Claude Code + Pencil MCP)
+### Design Bot 실행 모드 (v2.9.7~)
+- **기본값**: LiveStreamDrawer (SSE, HTML 생성) + 하단 항상-켜진 PowerShell 터미널
+- **수동 전환**: "Pencil 모드 전환" 버튼 → XTerminal (PTY, Claude Code + Pencil MCP)
 - `pencilModeEnabled` state로 관리 (BotDetailPage)
-- ~~자동 분기(pencil-status API) 방식은 v2.9.5에서 제거됨~~ (UX 혼란 원인)
+- Pencil MCP 미연결 클릭 시 `alert()` 팝업 제거됨 — pencil-status API 자동 재확인으로 교체
 
-### Build Bot PTY 주의사항 (v2.9.5~)
-- `initialInput` 자동전송 완전 제거 — Claude Code CLI 실행 직후 자동 입력 시 exit code 1 발생
-- 대신 `taskHint` prop으로 터미널 상단에 힌트 텍스트만 표시
-- 사용자가 직접 명령어를 입력하는 방식으로 동작
+### Build/Design Bot 터미널 (v2.9.7~) — Antigravity IDE 스타일
+- **alwaysOn** prop: 페이지 마운트 즉시 WebSocket 연결 (isRunning 무관)
+- **shellMode** prop: `powershell.exe` (Windows) / `/bin/bash` (Linux/Mac) 직접 실행
+  - Build Bot: `alwaysOn + shellMode` → 항상-켜진 PowerShell 워크스페이스 터미널
+  - Design Bot SSE 모드: 하단에 추가 PowerShell 터미널 (agentId: `{id}-shell`)
+- WebSocket URL: `/api/agents/:id/terminal?cols=&rows=&mode=shell`
+- 사용자가 직접 `claude --dangerously-skip-permissions` 입력으로 Claude Code 실행
+- **이전 방식(Claude Code 자동 spawn)은 exit code 1 유발** → shellMode로 완전 전환
+
+### CEO Bot agents_v5 repair (v2.9.7~)
+- migration v6 실행 중 크래시 시 DB에 `agents_v5`만 남고 `agents`가 없는 불안정 상태 발생 가능
+- **v2.9.7 수정**: `initDb()`에 방어 repair 패치 추가
+  - `agents_v5` 있고 `agents` 없음 → 새 `agents` 생성 + 데이터 복사 + `agents_v5` 삭제
+  - `agents_v5` 있고 `agents` 도 있음 → `agents_v5` 삭제
+  - repair 후 `schema_migrations`에 v6 applied 기록 (중복 방지)
 
 ### CEO 봇 role CHECK constraint (v2.9.6 수정 완료)
 - DB schema migration v6: agents 테이블에 `ceo` role CHECK constraint 추가
-- **v2.9.5 버그**: migration v6가 `foreign_keys=ON` 상태에서 `DROP TABLE agents_v5` 실패 → 매 앱 시작마다 롤백 반복 → `ceo` role 계속 거부
-- **v2.9.6 수정**: `client.ts`에서 `runMigrations()` 호출 전후로 `foreign_keys=OFF/ON` 래핑 → migration v6 정상 실행
+- **v2.9.5 버그**: migration v6가 `foreign_keys=ON` 상태에서 실패 반복
+- **v2.9.6 수정**: `runMigrations()` 전후 `foreign_keys=OFF/ON` 래핑 → migration v6 정상 실행
 
 ### Reports API 버그 (v2.9.6 수정 완료)
 - **버그**: `reports.ts`의 에이전트 목록 쿼리에서 `WHERE a.mission_id = ?` — 테이블 alias `a` 없이 사용 → `no such column: a.mission_id`
