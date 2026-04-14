@@ -15,7 +15,7 @@ import { ContentLeftPanel, ContentCenterPanel, ContentRightPanel } from '../comp
 import { GrowthLeftPanel, GrowthCenterPanel, GrowthRightPanel } from '../components/bot/panels/GrowthPanel'
 import { OpsLeftPanel, OpsCenterPanel, OpsRightPanel } from '../components/bot/panels/OpsPanel'
 import { CeoLeftPanel, CeoCenterPanel, CeoRightPanel } from '../components/bot/panels/CeoPanel'
-import { DesignLeftPanel, DesignCenterPanel, DesignRightPanel } from '../components/bot/panels/DesignPanel'
+import { DesignCenterPanel, DesignRightPanel } from '../components/bot/panels/DesignPanel'
 import { CommonLeftPanel, CommonCenterPanel, CommonRightPanel } from '../components/bot/panels/GenericPanel'
 import { cn } from '../lib/utils'
 import type { ResearchItem } from '../lib/api'
@@ -205,8 +205,10 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
   onModelChange: (m: ModelId) => void
   onModeChange: (m: ModeId) => void
   onOutputCapture?: (text: string) => void
+  onChatStart?: () => void
+  onChatDone?: () => void
 }>(function AntigravityRightPanel(
-  { agentId, placeholder, children, selectedModel, selectedMode, botRole, onModelChange, onModeChange, onOutputCapture },
+  { agentId, placeholder, children, selectedModel, selectedMode, botRole, onModelChange, onModeChange, onOutputCapture, onChatStart, onChatDone },
   ref
 ) {
   const [task, setTask] = useState('')
@@ -236,6 +238,7 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
     setPendingUserMsg(msgToSend)
     setStreamOutput('')
     setTask('')
+    onChatStart?.()
 
     let accumulated = ''
 
@@ -311,8 +314,9 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
       setPendingUserMsg('')
       setStreamOutput('')
       abortRef.current = null
+      onChatDone?.()
     }
-  }, [agentId, isChatRunning, selectedModel, task, onOutputCapture])
+  }, [agentId, isChatRunning, selectedModel, task, onOutputCapture, onChatStart, onChatDone])
 
   useImperativeHandle(ref, () => ({
     runTask(prompt: string) {
@@ -327,6 +331,7 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
 
   const handleReset = () => {
     handleCancel()
+    setIsChatRunning(false)   // abort 전파 실패 대비 즉시 동기 복구
     setChatHistory([])
     setPendingUserMsg('')
     setStreamOutput('')
@@ -509,7 +514,7 @@ function UnifiedTerminalLayout({
   agentId, placeholder, termRef, onTerminalExit, onOutputCapture,
   centerContent, rightChildren, pencilUrl, onPencilClose,
   selectedModel, selectedMode, botRole, onModelChange, onModeChange,
-  rightPanelRef,
+  rightPanelRef, onChatStart, onChatDone,
 }: {
   agentId: string
   placeholder: string
@@ -526,6 +531,8 @@ function UnifiedTerminalLayout({
   onModelChange: (m: ModelId) => void
   onModeChange: (m: ModeId) => void
   rightPanelRef?: React.RefObject<AntigravityRightPanelRef>
+  onChatStart?: () => void
+  onChatDone?: () => void
 }) {
   const leftArea = (
     <ResizableSplit
@@ -576,6 +583,8 @@ function UnifiedTerminalLayout({
           onModelChange={onModelChange}
           onModeChange={onModeChange}
           onOutputCapture={onOutputCapture}
+          onChatStart={onChatStart}
+          onChatDone={onChatDone}
         >
           {rightChildren}
         </AntigravityRightPanel>
@@ -621,7 +630,6 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [quota, setQuota] = useState<{ plan: string; runCount: number; limit: number; exceeded: boolean; remaining: number } | null>(null)
   const [pencilStatus, setPencilStatus] = useState<{ connected: boolean } | null>(null)
-  const [selectedTemplate, setSelectedTemplate] = useState('landing')
   // Pencil/localhost URL 감지 (터미널 출력에서 파싱 → 인앱 iframe 표시)
   const [pencilInAppUrl, setPencilInAppUrl] = useState<string | null>(null)
 
@@ -676,6 +684,7 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
   // Design봇 터미널과 Unified 터미널 모두 감지
   const handleUnifiedOutputCapture = useCallback((text: string) => {
     setLastOutput(text)
+    setStreamOutput(text)   // 우측 채팅 스트리밍 → 중앙 패널(ResearchCenterPanel 등)에 전달
     // localhost:포트 URL 패턴 감지 (Pencil이 서빙하는 포트)
     const urlMatch = text.match(/https?:\/\/localhost:(\d{4,5})\b/)
     if (urlMatch) {
@@ -1016,10 +1025,10 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
           onSkillSelect={(s: string) => handleSkillRun(s)}
           onFileUpload={(content, filename) => setTask(`__track:${activeResearchTrack}__ 다음 파일(${filename}) 내용을 분석하고 리서치 인사이트를 추출해줘:\n\n${content}`)}
         /></div>
-        if (role === 'content') return <div className="p-3"><ContentRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} currentRole="content" content={lastOutput} /></div>
-        if (role === 'growth') return <div className="p-3"><GrowthRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} currentRole="growth" content={lastOutput} /></div>
-        if (role === 'ops') return <div className="p-3"><OpsRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s: string) => setTask(s)} currentRole="ops" content={lastOutput} /></div>
-        if (role === 'ceo') return <div className="p-3"><CeoRightPanel missionId={missionId ?? ''} agentId={agent.id} onSkillSelect={(s: string) => setTask(s)} currentRole="ceo" content={lastOutput} /></div>
+        if (role === 'content') return <div className="p-3"><ContentRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="content" content={lastOutput} /></div>
+        if (role === 'growth') return <div className="p-3"><GrowthRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="growth" content={lastOutput} /></div>
+        if (role === 'ops') return <div className="p-3"><OpsRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="ops" content={lastOutput} /></div>
+        if (role === 'ceo') return <div className="p-3"><CeoRightPanel missionId={missionId ?? ''} agentId={agent.id} onSkillSelect={handleSkillRun} currentRole="ceo" content={lastOutput} /></div>
         return null
       })()
 
@@ -1040,6 +1049,8 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
           onModelChange={setSelectedModel}
           onModeChange={setSelectedMode}
           rightPanelRef={unifiedRightPanelRef}
+          onChatStart={() => { setIsRunning(true); setStreamOutput(''); setCurrentStage('running') }}
+          onChatDone={() => { setIsRunning(false); setCurrentStage('done') }}
         />
       )
 
@@ -1089,7 +1100,7 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
 
       // ── Design Bot — 기존 레이아웃 + Pencil 인앱 URL 감지 추가 ─────────────
       case 'design': return {
-        left: <DesignLeftPanel selectedTemplate={selectedTemplate} onTemplateChange={setSelectedTemplate} onApplyTemplate={(prompt) => designTerminalRef.current?.send(prompt)} />,
+        left: null,
         center: <ResizableSplit
           initialTopPercent={55}
           minTopPx={80}

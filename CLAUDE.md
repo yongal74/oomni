@@ -32,7 +32,7 @@
 - 버그 수정: x.x.X (patch)
 - 기능 추가: x.X.0 (minor)
 - 상용화 전환: X.0.0 (major)
-- 현재 버전: **v2.9.12**
+- 현재 버전: **v2.9.14**
 
 ## 프로젝트 컨텍스트
 OOMNI는 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼입니다.
@@ -204,6 +204,23 @@ Research → Content → Build → Design → Growth → Ops → CEO
 3. 한국어로 결과물 작성 (코드 제외)
 4. 각 단계 완료 시 간략한 완료 메시지 출력
 5. 에러 발생 시 원인과 대안 명시
+
+### AntigravityRightPanel 채팅 인증 구조 (v2.9.14~) — 절대 변경 금지
+- **POST /api/agents/:id/chat 는 인증 미들웨어 예외 처리됨** (`app.ts` isPublicPath에 포함)
+- 이전 v2.9.13에서 라우터 핸들러 내부만 수정하고 전역 미들웨어(`app.ts`)를 빠뜨려 401 지속됨
+- **전역 미들웨어 위치**: `backend/src/api/app.ts` line ~118, isPublicPath 정규식
+- `/chat` 엔드포인트를 다시 인증 필요하게 만들려면 isPublicPath에서 제거 + 라우터에 인증 로직 추가해야 함
+
+### onSkillSelect 배선 규칙 (v2.9.14~) — 반드시 준수
+- **Unified 봇(Research/Content/Growth/Ops/CEO) rightChildren 내 onSkillSelect는 반드시 `handleSkillRun`**
+- `setTask(s)` 배선은 AntigravityRightPanel 내부 state를 건드리지 않아 채팅 미실행
+- `handleSkillRun` → `unifiedRightPanelRef.current?.runTask(prompt)` 로 내부 채팅 트리거
+- v2.9.13 이전에 content/growth/ops/ceo는 잘못 설정되어 있었음
+
+### Design Bot 왼쪽 패널 (v2.9.14~) — left: null 고정
+- 사용자가 명시적으로 디자인 시스템 왼쪽 패널 제거 결정
+- `case 'design': return { left: null, ... }` — 절대 DesignLeftPanel 다시 추가 금지
+- v2.9.13에서 "누락 수정"이라고 잘못 판단하여 복원했다가 재제거
 
 ### CEO/Growth봇 탭별 필터링 (v2.9.11~)
 - **CEO봇**: `TAB_KEYWORDS` 맵으로 일간/주간/OKR/투자자별 키워드 매칭 → 관련 feed 우선 표시, 없으면 최신 fallback

@@ -127,7 +127,8 @@ export function createApp(options: AppOptions): Application {
       req.path === '/health' ||
       req.path.startsWith('/auth') ||
       req.path.startsWith('/settings') ||
-      /^\/agents\/[^/]+\/stream/.test(req.path);
+      /^\/agents\/[^/]+\/stream/.test(req.path) ||
+      /^\/agents\/[^/]+\/chat$/.test(req.path);
 
     if (isPublicPath) {
       next();
