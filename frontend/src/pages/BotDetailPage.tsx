@@ -207,8 +207,9 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
   onOutputCapture?: (text: string) => void
   onChatStart?: () => void
   onChatDone?: () => void
+  onStageChange?: (stage: string) => void
 }>(function AntigravityRightPanel(
-  { agentId, placeholder, children, selectedModel, selectedMode, botRole, onModelChange, onModeChange, onOutputCapture, onChatStart, onChatDone },
+  { agentId, placeholder, children, selectedModel, selectedMode, botRole, onModelChange, onModeChange, onOutputCapture, onChatStart, onChatDone, onStageChange },
   ref
 ) {
   const [task, setTask] = useState('')
@@ -259,12 +260,16 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
 
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
+      // lineBuffer: HTTP 청크 경계에서 JSON 라인이 잘릴 경우를 대비해 불완전한 라인을 보관
+      let lineBuffer = ''
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n')
+        lineBuffer += decoder.decode(value, { stream: true })
+        const lines = lineBuffer.split('\n')
+        // 마지막 요소는 불완전한 라인일 수 있으므로 버퍼에 보관
+        lineBuffer = lines.pop() ?? ''
         for (const line of lines) {
           if (!line.trim()) continue
           try {
@@ -275,6 +280,9 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
               accumulated += text
               setStreamOutput(prev => prev + text)
               onOutputCapture?.(accumulated)
+            } else if (parsed.event === 'stage') {
+              const d = parsed.data as Record<string, unknown>
+              if (typeof d.stage === 'string') onStageChange?.(d.stage)
             } else if (parsed.event === 'error') {
               const d = parsed.data as Record<string, unknown>
               throw new Error((d.message as string) || '실행 오류')
@@ -514,7 +522,7 @@ function UnifiedTerminalLayout({
   agentId, placeholder, termRef, onTerminalExit, onOutputCapture,
   centerContent, rightChildren, pencilUrl, onPencilClose,
   selectedModel, selectedMode, botRole, onModelChange, onModeChange,
-  rightPanelRef, onChatStart, onChatDone,
+  rightPanelRef, onChatStart, onChatDone, onStageChange,
 }: {
   agentId: string
   placeholder: string
@@ -533,6 +541,7 @@ function UnifiedTerminalLayout({
   rightPanelRef?: React.RefObject<AntigravityRightPanelRef>
   onChatStart?: () => void
   onChatDone?: () => void
+  onStageChange?: (stage: string) => void
 }) {
   const leftArea = (
     <ResizableSplit
@@ -585,6 +594,7 @@ function UnifiedTerminalLayout({
           onOutputCapture={onOutputCapture}
           onChatStart={onChatStart}
           onChatDone={onChatDone}
+          onStageChange={onStageChange}
         >
           {rightChildren}
         </AntigravityRightPanel>
@@ -1049,8 +1059,14 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
           onModelChange={setSelectedModel}
           onModeChange={setSelectedMode}
           rightPanelRef={unifiedRightPanelRef}
-          onChatStart={() => { setIsRunning(true); setStreamOutput(''); setCurrentStage('running') }}
+          onChatStart={() => {
+            const stages = ROLE_STAGES[agent?.role ?? 'default'] ?? ROLE_STAGES.default
+            setIsRunning(true)
+            setStreamOutput('')
+            setCurrentStage(stages[0].key)
+          }}
           onChatDone={() => { setIsRunning(false); setCurrentStage('done') }}
+          onStageChange={setCurrentStage}
         />
       )
 

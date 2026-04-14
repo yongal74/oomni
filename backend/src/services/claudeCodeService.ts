@@ -84,7 +84,7 @@ const ROLE_MODELS: Record<string, string> = {
   ceo:         'claude-opus-4-6',             // CEO 판단 → 최고 품질
 };
 
-// ── 역할별 MCP 서버 설정 (antigravity 방식) ──────────────────
+// ── 역할별 MCP 서버 설정 ──────────────────────────────────────
 interface McpServer {
   command: string;
   args: string[];
@@ -92,30 +92,28 @@ interface McpServer {
 }
 
 /**
- * Pencil MCP 실행파일 경로 탐색
- * 우선순위: 환경변수 → 사용자 홈 디렉토리 내 antigravity 확장
+ * npx 실행 경로 탐색 — Pencil MCP 독립 실행용 (Antigravity 비의존)
+ * 우선순위: 환경변수 → 플랫폼별 표준 위치 → PATH 폴백
  */
-function findPencilMcpExe(): string | null {
-  if (process.env.PENCIL_MCP_PATH && fs.existsSync(process.env.PENCIL_MCP_PATH)) {
-    return process.env.PENCIL_MCP_PATH;
+function findNpxPath(): string {
+  if (process.env.NPX_PATH && fs.existsSync(process.env.NPX_PATH)) {
+    return process.env.NPX_PATH;
   }
-  const homeDir = os.homedir();
-  const antigravityBase = path.join(homeDir, '.gemini', 'antigravity', 'extensions');
-  if (!fs.existsSync(antigravityBase)) return null;
-
-  // 버전에 상관없이 pencildev 확장 탐색
-  try {
-    const entries = fs.readdirSync(antigravityBase);
-    const pencilExt = entries.find(e => e.startsWith('highagency.pencildev'));
-    if (!pencilExt) return null;
-    const exeName = process.platform === 'win32'
-      ? 'mcp-server-windows-x64.exe'
-      : process.platform === 'darwin'
-        ? 'mcp-server-macos-arm64'
-        : 'mcp-server-linux-x64';
-    const exePath = path.join(antigravityBase, pencilExt, 'out', exeName);
-    return fs.existsSync(exePath) ? exePath : null;
-  } catch { return null; }
+  if (process.platform === 'win32') {
+    const candidates = [
+      path.join(os.homedir(), 'AppData', 'Roaming', 'npm', 'npx.cmd'),
+      'C:\\Program Files\\nodejs\\npx.cmd',
+      path.join(os.homedir(), 'scoop', 'shims', 'npx.cmd'),
+    ];
+    return candidates.find(p => fs.existsSync(p)) ?? 'npx';
+  }
+  const candidates = [
+    '/usr/local/bin/npx',
+    '/usr/bin/npx',
+    path.join(os.homedir(), '.npm-global', 'bin', 'npx'),
+    path.join(os.homedir(), '.nvm', 'versions', 'node', 'current', 'bin', 'npx'),
+  ];
+  return candidates.find(p => fs.existsSync(p)) ?? 'npx';
 }
 
 /**
@@ -140,12 +138,13 @@ function getRoleMcpConfig(role: string): Record<string, McpServer> | null {
   const { execPath: nodeExec, extraEnv: nodeEnv } = getNodeExecutable();
 
   if (role === 'design') {
-    const pencilExe = findPencilMcpExe();
-    if (!pencilExe) return null;
+    // npx @pencilapp/mcp-server — Antigravity 완전 독립 실행
+    // pencil.dev 데스크탑 앱과 직접 연동 (Antigravity 패널 우회)
+    const npx = findNpxPath();
     return {
       pencil: {
-        command: pencilExe,
-        args: ['--app', 'antigravity'],
+        command: npx,
+        args: ['-y', '@pencilapp/mcp-server'],
         env: {},
       },
     };
@@ -510,8 +509,8 @@ export class ClaudeCodeService {
     const wsPath     = ensureWorkspace(this.agentId);
     const model      = ROLE_MODELS[this.role] ?? 'claude-sonnet-4-6';
     const resolved   = resolveTask(this.role, task);
-    // Design 봇: Pencil 설치 여부에 따라 다른 프롬프트 사용
-    const rawPrompt  = (this.role === 'design' && findPencilMcpExe())
+    // Design 봇: designPencil 프롬프트 우선 사용 (npx 방식으로 pencil MCP 항상 활성화)
+    const rawPrompt  = this.role === 'design'
       ? (ROLE_PROMPTS as any)['designPencil'] ?? ROLE_PROMPTS[this.role] ?? ''
       : ROLE_PROMPTS[this.role] ?? '';
     const tokens = options?.designSystemTokens ?? '기본 다크 테마: #0F0F10 배경, #D4763B 액센트, Pretendard 폰트';

@@ -254,8 +254,6 @@ function CopyButton({ text }: { text: string }) {
 // ──────────────────────────────────────────────────────────────
 // DesignBotSection
 // ──────────────────────────────────────────────────────────────
-const MCP_COMMAND = 'claude mcp add pencil npx @pencilapp/mcp-server'
-
 const MCP_CONFIG_JSON = `{
   "mcpServers": {
     "pencil": {
@@ -293,12 +291,12 @@ function DesignBotSection() {
       <div className="bg-surface border border-border rounded-xl p-5 mb-3">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-[14px] font-semibold text-text">Pencil.dev MCP Server</span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface text-muted border border-border">
-            선택
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+            자동
           </span>
         </div>
         <p className="text-[12px] text-muted mb-4">
-          클로드 코드가 Pencil.dev 디자인 파일을 직접 읽고 수정할 수 있게 합니다
+          Design Bot 실행 시 OOMNI가 자동으로 Pencil.dev MCP를 연결합니다. Antigravity와 별개로 동작합니다.
         </p>
 
         {/* Installation steps */}
@@ -306,16 +304,7 @@ function DesignBotSection() {
           <p className="text-[12px] font-medium text-text mb-3">설치 방법</p>
           <ol className="space-y-3 text-[12px] text-muted">
             <li>
-              <span className="text-text font-medium">1. Claude Code MCP 설정에 Pencil.dev 추가:</span>
-              <div className="flex items-center gap-2 mt-1.5">
-                <code className="flex-1 bg-surface border border-border rounded px-3 py-1.5 text-[11px] text-green-300 font-mono overflow-x-auto">
-                  {MCP_COMMAND}
-                </code>
-                <CopyButton text={MCP_COMMAND} />
-              </div>
-            </li>
-            <li>
-              <span className="text-text font-medium">2. Pencil.dev 앱 설치:</span>{' '}
+              <span className="text-text font-medium">1. Pencil.dev 앱 설치 (필수):</span>{' '}
               <button
                 onClick={() => openLink('https://pencil.dev/download')}
                 className="text-primary hover:underline"
@@ -324,7 +313,11 @@ function DesignBotSection() {
               </button>
             </li>
             <li>
-              <span className="text-text font-medium">3. .pen 파일을 프로젝트에 생성 후 Claude Code로 디자인 자동화</span>
+              <span className="text-text font-medium">2. Pencil.dev 앱 실행 후 Design Bot에서 디자인 지시</span>
+              <p className="text-[11px] text-muted/70 mt-1">MCP 서버는 OOMNI가 자동 실행합니다 (별도 설정 불필요)</p>
+            </li>
+            <li>
+              <span className="text-text font-medium">3. .pen 파일이 OOMNI 중앙 패널에 자동 표시됩니다</span>
             </li>
           </ol>
         </div>
