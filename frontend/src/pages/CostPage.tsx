@@ -6,7 +6,7 @@ import { TrendingUp, DollarSign, Zap, BarChart2, AlertTriangle, Activity } from 
 
 const BOT_EMOJI: Record<string, string> = {
   research: '🔬', build: '🔨', design: '🎨', content: '✍️',
-  growth: '📈', ops: '⚙️', integration: '🔗', n8n: '⚡', ceo: '👔',
+  growth: '📈', ops: '⚙️', integration: '🔗', ceo: '👔',
 }
 
 type Period = '1d' | '7d' | '30d' | 'all'

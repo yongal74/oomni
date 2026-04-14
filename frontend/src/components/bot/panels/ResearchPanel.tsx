@@ -1,32 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { researchApi, type ResearchItem } from '../../../lib/api'
-import { Check, Eye, X, FileText, Copy, Upload, Download, Send, BookOpen } from 'lucide-react'
+import { Check, Eye, X, FileText, Copy, Upload, Download } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { ArchiveButton } from '../shared/ArchiveButton'
 import { NextBotDropdown } from '../shared/NextBotDropdown'
 
-// AIWX 7권 책 목록
-const AIWX_BOOKS = [
-  { num: 1, name: '철학이 필요한 시간', short: '철학' },
-  { num: 2, name: '나는 누구인가', short: '자아' },
-  { num: 3, name: '경계에서', short: '경계' },
-  { num: 4, name: '자유롭다는 것', short: '자유' },
-  { num: 5, name: '보이지 않는 것을 보는 법', short: '통찰' },
-  { num: 6, name: '우리는 무엇으로 사는가', short: '삶' },
-  { num: 7, name: '인간이란 무엇인가', short: '인간' },
-]
+// ── 트랙 타입 ──────────────────────────────────────────────────────────────
+type ResearchTrack = 'business' | 'informational'
 
-interface AiwxPostState {
-  bookNum: number
-  generating: boolean
-  publishing: boolean
-  content: string
-  filePath: string
-  error: string
-  publishResult: { success: boolean; error?: string } | null
-}
-
+// ── Props ─────────────────────────────────────────────────────────────────
 interface Props {
   missionId: string
   onItemClick?: (item: ResearchItem) => void
@@ -34,149 +17,290 @@ interface Props {
   isRunning?: boolean
 }
 
-const DEFAULT_SOURCES = [
-  { label: 'Google Trends', emoji: '🔴' },
-  { label: 'X 트렌딩', emoji: '🔴' },
-  { label: 'YouTube 급상승', emoji: '🔴' },
-  { label: 'Reddit r/trending', emoji: '🔴' },
+// ── 기본 소스/키워드 (트랙별) ─────────────────────────────────────────────
+const DEFAULT_SOURCES_BUSINESS = [
+  { label: 'Crunchbase', emoji: '🔴' },
+  { label: 'TechCrunch M&A', emoji: '🔴' },
+  { label: 'Bloomberg Tech', emoji: '🔴' },
+  { label: 'CB Insights', emoji: '🔴' },
   { label: 'Product Hunt', emoji: '🟡' },
-  { label: 'Hacker News', emoji: '🟡' },
-  { label: 'TechCrunch', emoji: '🟡' },
-  { label: 'Reddit r/startups', emoji: '🟢' },
-  { label: 'Quora 질문', emoji: '🟢' },
-  { label: 'Google 연관검색', emoji: '🟢' },
+  { label: 'Hacker News (Show HN)', emoji: '🟡' },
+  { label: 'AngelList', emoji: '🟡' },
+  { label: 'Substack 비즈니스', emoji: '🟢' },
+  { label: 'VC 블로그', emoji: '🟢' },
+  { label: 'LinkedIn 업계 리포트', emoji: '🟢' },
 ]
-const DEFAULT_KEYWORDS = ['AI startup', 'Claude API', 'SaaS growth']
+const DEFAULT_SOURCES_INFORMATIONAL = [
+  { label: 'arXiv 최신 논문', emoji: '🔴' },
+  { label: 'GitHub 트렌딩', emoji: '🔴' },
+  { label: 'Stack Overflow', emoji: '🔴' },
+  { label: 'Reddit r/MachineLearning', emoji: '🟡' },
+  { label: 'Hacker News', emoji: '🟡' },
+  { label: 'DEV.to', emoji: '🟡' },
+  { label: 'Medium 기술 블로그', emoji: '🟢' },
+  { label: 'Anthropic/OpenAI 블로그', emoji: '🟢' },
+  { label: 'YouTube 교육 채널', emoji: '🟢' },
+  { label: 'Quora 질문', emoji: '🟢' },
+]
+const DEFAULT_KEYWORDS_BUSINESS = ['AI SaaS 수익화', 'M&A 트렌드', '스타트업 투자']
+const DEFAULT_KEYWORDS_INFORMATIONAL = ['AI 기술 트렌드', '머신러닝 논문', '오픈소스 LLM']
 
-const STORAGE_KEY_SOURCES = 'oomni_research_sources'
-const STORAGE_KEY_KEYWORDS = 'oomni_research_keywords'
+// 사전 필터링 조건 (표시용)
+const FILTER_CONDITIONS_BUSINESS = [
+  'ROI/수익화 가능성이 명확한 신호',
+  '경쟁사 움직임 또는 시장 구조 변화',
+  '투자·M&A 관련 정보',
+  '신규 비즈니스 모델 또는 수익 구조',
+  'SaaS/플랫폼/마켓플레이스 성장 지표',
+]
+const FILTER_CONDITIONS_INFORMATIONAL = [
+  '교육적 가치가 높고 독자에게 즉각 유용한 정보',
+  '최신 기술·연구 논문·오픈소스 발표',
+  '커뮤니티에서 활발히 논의되는 정보성 주제',
+  '개념·방법론·도구 사용법 설명 가치',
+  '일반인도 이해 가능한 주제',
+]
+
+// localStorage 키 (트랙별)
+const SK = (track: ResearchTrack, type: 'sources' | 'keywords') =>
+  `oomni_research_${track}_${type}`
 
 function loadFromStorage<T>(key: string, defaultVal: T): T {
   try { return JSON.parse(localStorage.getItem(key) ?? '') } catch { return defaultVal }
 }
 
-// LEFT: 소스 설정 패널 (Research Bot 전용)
-export function ResearchLeftPanel({ missionId: _missionId }: { missionId: string }) {
-  const [sources, setSources] = useState<Array<{ label: string; emoji: string }>>(
-    () => loadFromStorage(STORAGE_KEY_SOURCES, DEFAULT_SOURCES)
+// ── 스킬 버튼 데이터 ────────────────────────────────────────────────────────
+const SKILLS_BUSINESS = [
+  { label: '시장 기회 분석', prompt: '시장 규모·성장성·수익화 가능성 중심으로 사업성 리서치 수행해줘', highlight: false },
+  { label: '🔴 경쟁사 동향', prompt: '주요 경쟁사 움직임과 M&A 트렌드 분석해줘', highlight: true },
+  { label: '투자 트렌드', prompt: '최근 AI/스타트업 투자 트렌드와 주목받는 카테고리 분석해줘', highlight: false },
+  { label: '수익성 신호', prompt: 'SaaS·플랫폼 수익화 성공 사례와 수익성 신호 수집해줘', highlight: false },
+]
+const SKILLS_INFORMATIONAL = [
+  { label: 'AI 기술 트렌드', prompt: '최신 AI/ML 기술 트렌드와 연구 동향 수집해줘', highlight: false },
+  { label: '🔴 논문 요약', prompt: '최신 arXiv·학술 논문 요약하고 정보성 리서치 수행해줘', highlight: true },
+  { label: '오픈소스 동향', prompt: 'GitHub 트렌딩·오픈소스 프로젝트 동향 분석해줘', highlight: false },
+  { label: '커뮤니티 인사이트', prompt: 'Reddit·Hacker News·DEV.to 커뮤니티 핫 토픽 수집해줘', highlight: false },
+]
+
+// ── LEFT 패널 ──────────────────────────────────────────────────────────────
+export function ResearchLeftPanel({
+  missionId: _missionId,
+  activeTrack,
+  onTrackChange,
+  onRunWithTrack,
+}: {
+  missionId: string
+  activeTrack: ResearchTrack
+  onTrackChange: (track: ResearchTrack) => void
+  onRunWithTrack: (track: ResearchTrack, prompt: string) => void
+}) {
+  const [sources, setSources] = useState<Array<{ label: string; emoji: string }>>(() =>
+    loadFromStorage(SK(activeTrack, 'sources'),
+      activeTrack === 'business' ? DEFAULT_SOURCES_BUSINESS : DEFAULT_SOURCES_INFORMATIONAL)
   )
-  const [keywords, setKeywords] = useState<string[]>(
-    () => loadFromStorage(STORAGE_KEY_KEYWORDS, DEFAULT_KEYWORDS)
+  const [keywords, setKeywords] = useState<string[]>(() =>
+    loadFromStorage(SK(activeTrack, 'keywords'),
+      activeTrack === 'business' ? DEFAULT_KEYWORDS_BUSINESS : DEFAULT_KEYWORDS_INFORMATIONAL)
   )
+  const [showFilters, setShowFilters] = useState(false)
   const [newSource, setNewSource] = useState('')
   const [newKeyword, setNewKeyword] = useState('')
   const [showSourceInput, setShowSourceInput] = useState(false)
   const [showKeywordInput, setShowKeywordInput] = useState(false)
 
-  const saveAndSetSources = (next: typeof sources) => {
+  // 트랙 변경 시 소스/키워드 다시 로드
+  useEffect(() => {
+    setSources(loadFromStorage(SK(activeTrack, 'sources'),
+      activeTrack === 'business' ? DEFAULT_SOURCES_BUSINESS : DEFAULT_SOURCES_INFORMATIONAL))
+    setKeywords(loadFromStorage(SK(activeTrack, 'keywords'),
+      activeTrack === 'business' ? DEFAULT_KEYWORDS_BUSINESS : DEFAULT_KEYWORDS_INFORMATIONAL))
+    setShowSourceInput(false)
+    setShowKeywordInput(false)
+  }, [activeTrack])
+
+  const saveSources = (next: typeof sources) => {
     setSources(next)
-    localStorage.setItem(STORAGE_KEY_SOURCES, JSON.stringify(next))
+    localStorage.setItem(SK(activeTrack, 'sources'), JSON.stringify(next))
   }
-  const saveAndSetKeywords = (next: string[]) => {
+  const saveKeywords = (next: string[]) => {
     setKeywords(next)
-    localStorage.setItem(STORAGE_KEY_KEYWORDS, JSON.stringify(next))
+    localStorage.setItem(SK(activeTrack, 'keywords'), JSON.stringify(next))
   }
 
   const addSource = () => {
     if (!newSource.trim()) return
-    saveAndSetSources([...sources, { label: newSource.trim(), emoji: '📡' }])
+    saveSources([...sources, { label: newSource.trim(), emoji: '📡' }])
     setNewSource('')
     setShowSourceInput(false)
   }
-
   const addKeyword = () => {
     if (!newKeyword.trim()) return
-    saveAndSetKeywords([...keywords, newKeyword.trim()])
+    saveKeywords([...keywords, newKeyword.trim()])
     setNewKeyword('')
     setShowKeywordInput(false)
   }
 
+  const filterConditions =
+    activeTrack === 'business' ? FILTER_CONDITIONS_BUSINESS : FILTER_CONDITIONS_INFORMATIONAL
+
+  const trackPrompt = activeTrack === 'business'
+    ? keywords.join(', ') + ' 관련 사업성 리서치 수행해줘'
+    : keywords.join(', ') + ' 관련 정보성 리서치 수행해줘'
+
   return (
-    <div className="p-4 space-y-5">
+    <div className="p-4 space-y-4">
+      {/* 트랙 탭 */}
+      <div className="flex rounded-lg bg-bg overflow-hidden border border-border">
+        <button
+          onClick={() => onTrackChange('business')}
+          className={cn(
+            'flex-1 py-2 text-xs font-medium transition-colors',
+            activeTrack === 'business'
+              ? 'bg-orange-500/15 text-orange-400 border-r border-border'
+              : 'text-muted hover:text-text border-r border-border'
+          )}
+        >
+          📊 사업성
+        </button>
+        <button
+          onClick={() => onTrackChange('informational')}
+          className={cn(
+            'flex-1 py-2 text-xs font-medium transition-colors',
+            activeTrack === 'informational'
+              ? 'bg-blue-500/15 text-blue-400'
+              : 'text-muted hover:text-text'
+          )}
+        >
+          💡 정보성
+        </button>
+      </div>
+
+      {/* 트랙 실행 버튼 */}
+      <button
+        onClick={() => onRunWithTrack(activeTrack, `__track:${activeTrack}__ ${trackPrompt}`)}
+        className={cn(
+          'w-full py-2 rounded-lg text-xs font-semibold transition-colors border',
+          activeTrack === 'business'
+            ? 'bg-orange-500/10 border-orange-500/30 text-orange-400 hover:bg-orange-500/20'
+            : 'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20'
+        )}
+      >
+        {activeTrack === 'business' ? '📊 사업성 리서치 실행' : '💡 정보성 리서치 실행'}
+      </button>
+
+      {/* 수집 소스 */}
       <div>
-        <p className="text-xs text-muted uppercase tracking-widest mb-3">수집 소스</p>
-        <div className="space-y-1.5">
+        <p className="text-xs text-muted uppercase tracking-widest mb-2">수집 소스</p>
+        <div className="space-y-1">
           {sources.map((s, i) => (
-            <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg bg-bg hover:bg-border/20 group transition-colors">
+            <div key={i} className="flex items-center justify-between py-1.5 px-2.5 rounded-md bg-bg hover:bg-border/20 group transition-colors">
               <div className="flex items-center gap-2">
-                <span className="text-sm">{s.emoji}</span>
-                <span className="text-sm text-dim">{s.label}</span>
+                <span className="text-xs">{s.emoji}</span>
+                <span className="text-xs text-dim">{s.label}</span>
               </div>
               <button
-                onClick={() => saveAndSetSources(sources.filter((_, j) => j !== i))}
+                onClick={() => saveSources(sources.filter((_, j) => j !== i))}
                 className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-400 transition-all"
               >
-                <X size={12} />
+                <X size={10} />
               </button>
             </div>
           ))}
         </div>
-
         {showSourceInput ? (
-          <div className="mt-2 flex gap-2">
+          <div className="mt-1.5 flex gap-1.5">
             <input
               autoFocus
               value={newSource}
               onChange={e => setNewSource(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') addSource(); if (e.key === 'Escape') setShowSourceInput(false) }}
               placeholder="소스 이름..."
-              className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder-muted/60 focus:outline-none focus:border-primary/60"
+              className="flex-1 bg-bg border border-border rounded-md px-2.5 py-1.5 text-xs text-text placeholder-muted/60 focus:outline-none focus:border-primary/60"
             />
-            <button onClick={addSource} className="px-3 py-2 bg-primary/10 text-primary rounded-lg text-sm hover:bg-primary/20 transition-colors">추가</button>
+            <button onClick={addSource} className="px-2 py-1.5 bg-primary/10 text-primary rounded-md text-xs hover:bg-primary/20 transition-colors">추가</button>
           </div>
         ) : (
           <button
             onClick={() => setShowSourceInput(true)}
-            className="mt-2 text-sm text-muted hover:text-primary transition-colors flex items-center gap-1.5"
+            className="mt-1.5 text-xs text-muted hover:text-primary transition-colors flex items-center gap-1"
           >
             + 소스 추가
           </button>
         )}
       </div>
 
+      {/* 키워드 */}
       <div>
-        <p className="text-xs text-muted uppercase tracking-widest mb-3">키워드</p>
-        <div className="space-y-1.5">
+        <p className="text-xs text-muted uppercase tracking-widest mb-2">키워드</p>
+        <div className="space-y-1">
           {keywords.map((k, i) => (
-            <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg bg-bg hover:bg-border/20 group transition-colors">
-              <span className="text-sm text-dim">{k}</span>
+            <div key={i} className="flex items-center justify-between py-1.5 px-2.5 rounded-md bg-bg hover:bg-border/20 group transition-colors">
+              <span className="text-xs text-dim truncate">{k}</span>
               <button
-                onClick={() => saveAndSetKeywords(keywords.filter((_, j) => j !== i))}
-                className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-400 transition-all"
+                onClick={() => saveKeywords(keywords.filter((_, j) => j !== i))}
+                className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-400 transition-all shrink-0"
               >
-                <X size={12} />
+                <X size={10} />
               </button>
             </div>
           ))}
         </div>
-
         {showKeywordInput ? (
-          <div className="mt-2 flex gap-2">
+          <div className="mt-1.5 flex gap-1.5">
             <input
               autoFocus
               value={newKeyword}
               onChange={e => setNewKeyword(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') addKeyword(); if (e.key === 'Escape') setShowKeywordInput(false) }}
               placeholder="키워드..."
-              className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder-muted/60 focus:outline-none focus:border-primary/60"
+              className="flex-1 bg-bg border border-border rounded-md px-2.5 py-1.5 text-xs text-text placeholder-muted/60 focus:outline-none focus:border-primary/60"
             />
-            <button onClick={addKeyword} className="px-3 py-2 bg-primary/10 text-primary rounded-lg text-sm hover:bg-primary/20 transition-colors">추가</button>
+            <button onClick={addKeyword} className="px-2 py-1.5 bg-primary/10 text-primary rounded-md text-xs hover:bg-primary/20 transition-colors">추가</button>
           </div>
         ) : (
           <button
             onClick={() => setShowKeywordInput(true)}
-            className="mt-2 text-sm text-muted hover:text-primary transition-colors flex items-center gap-1.5"
+            className="mt-1.5 text-xs text-muted hover:text-primary transition-colors flex items-center gap-1"
           >
             + 키워드 추가
           </button>
+        )}
+      </div>
+
+      {/* 사전 필터링 조건 */}
+      <div>
+        <button
+          onClick={() => setShowFilters(f => !f)}
+          className="flex items-center gap-1.5 text-xs text-muted hover:text-text transition-colors w-full"
+        >
+          <span className="uppercase tracking-widest">사전 필터링 조건</span>
+          <span className="ml-auto">{showFilters ? '▲' : '▼'}</span>
+        </button>
+        {showFilters && (
+          <div className="mt-2 space-y-1">
+            {filterConditions.map((cond, i) => (
+              <div key={i} className="flex items-start gap-1.5 py-1 px-2 rounded bg-bg/60 border border-border/40">
+                <span className={cn('text-[9px] mt-0.5 shrink-0', activeTrack === 'business' ? 'text-orange-400' : 'text-blue-400')}>✓</span>
+                <span className="text-[10px] text-dim leading-relaxed">{cond}</span>
+              </div>
+            ))}
+            <p className="text-[9px] text-muted/50 pt-1">* AI가 자동으로 적용하는 조건입니다</p>
+          </div>
         )}
       </div>
     </div>
   )
 }
 
-// CENTER: AI 채점된 아이템 소팅 공간
-export function ResearchCenterPanel({ missionId, onItemClick, streamOutput, isRunning }: Props) {
+// ── CENTER 패널 ────────────────────────────────────────────────────────────
+export function ResearchCenterPanel({
+  missionId,
+  onItemClick,
+  streamOutput,
+  isRunning,
+  activeTrack,
+}: Props & { activeTrack?: ResearchTrack }) {
   const [selectedItem, setSelectedItem] = useState<ResearchItem | null>(null)
   const qc = useQueryClient()
   const { data: items = [], isLoading } = useQuery<ResearchItem[]>({
@@ -192,8 +316,19 @@ export function ResearchCenterPanel({ missionId, onItemClick, streamOutput, isRu
     onSuccess: () => qc.invalidateQueries({ queryKey: ['research', missionId] }),
   })
 
-  const pending = items.filter(i => i.filter_decision === 'pending')
-  const kept = items.filter(i => i.filter_decision === 'keep')
+  // 트랙별 필터링 (태그 기반)
+  const filterByTrack = (item: ResearchItem) => {
+    if (!activeTrack) return true
+    const tags: string[] = Array.isArray(item.tags) ? item.tags : []
+    const srcType = item.source_type as string
+    if (activeTrack === 'business') return tags.some(t => t.includes('사업성')) || srcType === 'business'
+    if (activeTrack === 'informational') return tags.some(t => t.includes('정보성')) || srcType === 'informational'
+    return true
+  }
+
+  const visibleItems = items.filter(filterByTrack)
+  const pending = visibleItems.filter(i => i.filter_decision === 'pending')
+  const kept = visibleItems.filter(i => i.filter_decision === 'keep')
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-full text-muted text-sm">
@@ -206,7 +341,11 @@ export function ResearchCenterPanel({ missionId, onItemClick, streamOutput, isRu
       <div className="h-full flex flex-col overflow-hidden">
         <div className="flex items-center gap-2 px-5 py-3 border-b border-border bg-surface shrink-0">
           <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-          <span className="text-sm text-muted">리서치 중...</span>
+          <span className="text-sm text-muted">
+            {activeTrack === 'business' ? '📊 사업성 리서치 중...' :
+             activeTrack === 'informational' ? '💡 정보성 리서치 중...' :
+             '리서치 중...'}
+          </span>
         </div>
         <div className="h-full overflow-y-auto p-5">
           <pre className="text-sm text-dim leading-relaxed whitespace-pre-wrap font-sans">{streamOutput || ''}</pre>
@@ -227,8 +366,19 @@ export function ResearchCenterPanel({ missionId, onItemClick, streamOutput, isRu
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
         <div className="text-3xl opacity-30">🔬</div>
-        <p className="text-sm text-muted">하단 입력창에서 리서치를 시작하세요</p>
-        <p className="text-xs text-muted/60">"오늘 AI 트렌드 수집해줘" 라고 입력해보세요</p>
+        <p className="text-sm text-muted">좌측 패널에서 트랙을 선택하고 리서치를 시작하세요</p>
+        <p className="text-xs text-muted/60">📊 사업성 / 💡 정보성 트랙 선택 후 실행 버튼 클릭</p>
+      </div>
+    )
+  }
+
+  if (visibleItems.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-2 text-center px-8">
+        <p className="text-sm text-muted">
+          {activeTrack === 'business' ? '📊 사업성 리서치 결과가 없습니다' : '💡 정보성 리서치 결과가 없습니다'}
+        </p>
+        <p className="text-xs text-muted/60">해당 트랙으로 리서치를 실행해보세요</p>
       </div>
     )
   }
@@ -245,6 +395,7 @@ export function ResearchCenterPanel({ missionId, onItemClick, streamOutput, isRu
               <ResearchCard
                 key={item.id}
                 item={item}
+                activeTrack={activeTrack}
                 onFilter={(decision) => filter.mutate({ id: item.id, decision })}
                 onClick={() => { setSelectedItem(item); onItemClick?.(item) }}
                 isSelected={selectedItem?.id === item.id}
@@ -264,6 +415,7 @@ export function ResearchCenterPanel({ missionId, onItemClick, streamOutput, isRu
               <ResearchCard
                 key={item.id}
                 item={item}
+                activeTrack={activeTrack}
                 onFilter={(decision) => filter.mutate({ id: item.id, decision })}
                 onClick={() => { setSelectedItem(item); onItemClick?.(item) }}
                 dimmed
@@ -278,9 +430,10 @@ export function ResearchCenterPanel({ missionId, onItemClick, streamOutput, isRu
 }
 
 function ResearchCard({
-  item, onFilter, onClick, dimmed, isSelected
+  item, activeTrack, onFilter, onClick, dimmed, isSelected
 }: {
   item: ResearchItem
+  activeTrack?: ResearchTrack
   onFilter: (d: 'keep' | 'drop' | 'watch') => void
   onClick: () => void
   dimmed?: boolean
@@ -288,7 +441,12 @@ function ResearchCard({
 }) {
   const score = item.signal_score ?? 0
   const scoreColor = score >= 70 ? 'text-green-400' : score >= 40 ? 'text-yellow-400' : 'text-red-400'
-  const barWidth = `${score}%`
+  const barColor = score >= 70 ? 'bg-green-500' : score >= 40 ? 'bg-yellow-500' : 'bg-red-500'
+
+  const tags: string[] = Array.isArray(item.tags) ? item.tags : []
+  const srcType = item.source_type as string
+  const isBusiness = tags.some(t => t.includes('사업성')) || srcType === 'business'
+  const isInformational = tags.some(t => t.includes('정보성')) || srcType === 'informational'
 
   return (
     <div
@@ -300,17 +458,24 @@ function ResearchCard({
       )}
     >
       <div className="flex items-start justify-between gap-3 mb-2">
-        <span className={cn('text-sm font-medium text-text leading-snug', dimmed && 'text-dim')}>
-          {item.title}
-        </span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {(isBusiness || (!activeTrack && isBusiness)) && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20 shrink-0">📊</span>
+          )}
+          {(isInformational || (!activeTrack && isInformational)) && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">💡</span>
+          )}
+          <span className={cn('text-sm font-medium text-text leading-snug', dimmed && 'text-dim')}>
+            {item.title}
+          </span>
+        </div>
         <span className={cn('text-xs font-mono shrink-0', scoreColor)}>{score}</span>
       </div>
 
-      {/* 신호강도 바 */}
       <div className="h-0.5 bg-border rounded-full mb-2.5">
         <div
-          className={cn('h-full rounded-full transition-all', score >= 70 ? 'bg-green-500' : score >= 40 ? 'bg-yellow-500' : 'bg-red-500')}
-          style={{ width: barWidth }}
+          className={cn('h-full rounded-full transition-all', barColor)}
+          style={{ width: `${score}%` }}
         />
       </div>
 
@@ -344,158 +509,27 @@ function ResearchCard({
   )
 }
 
-// 기본 스킬
-const RESEARCH_SKILLS_CORE = [
-  { label: 'AI 트렌드 수집', prompt: '/collect 이번 주 AI/스타트업 트렌드 수집하고 신호강도 채점해줘' },
-  { label: '경쟁사 분석', prompt: '/collect 주요 경쟁 서비스 분석 리포트 작성해줘' },
-  { label: '신호강도 채점', prompt: '/score 수집된 리서치 아이템들을 신호강도 0-100으로 채점해줘' },
-  { label: '보고서 변환', prompt: '/convert-report 리서치 결과를 구조화된 인사이트 보고서로 변환해줘' },
-  { label: '주간 다이제스트', prompt: '/weekly-digest 이번 주 리서치 결과를 요약한 주간 다이제스트를 작성해줘' },
-]
-
-// 퍼스트 무버 / SEO 스킬
-const RESEARCH_SKILLS_SEO = [
-  { label: '🔴 트렌드 알림', prompt: '/trend-alert 지금 급상승 트렌드 감지하고 퍼스트 무버 포스트 초안 만들어줘', highlight: true },
-  { label: 'SEO 채점', prompt: '/score --mode seo 수집된 아이템을 SEO 기준(퍼스트무버·CPC·검색의도)으로 채점해줘' },
-  { label: '키워드 채점', prompt: '/keyword-score 현재 트렌드에서 롱테일 키워드 추출하고 Volume/KD/CPC 채점해줘' },
-]
-
-
-// AIWX 포스트 패널 컴포넌트
-function AiwxPostPanel({ item }: { item?: ResearchItem | null }) {
-  const [state, setState] = useState<AiwxPostState>({
-    bookNum: 1, generating: false, publishing: false,
-    content: '', filePath: '', error: '', publishResult: null,
-  })
-
-  const handleGenerate = async () => {
-    setState(s => ({ ...s, generating: true, error: '', content: '', filePath: '', publishResult: null }))
-    try {
-      const res = await researchApi.aiwxPost({ item_id: item?.id, book_num: state.bookNum, publish: false })
-      setState(s => ({ ...s, generating: false, content: res.content, filePath: res.file_path }))
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '생성 실패'
-      setState(s => ({ ...s, generating: false, error: msg }))
-    }
-  }
-
-  const handlePublish = async () => {
-    setState(s => ({ ...s, publishing: true, error: '', publishResult: null }))
-    try {
-      const res = await researchApi.aiwxPost({ item_id: item?.id, book_num: state.bookNum, publish: true })
-      setState(s => ({ ...s, publishing: false, publishResult: res.publish_result ?? { success: true } }))
-      if (res.content && !state.content) setState(s => ({ ...s, content: res.content, filePath: res.file_path }))
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '발행 실패'
-      setState(s => ({ ...s, publishing: false, error: msg }))
-    }
-  }
-
-  return (
-    <div className="space-y-3">
-      <p className="text-xs text-muted uppercase tracking-widest">AIWX 블로그 포스트</p>
-
-      {/* 책 선택 */}
-      <div>
-        <p className="text-[10px] text-muted/70 mb-1.5">최진석교수 책 선택</p>
-        <div className="flex flex-wrap gap-1">
-          {AIWX_BOOKS.map(b => (
-            <button
-              key={b.num}
-              onClick={() => setState(s => ({ ...s, bookNum: b.num, content: '', publishResult: null }))}
-              title={b.name}
-              className={cn(
-                'px-2 py-1 rounded text-[10px] border transition-colors',
-                state.bookNum === b.num
-                  ? 'border-orange-400/60 bg-orange-500/15 text-orange-300 font-medium'
-                  : 'border-border bg-bg text-muted hover:border-orange-400/40 hover:text-orange-300'
-              )}
-            >
-              {b.num}. {b.short}
-            </button>
-          ))}
-        </div>
-        <p className="text-[10px] text-muted/50 mt-1">선택: {AIWX_BOOKS[state.bookNum - 1]?.name}</p>
-      </div>
-
-      {/* 액션 버튼 */}
-      <div className="flex gap-2">
-        <button
-          onClick={handleGenerate}
-          disabled={state.generating || state.publishing}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-orange-500/40 bg-orange-500/5 text-xs text-orange-400 hover:bg-orange-500/15 transition-colors disabled:opacity-40 font-medium"
-        >
-          <BookOpen size={12} />
-          {state.generating ? '생성 중...' : '✦ 포스트 생성'}
-        </button>
-        <button
-          onClick={handlePublish}
-          disabled={state.generating || state.publishing}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-blue-500/40 bg-blue-500/5 text-xs text-blue-400 hover:bg-blue-500/15 transition-colors disabled:opacity-40"
-        >
-          <Send size={12} />
-          {state.publishing ? '발행 중...' : '발행'}
-        </button>
-      </div>
-
-      {/* 에러 */}
-      {state.error && (
-        <p className="text-[11px] text-red-400 bg-red-500/10 rounded px-2 py-1">{state.error}</p>
-      )}
-
-      {/* 발행 결과 */}
-      {state.publishResult && (
-        <p className={cn(
-          'text-[11px] rounded px-2 py-1',
-          state.publishResult.success
-            ? 'text-green-400 bg-green-500/10'
-            : 'text-red-400 bg-red-500/10'
-        )}>
-          {state.publishResult.success ? '✓ Blogger 발행 완료' : `✗ ${state.publishResult.error ?? '발행 실패'}`}
-        </p>
-      )}
-
-      {/* 생성된 콘텐츠 미리보기 */}
-      {state.content && (
-        <div className="bg-bg rounded-lg border border-border">
-          <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
-            <span className="text-[10px] text-muted">생성된 포스트</span>
-            <div className="flex gap-1">
-              <button
-                onClick={() => navigator.clipboard.writeText(state.content)}
-                className="p-1 text-muted hover:text-text rounded hover:bg-border/30"
-                title="클립보드 복사"
-              >
-                <Copy size={10} />
-              </button>
-            </div>
-          </div>
-          <pre className="text-[11px] text-dim leading-relaxed whitespace-pre-wrap p-3 max-h-40 overflow-y-auto">{state.content}</pre>
-          {state.filePath && (
-            <p className="text-[10px] text-muted/50 px-3 pb-2 truncate">저장: {state.filePath}</p>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// RIGHT: 클릭한 아이템 상세 + 다음봇 연결
-export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload }: {
+// ── RIGHT 패널 ─────────────────────────────────────────────────────────────
+export function ResearchRightPanel({
+  item,
+  onSkillSelect,
+  agentId,
+  onFileUpload,
+  activeTrack,
+}: {
   item: ResearchItem | null
   nextBotName?: string
   onNextBot?: () => void
   onSkillSelect?: (prompt: string) => void
   agentId?: string
   onFileUpload?: (content: string, filename: string) => void
+  activeTrack?: ResearchTrack
 }) {
-  // 산출물별 개별 로딩 + 결과 관리
   const [convertingType, setConvertingType] = useState<string | null>(null)
-  // 산출물을 아이템ID별로 보관 (아이템 전환해도 사라지지 않음)
   const [outputsMap, setOutputsMap] = useState<Record<string, Record<string, string>>>({})
   const outputs = item ? (outputsMap[item.id] ?? {}) : {}
   const [expandedType, setExpandedType] = useState<string | null>(null)
-  // 아이템 변경 시 convertingType 초기화 + DB에서 outputs 로드 (캐시 미스 시)
+
   useEffect(() => {
     setExpandedType(null)
     setConvertingType(null)
@@ -519,7 +553,6 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
       if (item) {
         const newOutputs = { ...(outputsMap[item.id] ?? {}), [outputType]: result.content }
         setOutputsMap(prev => ({ ...prev, [item.id]: newOutputs }))
-        // DB에 저장 (영속화)
         researchApi.saveOutputs(item.id, newOutputs).catch(() => {})
       }
       setExpandedType(outputType)
@@ -530,8 +563,8 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
 
   const handleDownload = (type: string, content: string) => {
     const typeLabels: Record<string, string> = {
-      linkedin: 'linkedin', blog: 'blog', newsletter: 'newsletter',
       report: 'report', prd: 'prd', ppt: 'ppt', action_plan: 'action_plan',
+      linkedin: 'linkedin', blog: 'blog', newsletter: 'newsletter',
     }
     const filename = `${item?.title?.slice(0, 30).replace(/[^\w가-힣]/g, '_') ?? 'output'}_${typeLabels[type] ?? type}.md`
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
@@ -545,45 +578,36 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = () => {
-      const text = reader.result as string
-      onFileUpload?.(text, file.name)
-    }
+    reader.onload = () => { onFileUpload?.(reader.result as string, file.name) }
     reader.readAsText(file)
     e.target.value = ''
   }
 
+  // 트랙에 맞는 스킬 버튼
+  const skills = activeTrack === 'business' ? SKILLS_BUSINESS :
+                 activeTrack === 'informational' ? SKILLS_INFORMATIONAL :
+                 [...SKILLS_BUSINESS, ...SKILLS_INFORMATIONAL]
+
+  const trackPrefix = activeTrack ? `__track:${activeTrack}__ ` : ''
+
   if (!item) return (
     <div className="p-4 h-full flex flex-col gap-4 overflow-y-auto">
-      {/* 기본 수집/채점 */}
+      {/* 스킬 버튼 */}
       <div>
-        <p className="text-xs text-muted uppercase tracking-widest mb-2">수집 · 채점</p>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2">
+          {activeTrack === 'business' ? '📊 사업성 스킬' :
+           activeTrack === 'informational' ? '💡 정보성 스킬' :
+           '리서치 스킬'}
+        </p>
         <div className="flex flex-wrap gap-1.5">
-          {RESEARCH_SKILLS_CORE.map(skill => (
+          {skills.map(skill => (
             <button
               key={skill.label}
-              onClick={() => onSkillSelect?.(skill.prompt)}
-              title={skill.prompt}
-              className="px-2.5 py-1.5 rounded-lg border border-border bg-bg text-xs text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
-            >
-              {skill.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 퍼스트 무버 / SEO */}
-      <div>
-        <p className="text-xs text-muted uppercase tracking-widest mb-2">퍼스트 무버 · SEO</p>
-        <div className="flex flex-wrap gap-1.5">
-          {RESEARCH_SKILLS_SEO.map(skill => (
-            <button
-              key={skill.label}
-              onClick={() => onSkillSelect?.(skill.prompt)}
+              onClick={() => onSkillSelect?.(trackPrefix + skill.prompt)}
               title={skill.prompt}
               className={cn(
                 'px-2.5 py-1.5 rounded-lg border text-xs transition-colors',
-                (skill as { highlight?: boolean }).highlight
+                skill.highlight
                   ? 'border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 font-medium'
                   : 'border-border bg-bg text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5'
               )}
@@ -594,10 +618,6 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
         </div>
       </div>
 
-      {/* AIWX 블로그 포스트 */}
-      <div>
-        <AiwxPostPanel item={null} />
-      </div>
       {onFileUpload && (
         <div>
           <p className="text-xs text-muted uppercase tracking-widest mb-2">파일 업로드</p>
@@ -611,7 +631,7 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
         </div>
       )}
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-xs text-muted/60 text-center">좌측 아이템 클릭 시<br />변환 옵션이 표시됩니다</p>
+        <p className="text-xs text-muted/60 text-center">좌측 아이템 클릭 시<br />상세 정보가 표시됩니다</p>
       </div>
       {agentId && (
         <div className="border-t border-border pt-4">
@@ -624,6 +644,14 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
   return (
     <div className="p-4 h-full overflow-y-auto space-y-4">
       <div>
+        <div className="flex items-center gap-1.5 mb-1">
+          {(Array.isArray(item.tags) ? item.tags : []).some((t: string) => t.includes('사업성')) && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">📊 사업성</span>
+          )}
+          {(Array.isArray(item.tags) ? item.tags : []).some((t: string) => t.includes('정보성')) && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">💡 정보성</span>
+          )}
+        </div>
         <h3 className="text-sm font-semibold text-text mb-1 leading-snug">{item.title}</h3>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted">신호강도</span>
@@ -649,13 +677,12 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
         </a>
       )}
 
+      {/* 산출물 변환 — 분석 리포트·기획서·PPT·액션플랜만 유지 (콘텐츠봇으로 이전) */}
       <div>
-        <p className="text-xs text-muted uppercase tracking-widest mb-2">산출물로 변환</p>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2">분석 산출물</p>
+        <p className="text-[10px] text-muted/50 mb-2">블로그·뉴스레터·SNS 산출물은 콘텐츠봇에서 생성하세요</p>
         <div className="space-y-1.5">
           {[
-            { type: 'linkedin', label: '💼 LinkedIn 포스트' },
-            { type: 'blog', label: '📝 블로그 포스트' },
-            { type: 'newsletter', label: '📧 뉴스레터' },
             { type: 'report', label: '📊 분석 리포트' },
             { type: 'prd', label: '📋 PRD (기획서)' },
             { type: 'ppt', label: '🎤 PPT 스크립트' },
@@ -708,11 +735,6 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
         />
       )}
 
-      {/* AIWX 블로그 포스트 — 선택된 아이템 기반 */}
-      <div>
-        <AiwxPostPanel item={item} />
-      </div>
-
       {onFileUpload && (
         <div>
           <p className="text-xs text-muted uppercase tracking-widest mb-2">파일 업로드</p>
@@ -728,7 +750,11 @@ export function ResearchRightPanel({ item, onSkillSelect, agentId, onFileUpload 
 
       {agentId && (
         <div className="pt-2 border-t border-border">
-          <NextBotDropdown currentAgentId={agentId} currentRole="research" content={(expandedType ? outputs[expandedType] : undefined) || item?.summary || ''} />
+          <NextBotDropdown
+            currentAgentId={agentId}
+            currentRole="research"
+            content={(expandedType ? outputs[expandedType] : undefined) || item?.summary || ''}
+          />
         </div>
       )}
     </div>

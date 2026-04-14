@@ -9,7 +9,7 @@ import { streamClaude, saveFeedItem, type ExecutorContext } from './base'
 
 const DEFAULT_SYSTEM = `당신은 유능한 AI 어시스턴트입니다. 주어진 태스크를 최선을 다해 완료하세요.`
 
-// Generic executor for integration/n8n roles
+// Generic executor for integration role
 async function genericExecutor(ctx: ExecutorContext): Promise<void> {
   await saveFeedItem(ctx.db, ctx.agent.id, 'info', `🤖 ${ctx.agent.name} 시작: ${ctx.task}`)
   const result = await streamClaude(ctx, ctx.agent.system_prompt || DEFAULT_SYSTEM, ctx.task)

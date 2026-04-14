@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentsApi, videoApi, cdpApi, type FeedItem } from '../../../lib/api'
 import {
   TrendingUp, Users, MessageSquare, BarChart2, Video, Film,
   Mail, Smartphone, Link2, ChevronRight, Zap, BarChart, ArrowUpRight,
+  Lock, DollarSign, RefreshCw, GitBranch, FlaskConical,
 } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { ArchiveButton } from '../shared/ArchiveButton'
@@ -76,8 +77,29 @@ export function GrowthLeftPanel({ onCampaign }: { onCampaign?: (segId: string, c
     onCampaign?.(segId, channel)
   }, [segments, campaignMutation, onCampaign])
 
+  const [cdpToast, setCdpToast] = useState(false)
+  const cdpToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => { if (cdpToastTimerRef.current) clearTimeout(cdpToastTimerRef.current) }
+  }, [])
+
+  const showCdpToast = () => {
+    if (cdpToastTimerRef.current) clearTimeout(cdpToastTimerRef.current)
+    setCdpToast(true)
+    cdpToastTimerRef.current = setTimeout(() => setCdpToast(false), 3000)
+  }
+
   return (
     <div className="p-4 space-y-5">
+      {/* CDP 토스트 알림 */}
+      {cdpToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl bg-surface border border-amber-500/30 shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
+          <Lock size={13} className="text-amber-400 shrink-0" />
+          <p className="text-xs text-amber-300">oomni-cdp 연동 후 사용 가능합니다</p>
+        </div>
+      )}
+
       {/* KPI */}
       <div>
         <p className="text-xs text-muted uppercase tracking-widest mb-3">KPI 현황</p>
@@ -92,6 +114,61 @@ export function GrowthLeftPanel({ onCampaign }: { onCampaign?: (segId: string, c
           ))}
         </div>
         <p className="text-[10px] text-muted/60 mt-1.5">봇 실행 시 자동 집계됩니다</p>
+      </div>
+
+      {/* 자체 기능 섹션 */}
+      <div>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2">자체 기능 (현재 사용 가능)</p>
+        <div className="space-y-1.5">
+          {[
+            { icon: DollarSign, label: 'CAC 분석',    desc: '고객 획득 비용 분석' },
+            { icon: RefreshCw,  label: '리텐션 분석', desc: '이탈률 · MAU 추이' },
+            { icon: TrendingUp, label: 'MRR 예측',    desc: '월간 반복 매출 예측' },
+          ].map(({ icon: Icon, label, desc }) => (
+            <div
+              key={label}
+              className="flex items-start gap-3 px-3 py-2.5 rounded-lg bg-bg border border-border"
+            >
+              <Icon size={14} className="text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs text-dim font-medium">{label}</p>
+                <p className="text-[10px] text-muted/70">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* CDP 연동 필요 기능 섹션 */}
+      <div>
+        <div className="flex items-center gap-1.5 mb-2">
+          <p className="text-xs text-muted uppercase tracking-widest">CDP 연동 후 가능</p>
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 font-medium">향후 연동 예정</span>
+        </div>
+        <div className="space-y-1.5">
+          {[
+            { icon: Users,       label: '고객 세그먼트 분석', desc: 'RFM · 행동 기반 세그먼트' },
+            { icon: GitBranch,   label: '코호트 분석',        desc: '유입 시점별 리텐션 추이' },
+            { icon: FlaskConical, label: 'A/B 테스트 자동화', desc: '실험 설계 · 결과 분석' },
+          ].map(({ icon: Icon, label, desc }) => (
+            <button
+              key={label}
+              onClick={showCdpToast}
+              className="w-full flex items-start gap-3 px-3 py-2.5 rounded-lg bg-bg/50 border border-border/60 opacity-60 hover:opacity-80 transition-opacity text-left"
+            >
+              <Icon size={14} className="text-muted mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs text-dim font-medium">{label}</p>
+                  <span className="flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
+                    <Lock size={8} />CDP 연동 필요
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted/60">{desc}</p>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* CDP 세그먼트 */}

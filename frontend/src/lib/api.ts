@@ -318,7 +318,7 @@ export const paymentsApi = {
 export interface Mission { id: string; name: string; description: string; created_at: string }
 export interface Agent {
   id: string; mission_id: string; name: string;
-  role: 'research'|'build'|'design'|'content'|'growth'|'ops'|'integration'|'n8n'|'ceo';
+  role: 'research'|'build'|'design'|'content'|'growth'|'ops'|'integration'|'ceo';
   schedule: 'manual'|'hourly'|'daily'|'weekly';
   system_prompt: string; budget_cents: number;
   is_active: boolean; reports_to: string|null; created_at: string;

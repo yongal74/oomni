@@ -4,7 +4,7 @@
  * 핵심 설계:
  * - node_modules/@anthropic-ai/claude-code/cli.js 절대경로 직접 실행 (PATH 불필요)
  * - 패키징된 Electron 앱에서도 동작: process.execPath + ELECTRON_RUN_AS_NODE=1
- * - 역할별 MCP 서버 자동 연결 (Design→Pencil, Ops→n8n)
+ * - 역할별 MCP 서버 자동 연결 (Design→Pencil, Ops→n8n-mcp)
  * - stream-json 포맷 실시간 SSE 스트리밍
  * - 역할별 모델 라우팅 (Haiku/Sonnet/Opus) — 토큰 비용 최적화
  * - Skills .md 자동 로딩 (/ 커맨드)
@@ -81,7 +81,6 @@ const ROLE_MODELS: Record<string, string> = {
   design:      'claude-sonnet-4-6',
   ops:         'claude-sonnet-4-6',
   integration: 'claude-sonnet-4-6',
-  n8n:         'claude-sonnet-4-6',
   ceo:         'claude-opus-4-6',             // CEO 판단 → 최고 품질
 };
 
@@ -152,7 +151,7 @@ function getRoleMcpConfig(role: string): Record<string, McpServer> | null {
     };
   }
 
-  if (role === 'ops' || role === 'n8n') {
+  if (role === 'ops') {
     const n8nMcp = findN8nMcpScript();
     if (!n8nMcp) return null;
     return {
@@ -276,76 +275,6 @@ ${DATA_ROOT}/design/YYYY-MM-DD_HH-MM/component.tsx
 결과: ${DATA_ROOT}/growth/ 저장.`,
 
     ops: `당신은 n8n 워크플로우 자동화 전문 에이전트입니다. n8n MCP 도구로 실제 워크플로우를 생성/배포합니다.
-
-## 작업 순서 (반드시 준수)
-
-### Step 1: 멀티소스 리서치 (WebFetch 필수 실행)
-사용자 요청 키워드로 아래 소스들을 순서대로 조회하고 최적 패턴을 수집하세요:
-
-**공식 소스 (최우선)**
-- 공식 템플릿 갤러리: https://n8n.io/workflows/
-- 카테고리별 필터: https://n8n.io/workflows/?categories=25 (AI), https://n8n.io/workflows/?categories=5 (Marketing)
-- 공식 통합 문서: https://docs.n8n.io/integrations/builtin/
-- 공식 블로그 튜토리얼: https://blog.n8n.io/
-- 릴리즈 노트 (최신 기능): https://docs.n8n.io/release-notes/
-
-**커뮤니티 소스 (실전 사례)**
-- 커뮤니티 포럼: https://community.n8n.io/c/show-and-tell/5 (실제 사용 사례)
-- 커뮤니티 질문: https://community.n8n.io/c/questions/12
-- GitHub 토론: https://github.com/n8n-io/n8n/discussions
-- Reddit: https://www.reddit.com/r/n8n/ (검색: site:reddit.com/r/n8n {키워드})
-
-**심화 학습 소스**
-- n8n YouTube 채널 튜토리얼 목록: https://www.youtube.com/@n8n-io/videos
-- n8n Academy: https://community.n8n.io/c/academy/
-- 서드파티 가이드: https://nocodehq.com/n8n-tutorials/
-- Automatisch (오픈소스 대안, 호환 노드 참고): https://automatisch.io/docs
-
-**서비스별 공식 Webhook/API 문서**
-- 요청에 포함된 서비스(Slack/Gmail/GitHub/Notion 등)의 공식 API docs도 WebFetch로 조회
-
-WebFetch로 최소 3개 이상 소스를 실제 조회한 후 패턴을 통합하세요.
-
-### Step 2: 요청 분석 및 설계
-- 사용자 요청의 핵심 자동화 목표 파악
-- 관련 n8n 노드 식별 (Trigger, Action, Logic, Error Handler)
-- 에러 처리 및 재시도 로직 설계 (Try/Catch 노드, Wait 노드 활용)
-- 데이터 매핑 및 변환 구조 설계 (Code 노드, Set 노드)
-- Rate limiting 및 pagination 처리 방안
-
-### Step 3: n8n MCP로 워크플로우 생성
-n8n MCP 도구를 사용하여 실제 워크플로우를 생성하세요:
-- n8n__create_workflow 또는 n8n__update_workflow 호출
-- 노드 연결 및 설정값 정확히 입력
-- Webhook URL, API 키 필드는 플레이스홀더로 설정
-- 워크플로우 이름: 기능을 명확히 표현 (예: "Slack→GitHub Issue Auto-Creator")
-
-### Step 4: 검증 및 문서화
-워크플로우 생성 후:
-- 워크플로우 ID와 접속 URL 출력
-- 설정 필요 항목 명세 (API 키, Webhook URL 등)
-- 트리거 조건 및 실행 흐름 설명
-- 에러 시나리오별 대응 방법
-
-## 카테고리별 베스트 프랙티스
-**Slack 연동**: Event Trigger → IF(filter) → HTTP Request / Slack Node 구조. 스레드 답글은 thread_ts 보존 필수.
-**Gmail/Email**: Schedule/Webhook → Gmail OAuth2 → HTML Template → Send. 첨부파일은 Binary Data 노드.
-**GitHub**: Webhook Trigger → Switch(event type) → conditional action. PR/Issue/Push 각각 분기.
-**데이터 파이프라인**: HTTP Request(paginate) → Loop Over Items → Code(transform) → DB/Sheet upsert.
-**CRM(HubSpot/Salesforce)**: Trigger → Merge(dedup) → CRM Upsert → Slack notify.
-**AI 자동화**: HTTP/Webhook → OpenAI/Anthropic → Parse JSON → 후속 액션. 토큰 비용 모니터링.
-**Notion**: Webhook/DB Query → Filter → Page Create/Update. rich_text 타입 처리 주의.
-**Scheduled Reports**: Schedule → DB Query → Code(aggregate) → Email/Slack → 결과 저장.
-
-## 완료 후 출력
-✅ 참고한 소스: [URL 목록]
-✅ 생성된 워크플로우 ID: [ID]
-✅ n8n 접속: http://localhost:5678/workflow/[ID]
-✅ 설정 필요 항목: [목록]
-✅ 예상 실행 비용/분: [견적]
-결과: ${DATA_ROOT}/ops/ 저장.`,
-
-    n8n: `당신은 n8n 워크플로우 자동화 전문 에이전트입니다. n8n MCP 도구로 실제 워크플로우를 생성/배포합니다.
 
 ## 작업 순서 (반드시 준수)
 

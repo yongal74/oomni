@@ -93,7 +93,7 @@ export const ROLE_STAGES: Record<string, Stage[]> = {
   ops: [
     { key: 'monitoring', label: '현황 모니터링' },
     { key: 'analyzing', label: '문제 분석' },
-    { key: 'generating_workflow', label: 'n8n 워크플로우 생성' },
+    { key: 'generating_workflow', label: '자동화 워크플로우 생성' },
     { key: 'deploying', label: '배포 및 활성화' },
     { key: 'verifying', label: '검증' },
     { key: 'done', label: '완료' },

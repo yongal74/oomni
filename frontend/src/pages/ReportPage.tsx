@@ -16,7 +16,7 @@ const PERIOD_LABELS: Record<Period, string> = {
 
 const BOT_EMOJI: Record<string, string> = {
   research: '🔬', build: '🔨', design: '🎨', content: '✍️',
-  growth: '📈', ops: '⚙️', integration: '🔗', n8n: '⚡',
+  growth: '📈', ops: '⚙️', integration: '🔗',
 }
 
 interface ReportData {

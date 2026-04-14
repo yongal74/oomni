@@ -5,7 +5,7 @@ import { type Agent } from '../lib/api'
 
 const BOT_EMOJI: Record<string, string> = {
   research: '🔬', build: '🔨', design: '🎨', content: '✍️',
-  growth: '📈', ops: '⚙️', integration: '🔗', n8n: '⚡', ceo: '👔',
+  growth: '📈', ops: '⚙️', integration: '🔗', ceo: '👔',
 }
 
 const EXAMPLE_PROMPTS: Record<string, string[]> = {
@@ -50,6 +50,10 @@ const EXAMPLE_PROMPTS: Record<string, string[]> = {
     '분기별 세무 체크리스트 확인',
     '운영 이슈 우선순위 정리',
     'SaaS KPI 대시보드 업데이트',
+    '리서치 수집 자동화 워크플로우 생성',
+    '콘텐츠 발행 자동화 파이프라인 구성',
+    '고객 알림 자동화 세팅',
+    '데이터 백업 자동화 워크플로우',
   ],
   integration: [
     '외부 API 연동 상태 점검 및 오류 수정',
@@ -57,13 +61,6 @@ const EXAMPLE_PROMPTS: Record<string, string[]> = {
     '신규 서비스 연동 구현',
     '데이터 마이그레이션 스크립트 작성',
     'API Rate Limit 최적화',
-  ],
-  n8n: [
-    '리서치 수집 자동화 워크플로우 생성',
-    '콘텐츠 발행 자동화 파이프라인 구성',
-    '고객 알림 자동화 세팅',
-    '데이터 백업 자동화 워크플로우',
-    'Telegram 봇 알림 연동',
   ],
   ceo: [
     '이번 주 전체 봇 활동 종합 보고서 생성',

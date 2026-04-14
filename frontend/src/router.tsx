@@ -8,7 +8,6 @@ const DashboardPage = React.lazy(() => import('./pages/DashboardPage'))
 const ApprovalPage = React.lazy(() => import('./pages/ApprovalPage'))
 const CostPage = React.lazy(() => import('./pages/CostPage'))
 const IntegrationsPage = React.lazy(() => import('./pages/IntegrationsPage'))
-const N8nPage = React.lazy(() => import('./pages/N8nPage'))
 const BotDetailPage = React.lazy(() => import('./pages/BotDetailPage'))
 const IssuesPage = React.lazy(() => import('./pages/IssuesPage'))
 const SchedulePage = React.lazy(() => import('./pages/SchedulePage'))
@@ -104,8 +103,7 @@ export const router = createHashRouter([
       { path: 'approvals', element: <React.Suspense fallback={<Loader />}><ApprovalPage /></React.Suspense> },
       { path: 'cost', element: <React.Suspense fallback={<Loader />}><CostPage /></React.Suspense> },
       { path: 'integrations', element: <React.Suspense fallback={<Loader />}><IntegrationsPage /></React.Suspense> },
-      { path: 'n8n', element: <React.Suspense fallback={<Loader />}><N8nPage /></React.Suspense> },
-      { path: 'bots/:id', element: <BotDetailPageWrapper /> },
+{ path: 'bots/:id', element: <BotDetailPageWrapper /> },
       { path: 'issues', element: <React.Suspense fallback={<Loader />}><IssuesPage /></React.Suspense> },
       { path: 'schedules', element: <React.Suspense fallback={<Loader />}><SchedulePage /></React.Suspense> },
       { path: 'reports', element: <React.Suspense fallback={<Loader />}><ReportPage /></React.Suspense> },

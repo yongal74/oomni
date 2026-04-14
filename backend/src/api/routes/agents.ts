@@ -111,7 +111,7 @@ async function verifyStreamToken(
   }
 }
 
-const VALID_ROLES = ['research','build','design','content','growth','ops','integration','n8n','ceo'] as const;
+const VALID_ROLES = ['research','build','design','content','growth','ops','integration','ceo'] as const;
 const VALID_SCHEDULES = ['manual','hourly','daily','weekly'] as const;
 
 const CreateAgentSchema = z.object({
@@ -174,7 +174,7 @@ export function agentsRouter(db: DbClient): Router {
    *             properties:
    *               mission_id: { type: string }
    *               name: { type: string }
-   *               role: { type: string, enum: [research, build, design, content, growth, ops, integration, n8n, ceo] }
+   *               role: { type: string, enum: [research, build, design, content, growth, ops, integration, ceo] }
    *               schedule: { type: string, enum: [manual, hourly, daily, weekly] }
    *     responses:
    *       201:

@@ -24,9 +24,8 @@ const BOT_TEMPLATES = [
   { role: 'design', name: 'Design Bot', emoji: '🎨', desc: 'UI/UX 디자인, 컴포넌트 생성' },
   { role: 'content', name: 'Content Bot', emoji: '✍️', desc: '블로그, 뉴스레터, SNS 콘텐츠' },
   { role: 'growth', name: 'Growth Bot', emoji: '📈', desc: 'SEO, 광고 카피, A/B 테스트' },
-  { role: 'ops', name: 'Ops Bot', emoji: '⚙️', desc: '운영 모니터링, 세무/재무, 리포트' },
+  { role: 'ops', name: 'Ops Bot', emoji: '⚙️', desc: '운영 모니터링, 세무/재무, 리포트 및 자동화 워크플로우 생성' },
   { role: 'integration', name: 'Integration Bot', emoji: '🔗', desc: '외부 서비스 연동, 데이터 동기화' },
-  { role: 'n8n', name: 'n8n Bot', emoji: '⚡', desc: '자동화 워크플로우 생성/관리' },
   { role: 'ceo', name: 'CEO Bot', emoji: '👔', desc: '전체 봇 결과 종합, 일일/주간 보고서 자동 생성' },
 ] as const
 
@@ -38,7 +37,6 @@ const ROLE_SYSTEM_PROMPTS: Record<string, string> = {
   growth: '너는 그로스 마케팅 AI 봇이다. 데이터 기반으로 성장 전략을 실행해라.',
   ops: '너는 운영/재무 AI 봇이다. 비용, 수익, 세무 데이터를 자동으로 정리하고 리포트를 생성해라.',
   integration: '너는 시스템 통합 AI 봇이다. 외부 서비스들을 연결하고 데이터를 동기화해라.',
-  n8n: '너는 n8n 자동화 전문 AI 봇이다. 사용자 요구에 맞는 워크플로우를 생성하고 배포해라.',
   ceo: '너는 CEO AI 봇이다. 모든 봇의 활동을 종합하고 전략적 보고서를 생성해라.',
 }
 
@@ -839,7 +837,7 @@ function FeedCard({
 }) {
   const emoji: Record<string, string> = {
     research: '🔬', build: '🔨', design: '🎨', content: '✍️',
-    growth: '📈', ops: '⚙️', integration: '🔗', n8n: '⚡', ceo: '👔',
+    growth: '📈', ops: '⚙️', integration: '🔗', ceo: '👔',
   }
   const typeColor: Record<string, string> = {
     info: 'border-border',

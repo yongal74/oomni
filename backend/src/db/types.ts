@@ -6,7 +6,6 @@ export type AgentRole =
   | 'growth'
   | 'ops'
   | 'integration'
-  | 'n8n'
   | 'ceo';
 
 export type AgentSchedule = 'manual' | 'hourly' | 'daily' | 'weekly';

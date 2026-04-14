@@ -9,7 +9,7 @@ import { Play, Loader2, AlertCircle, Clock, CheckCircle2, XCircle, RefreshCw } f
 
 const BOT_EMOJI: Record<string, string> = {
   research: '🔬', build: '🔨', design: '🎨', content: '✍️',
-  growth: '📈', ops: '⚙️', integration: '🔗', n8n: '⚡', ceo: '👔',
+  growth: '📈', ops: '⚙️', integration: '🔗', ceo: '👔',
 }
 
 interface AgentWithStats extends Agent {

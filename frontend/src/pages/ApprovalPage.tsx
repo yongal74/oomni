@@ -8,7 +8,7 @@ import { ko } from 'date-fns/locale'
 
 const BOT_EMOJI: Record<string, string> = {
   research: '🔬', build: '🔨', design: '🎨', content: '✍️',
-  growth: '📈', ops: '⚙️', integration: '🔗', n8n: '⚡',
+  growth: '📈', ops: '⚙️', integration: '🔗',
 }
 
 const ROLE_BADGE_COLOR: Record<string, string> = {
@@ -19,7 +19,6 @@ const ROLE_BADGE_COLOR: Record<string, string> = {
   growth: 'bg-green-900/40 text-green-300',
   ops: 'bg-border/60 text-muted',
   integration: 'bg-yellow-900/40 text-yellow-300',
-  n8n: 'bg-pink-900/40 text-pink-300',
 }
 
 function looksLikeCode(text: string): boolean {

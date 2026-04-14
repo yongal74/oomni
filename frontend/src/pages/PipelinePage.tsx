@@ -30,7 +30,6 @@ const ROLE_ICON: Record<string, string> = {
   growth: '📈',
   ops: '🔧',
   integration: '🔌',
-  n8n: '⚡',
   ceo: '👑',
 }
 
@@ -44,7 +43,6 @@ const DEFAULT_POSITIONS: Record<string, { x: number; y: number }> = {
   ceo:      { x: 560, y: 240 },
   growth:   { x: 320, y: 240 },
   integration: { x: 800, y: 240 },
-  n8n:      { x: 1040, y: 240 },
 }
 
 // Default example agents shown when no mission bots exist

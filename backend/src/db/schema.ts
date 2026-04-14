@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS agents (
   mission_id    TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
   name          TEXT NOT NULL,
   role          TEXT NOT NULL CHECK (role IN (
-                  'research','build','design','content','growth','ops','integration','n8n','ceo'
+                  'research','build','design','content','growth','ops','integration','ceo'
                 )),
   schedule      TEXT NOT NULL DEFAULT 'manual' CHECK (schedule IN ('manual','hourly','daily','weekly')),
   system_prompt TEXT NOT NULL DEFAULT '',
@@ -298,6 +298,7 @@ const MIGRATIONS: Migration[] = [
     version: 6,
     description: 'agents 테이블 role CHECK에 ceo 추가 (테이블 재생성)',
     sql: `
+      DROP TABLE IF EXISTS agents_v5;
       ALTER TABLE agents RENAME TO agents_v5;
       CREATE TABLE agents (
         id            TEXT PRIMARY KEY,
@@ -313,8 +314,33 @@ const MIGRATIONS: Migration[] = [
         reports_to    TEXT REFERENCES agents(id) ON DELETE SET NULL,
         created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
       );
-      INSERT INTO agents SELECT * FROM agents_v5;
-      DROP TABLE agents_v5;
+      INSERT OR IGNORE INTO agents SELECT * FROM agents_v5;
+      DROP TABLE IF EXISTS agents_v5;
+    `,
+  },
+  {
+    version: 7,
+    description: 'agents 테이블 role CHECK에서 n8n 제거 — 기존 n8n 봇을 ops로 마이그레이션',
+    sql: `
+      UPDATE agents SET role = 'ops' WHERE role = 'n8n';
+      DROP TABLE IF EXISTS agents_v6;
+      ALTER TABLE agents RENAME TO agents_v6;
+      CREATE TABLE agents (
+        id            TEXT PRIMARY KEY,
+        mission_id    TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+        name          TEXT NOT NULL,
+        role          TEXT NOT NULL CHECK (role IN (
+                        'research','build','design','content','growth','ops','integration','ceo'
+                      )),
+        schedule      TEXT NOT NULL DEFAULT 'manual' CHECK (schedule IN ('manual','hourly','daily','weekly')),
+        system_prompt TEXT NOT NULL DEFAULT '',
+        budget_cents  INTEGER NOT NULL DEFAULT 500 CHECK (budget_cents >= 0),
+        is_active     INTEGER NOT NULL DEFAULT 1,
+        reports_to    TEXT REFERENCES agents(id) ON DELETE SET NULL,
+        created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+      );
+      INSERT OR IGNORE INTO agents SELECT * FROM agents_v6;
+      DROP TABLE IF EXISTS agents_v6;
     `,
   },
 ];

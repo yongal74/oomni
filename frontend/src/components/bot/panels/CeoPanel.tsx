@@ -10,7 +10,7 @@ import { ko } from 'date-fns/locale'
 
 const BOT_EMOJI: Record<string, string> = {
   research: '🔬', build: '🔨', design: '🎨', content: '✍️',
-  growth: '📈', ops: '⚙️', integration: '🔗', n8n: '⚡', ceo: '👔',
+  growth: '📈', ops: '⚙️', integration: '🔗', ceo: '👔',
 }
 
 // LEFT: 전체 봇 현황 + 실시간 피드

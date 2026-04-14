@@ -46,7 +46,6 @@ const ROLE_TIER: Record<string, ModelTier> = {
   growth:      'fast',
   ops:         'fast',
   integration: 'fast',
-  n8n:         'fast',      // 템플릿 생성 → 저비용
 };
 
 interface CompletionOptions {

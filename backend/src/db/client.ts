@@ -47,13 +47,13 @@ export interface DbClient {
 
 let db: Database.Database | null = null;
 
-// agents 테이블 재생성 SQL (migration v6 기준 — ceo role 포함)
+// agents 테이블 재생성 SQL (migration v7 기준 — n8n role 제거)
 const AGENTS_TABLE_SQL = `CREATE TABLE agents (
   id            TEXT PRIMARY KEY,
   mission_id    TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
   name          TEXT NOT NULL,
   role          TEXT NOT NULL CHECK (role IN (
-                  'research','build','design','content','growth','ops','integration','n8n','ceo'
+                  'research','build','design','content','growth','ops','integration','ceo'
                 )),
   schedule      TEXT NOT NULL DEFAULT 'manual' CHECK (schedule IN ('manual','hourly','daily','weekly')),
   system_prompt TEXT NOT NULL DEFAULT '',
