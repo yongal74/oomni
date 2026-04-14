@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import {
@@ -12,7 +12,17 @@ import { oomniWs } from '../lib/ws'
 import {
   Play, Plus, X, Check, XCircle, Loader2,
   ArrowRight, Layers, Archive,
+  Telescope, Code2, Palette, BookOpen, TrendingUp, Workflow, Plug, Crown, Bot,
 } from 'lucide-react'
+
+const BOT_ICONS: Record<string, React.ElementType> = {
+  research: Telescope, build: Code2, design: Palette, content: BookOpen,
+  growth: TrendingUp, ops: Workflow, integration: Plug, ceo: Crown,
+}
+function BotRoleIcon({ role, size = 14 }: { role?: string; size?: number }) {
+  const Icon = (role && BOT_ICONS[role]) || Bot
+  return <Icon size={size} />
+}
 import { BotRunModal } from '../components/BotRunModal'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -416,7 +426,7 @@ export default function DashboardPage() {
             ) : agents.map(agent => (
               <Link key={agent.id} to={`/dashboard/bots/${agent.id}`}>
                 <div className="flex items-center gap-2 p-2 rounded hover:bg-bg transition-colors cursor-pointer">
-                  <span className="text-base">{BOT_TEMPLATES.find(t => t.role === agent.role)?.emoji ?? '🤖'}</span>
+                  <span className="text-muted"><BotRoleIcon role={agent.role} size={14} /></span>
                   <div className="flex-1 min-w-0">
                     <div className="text-[12px] text-text truncate">{agent.name}</div>
                   </div>
@@ -602,8 +612,10 @@ export default function DashboardPage() {
           {/* 비용 탭 */}
           {activeTab === 'cost' && (
             <div className="max-h-80 overflow-y-auto">
-              {(costData?.data ?? []).length === 0 ? (
-                <div className="text-center text-muted text-[12px] py-6">비용 데이터가 없습니다</div>
+              {!missionId ? (
+                <div className="text-center text-muted text-[12px] py-6">미션을 선택하면 비용 데이터를 확인할 수 있습니다</div>
+              ) : (costData?.data ?? []).length === 0 ? (
+                <div className="text-center text-muted text-[12px] py-6">비용 데이터가 없습니다<br/><span className="text-[10px] opacity-60">봇 실행 후 집계됩니다</span></div>
               ) : (
                 <table className="w-full text-[12px]">
                   <thead>
@@ -780,7 +792,7 @@ export default function DashboardPage() {
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xl">{tmpl.emoji}</span>
+                      <span className="text-muted"><BotRoleIcon role={tmpl.role} size={16} /></span>
                       <span className="text-[13px] font-medium text-text">{tmpl.name}</span>
                       {existingAgent && (
                         <span className="ml-auto text-[10px] text-green-400">추가됨 →</span>
@@ -835,10 +847,6 @@ function FeedCard({
   onReject: () => void
   onView?: () => void
 }) {
-  const emoji: Record<string, string> = {
-    research: '🔬', build: '🔨', design: '🎨', content: '✍️',
-    growth: '📈', ops: '⚙️', integration: '🔗', ceo: '👔',
-  }
   const typeColor: Record<string, string> = {
     info: 'border-border',
     result: 'border-blue-800/40',
@@ -851,7 +859,7 @@ function FeedCard({
       onClick={onView}
     >
       <div className="flex items-start gap-2">
-        <span className="text-sm mt-0.5">{emoji[item.agent_role ?? ''] ?? '🤖'}</span>
+        <span className="text-muted mt-0.5"><BotRoleIcon role={item.agent_role} size={14} /></span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[12px] font-medium text-text">{item.agent_name}</span>

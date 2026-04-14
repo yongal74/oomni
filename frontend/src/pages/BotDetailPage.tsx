@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentsApi, paymentsApi, type Agent, type HeartbeatRun } from '../lib/api'
 import { useAppStore } from '../store/app.store'
-import { Trash2, Settings, ArrowLeft, Send, Square, RotateCcw, Clock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Copy, ExternalLink, X } from 'lucide-react'
+import { Trash2, Settings, ArrowLeft, Send, Square, RotateCcw, Clock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Copy, ExternalLink, X, Telescope, Code2, Palette, BookOpen, TrendingUp, Workflow, Plug, Crown, Bot } from 'lucide-react'
 import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
 import { LiveStreamDrawer } from '../components/bot/LiveStreamDrawer'
 import { ModelSwitcher, getModelApiHeaders, type ModelId, type ModeId } from '../components/bot/ModelSwitcher'
@@ -20,9 +20,13 @@ import { CommonLeftPanel, CommonCenterPanel, CommonRightPanel } from '../compone
 import { cn } from '../lib/utils'
 import type { ResearchItem } from '../lib/api'
 
-const BOT_EMOJI: Record<string, string> = {
-  research: '🔬', build: '🔨', design: '🎨', content: '✍️',
-  growth: '📈', ops: '⚙️', integration: '🔗', ceo: '👔',
+const BOT_ICONS_MAP: Record<string, React.ElementType> = {
+  research: Telescope, build: Code2, design: Palette, content: BookOpen,
+  growth: TrendingUp, ops: Workflow, integration: Plug, ceo: Crown,
+}
+function BotIcon({ role, size = 20 }: { role: string; size?: number }) {
+  const Icon = BOT_ICONS_MAP[role] || Bot
+  return <Icon size={size} />
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -184,7 +188,9 @@ function PencilInAppView({ url, onClose }: { url: string; onClose: () => void })
   )
 }
 
-// Antigravity 우측 대화 패널 — 결과물이 없으면 입력창이 중앙, 결과 쌓이면 아래로
+// ── 채팅 패널 — 사용자 입력 박스 + AI 응답 스트리밍 ──────────────────────────
+interface ChatPair { userMsg: string; assistantMsg: string; ts: string }
+
 function AntigravityRightPanel({
   task, setTask, isRunning, onRun, onCancel, onReset, placeholder,
   streamOutput, children,
@@ -205,77 +211,150 @@ function AntigravityRightPanel({
   onModelChange: (m: ModelId) => void
   onModeChange: (m: ModeId) => void
 }) {
-  const hasOutput = !!streamOutput
+  const [chatHistory, setChatHistory] = useState<ChatPair[]>([])
+  const [pendingUserMsg, setPendingUserMsg] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
-  const [expanded, setExpanded] = useState<Set<number>>(new Set([0]))
+  const prevIsRunningRef = useRef(false)
+  const capturedTaskRef = useRef('')
+  const streamOutputRef = useRef(streamOutput)
 
+  // 항상 최신 streamOutput을 ref에 반영
+  useEffect(() => { streamOutputRef.current = streamOutput }, [streamOutput])
+
+  // 실행 시작/종료 감지 → 채팅 히스토리 관리
   useEffect(() => {
-    if (hasOutput) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [streamOutput, hasOutput])
+    const wasRunning = prevIsRunningRef.current
+    prevIsRunningRef.current = isRunning
+
+    if (isRunning && !wasRunning) {
+      // 실행 시작: 사용자 메시지 캡처
+      capturedTaskRef.current = task
+      setPendingUserMsg(task)
+    } else if (!isRunning && wasRunning) {
+      // 실행 완료: 히스토리에 추가
+      const userMsg = capturedTaskRef.current
+      const assistantMsg = streamOutputRef.current
+      if (userMsg) {
+        setChatHistory(prev => [
+          ...prev,
+          {
+            userMsg,
+            assistantMsg: assistantMsg || '(결과 없음)',
+            ts: new Date().toLocaleTimeString('ko-KR', { hour12: false }),
+          },
+        ])
+      }
+      capturedTaskRef.current = ''
+      setPendingUserMsg('')
+    }
+  }, [isRunning]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 새 메시지 또는 스트리밍 시 자동 스크롤
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chatHistory, streamOutput])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      onRun()
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onRun() }
   }
 
-  const resultCards = streamOutput
-    ? streamOutput.split('\n\n').filter(b => b.trim().length > 0)
-    : []
-
-  const toggleExpand = (i: number) => {
-    setExpanded(prev => {
-      const next = new Set(prev)
-      if (next.has(i)) next.delete(i)
-      else next.add(i)
-      return next
-    })
+  // 리셋: 히스토리도 함께 초기화
+  const handleReset = () => {
+    setChatHistory([])
+    setPendingUserMsg('')
+    capturedTaskRef.current = ''
+    onReset()
   }
+
+  const isEmpty = chatHistory.length === 0 && !pendingUserMsg
 
   return (
     <div className="h-full flex flex-col bg-surface/30 overflow-hidden">
-      {/* 결과물 카드 영역 */}
-      {hasOutput && (
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 min-h-0">
-          {resultCards.map((card, i) => (
-            <div key={i} className="rounded-lg border border-border bg-bg overflow-hidden">
-              <button
-                onClick={() => toggleExpand(i)}
-                className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-surface/50 transition-colors"
-              >
-                <span className="text-[11px] text-dim truncate flex-1 pr-2 leading-snug">
-                  {card.trim().slice(0, 80)}{card.trim().length > 80 ? '...' : ''}
-                </span>
-                {expanded.has(i) ? <ChevronUp size={11} className="text-muted shrink-0" /> : <ChevronDown size={11} className="text-muted shrink-0" />}
-              </button>
-              {expanded.has(i) && (
-                <div className="px-3 pb-3 border-t border-border">
-                  <pre className="text-[11px] text-dim leading-relaxed whitespace-pre-wrap font-sans pt-2">
-                    {card.trim()}
-                  </pre>
+
+      {/* ── 채팅 메시지 영역 ─────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 min-h-0">
+
+        {/* 빈 상태 */}
+        {isEmpty && (
+          <div className="h-full flex items-center justify-center">
+            <p className="text-[12px] text-muted/50 text-center leading-relaxed">
+              지시사항을 입력하거나<br />우측 빠른 실행 버튼을 눌러보세요
+            </p>
+          </div>
+        )}
+
+        {/* 완료된 대화 쌍 */}
+        {chatHistory.map((pair, i) => (
+          <div key={i} className="space-y-2">
+            {/* 사용자 메시지 — 우측 박스 */}
+            <div className="flex justify-end">
+              <div className="max-w-[88%] bg-primary/12 border border-primary/25 rounded-2xl rounded-tr-sm px-3.5 py-2.5 text-[13px] text-text leading-relaxed whitespace-pre-wrap">
+                {pair.userMsg}
+              </div>
+            </div>
+            {/* AI 응답 — 전체 텍스트 */}
+            <div className="pr-1 pl-0.5">
+              <pre className="text-[13px] text-dim leading-[1.75] whitespace-pre-wrap font-sans break-words">
+                {pair.assistantMsg}
+              </pre>
+              <div className="mt-1.5 flex items-center gap-2">
+                <span className="text-[10px] text-muted/40">{pair.ts}</span>
+                <button
+                  onClick={() => navigator.clipboard.writeText(pair.assistantMsg)}
+                  className="text-[10px] text-muted/40 hover:text-muted flex items-center gap-0.5 transition-colors"
+                >
+                  <Copy size={9} /> 복사
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* 현재 실행 중인 대화 쌍 */}
+        {pendingUserMsg && (
+          <div className="space-y-2">
+            {/* 사용자 메시지 */}
+            <div className="flex justify-end">
+              <div className="max-w-[88%] bg-primary/12 border border-primary/25 rounded-2xl rounded-tr-sm px-3.5 py-2.5 text-[13px] text-text leading-relaxed whitespace-pre-wrap">
+                {pendingUserMsg}
+              </div>
+            </div>
+            {/* AI 스트리밍 응답 */}
+            <div className="pr-1 pl-0.5">
+              {streamOutput ? (
+                <pre className="text-[13px] text-dim leading-[1.75] whitespace-pre-wrap font-sans break-words">
+                  {streamOutput}
+                  {isRunning && (
+                    <span className="inline-block w-0.5 h-[1.1em] bg-primary ml-0.5 animate-pulse align-text-bottom" />
+                  )}
+                </pre>
+              ) : (
+                <div className="flex items-center gap-1.5 py-1.5">
+                  {[0, 1, 2].map(n => (
+                    <span
+                      key={n}
+                      className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce"
+                      style={{ animationDelay: `${n * 0.12}s` }}
+                    />
+                  ))}
+                  <span className="text-xs text-muted ml-1">실행 중...</span>
                 </div>
               )}
             </div>
-          ))}
-          {isRunning && (
-            <div className="flex items-center gap-2 px-2 py-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-[11px] text-muted">생성 중...</span>
-            </div>
-          )}
-          <div ref={bottomRef} />
+          </div>
+        )}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* ── 스킬 빠른실행 버튼 (children) ───────────────────── */}
+      {children && (
+        <div className="shrink-0 border-t border-border overflow-y-auto max-h-40">
+          {children}
         </div>
       )}
 
-      {/* 결과 없을 때 중앙 힌트 */}
-      {!hasOutput && (
-        <div className="flex-1 flex items-center justify-center px-4">
-          <p className="text-[11px] text-muted/50 text-center">지시사항을 입력하면 바로 실행됩니다</p>
-        </div>
-      )}
-
-      {/* 입력창 — 항상 하단 고정 */}
+      {/* ── 입력창 — 하단 고정 ───────────────────────────────── */}
       <div className="shrink-0 px-3 py-3 border-t border-border bg-surface/50">
         <div className="flex flex-col gap-2">
           <textarea
@@ -297,7 +376,6 @@ function AntigravityRightPanel({
             }}
           />
           <div className="flex items-center gap-1.5">
-            {/* 모델 스위처 — 입력창 좌측 하단 */}
             <ModelSwitcher
               selectedModel={selectedModel}
               selectedMode={selectedMode}
@@ -307,8 +385,8 @@ function AntigravityRightPanel({
             />
             <div className="flex-1" />
             <button
-              onClick={onReset}
-              title="초기화"
+              onClick={handleReset}
+              title="대화 초기화"
               className="p-1.5 rounded-lg text-xs transition-colors text-muted hover:text-text hover:bg-surface border border-border"
             >
               <RotateCcw size={12} />
@@ -338,13 +416,6 @@ function AntigravityRightPanel({
           </div>
         </div>
       </div>
-
-      {/* 스킬 등 children */}
-      {children && (
-        <div className="shrink-0 border-t border-border overflow-y-auto max-h-64">
-          {children}
-        </div>
-      )}
     </div>
   )
 }
@@ -836,7 +907,7 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
           missionId={missionId ?? ''}
           selectedType={contentType}
           onTypeChange={(type) => { setContentType(type); setTask(`${type} 형식으로 콘텐츠 초안을 작성해줘`) }}
-          onItemSelect={(item) => setTask(`"${item.title}" 리서치 내용을 ${contentType} 형식으로 변환해서 콘텐츠 초안을 작성해줘`)}
+          onItemSelect={(item) => setTask(`"${item.title}" 리서치 내용을 ${contentType} 형식으로 변환해서 콘텐츠 초안을 작성해줘\n\n=== 리서치 원문 ===\n${item.content ?? item.summary ?? ''}`)}
         />
         if (role === 'growth') return <GrowthLeftPanel />
         if (role === 'ops') return <OpsLeftPanel agentId={agent.id} onSkillSelect={(s) => unifiedTerminalRef.current?.send(s)} />
@@ -963,7 +1034,7 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
               )}
               {/* Pencil 툴바 */}
               <div className="shrink-0 border-b border-[#222] bg-[#111] px-3 py-1.5 flex items-center gap-2">
-                <span className="text-[11px] text-muted">✦ Antigravity 디자인 미리보기</span>
+                <span className="text-[11px] text-muted">✦ Pencil 디자인 미리보기</span>
                 <div className="flex-1" />
                 {pencilStatus?.connected ? (
                   <button
@@ -1025,7 +1096,7 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
           <button onClick={() => navigate('/dashboard')} className="text-muted hover:text-text transition-colors">
             <ArrowLeft size={17} />
           </button>
-          <span className="text-2xl">{BOT_EMOJI[agent.role] ?? '🤖'}</span>
+          <span className="text-muted"><BotIcon role={agent.role} size={22} /></span>
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-lg font-semibold text-text">{agent.name}</h1>
@@ -1050,7 +1121,7 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
                       ? 'bg-purple-500/15 text-purple-400'
                       : 'bg-border text-muted hover:bg-yellow-500/10 hover:text-yellow-400'
                   )}
-                  title={pencilStatus.connected ? 'Pencil MCP 연결 중' : 'Antigravity 앱을 실행하면 자동 연결됩니다'}
+                  title={pencilStatus.connected ? 'Pencil MCP 연결 중' : 'Pencil.dev 앱을 실행하면 자동 연결됩니다'}
                 >
                   {pencilStatus.connected ? '✦ Pencil MCP 연결됨' : '✦ Pencil MCP 미연결 — 클릭'}
                 </button>

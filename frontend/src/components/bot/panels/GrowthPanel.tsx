@@ -244,6 +244,12 @@ export function GrowthLeftPanel({ onCampaign }: { onCampaign?: (segId: string, c
   )
 }
 
+const GROWTH_TAB_KEYWORDS: Record<string, string[]> = {
+  marketing: ['마케팅', '광고', 'SEO', '캠페인', 'marketing', '유입', '채널', '검색', '퍼포먼스'],
+  analytics: ['웹로그', '분석', '트래픽', 'analytics', 'GA', 'pageview', '방문', '세션', '페이지뷰', '유입경로'],
+  cs:        ['CS', '고객지원', '고객 지원', '문의', '상담', 'customer', '피드백', '불만', '지원'],
+}
+
 // ── CENTER: 탭별 분석 결과 ───────────────────────────────────────────────────
 export function GrowthCenterPanel({ agentId, streamOutput, isRunning }: {
   agentId: string
@@ -258,7 +264,12 @@ export function GrowthCenterPanel({ agentId, streamOutput, isRunning }: {
     refetchInterval: 3000,
   })
 
-  const latest = feed[0]
+  // 탭별 키워드 필터링, 매칭 없으면 최신 항목 fallback
+  const keywords = GROWTH_TAB_KEYWORDS[activeTab] ?? []
+  const tabItems = keywords.length > 0
+    ? feed.filter(item => keywords.some(kw => item.content.toLowerCase().includes(kw.toLowerCase())))
+    : []
+  const displayItem = tabItems.length > 0 ? tabItems[0] : feed[0]
 
   return (
     <div className="h-full flex flex-col">
@@ -287,7 +298,7 @@ export function GrowthCenterPanel({ agentId, streamOutput, isRunning }: {
           <CdpSegmentTab />
         ) : isRunning ? (
           <pre className="text-base text-dim leading-relaxed whitespace-pre-wrap font-sans">{streamOutput || '분석 중...'}</pre>
-        ) : !latest ? (
+        ) : !displayItem ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
             <TrendingUp size={36} className="text-muted/30" />
             {streamOutput ? (
@@ -301,7 +312,7 @@ export function GrowthCenterPanel({ agentId, streamOutput, isRunning }: {
           </div>
         ) : (
           <div className="text-base text-dim leading-relaxed whitespace-pre-wrap">
-            {latest.content}
+            {displayItem.content}
           </div>
         )}
       </div>

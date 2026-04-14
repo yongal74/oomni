@@ -1,16 +1,21 @@
+import React from 'react'
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { feedApi, agentsApi, type FeedItem, type Agent } from '../../../lib/api'
-import { CheckCircle, XCircle } from 'lucide-react'
+import { CheckCircle, XCircle, Telescope, Code2, Palette, BookOpen, TrendingUp, Workflow, Plug, Crown, Bot } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { ArchiveButton } from '../shared/ArchiveButton'
 import { NextBotDropdown } from '../shared/NextBotDropdown'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
-const BOT_EMOJI: Record<string, string> = {
-  research: '🔬', build: '🔨', design: '🎨', content: '✍️',
-  growth: '📈', ops: '⚙️', integration: '🔗', ceo: '👔',
+const BOT_ICONS_MAP: Record<string, React.ElementType> = {
+  research: Telescope, build: Code2, design: Palette, content: BookOpen,
+  growth: TrendingUp, ops: Workflow, integration: Plug, ceo: Crown,
+}
+function BotRoleIcon({ role, size = 14 }: { role?: string; size?: number }) {
+  const Icon = (role && BOT_ICONS_MAP[role]) || Bot
+  return <Icon size={size} />
 }
 
 // LEFT: 전체 봇 현황 + 실시간 피드
@@ -37,7 +42,7 @@ export function CeoLeftPanel({ missionId }: { missionId: string }) {
         <div className="space-y-1">
           {agents.filter(a => a.role !== 'ceo').map(agent => (
             <div key={agent.id} className="flex items-center gap-2 px-2 py-1.5 rounded bg-bg">
-              <span className="text-sm">{BOT_EMOJI[agent.role] ?? '🤖'}</span>
+              <span className="text-muted"><BotRoleIcon role={agent.role} size={13} /></span>
               <span className="text-xs text-dim flex-1 truncate">{agent.name}</span>
               <div className={cn('w-1.5 h-1.5 rounded-full shrink-0', agent.is_active ? 'bg-green-500 animate-pulse' : 'bg-border')} />
             </div>
@@ -55,7 +60,7 @@ export function CeoLeftPanel({ missionId }: { missionId: string }) {
           {(recentFeed as FeedItem[]).slice(0, 8).map(item => (
             <div key={item.id} className="px-2 py-1.5 rounded bg-bg border-l-2 border-primary/30">
               <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-xs">{BOT_EMOJI[item.agent_role ?? ''] ?? '🤖'}</span>
+                <span className="text-muted"><BotRoleIcon role={item.agent_role} size={11} /></span>
                 <span className="text-[10px] text-muted">{formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: ko })}</span>
               </div>
               <p className="text-[11px] text-dim line-clamp-2 leading-snug">{item.content}</p>
@@ -81,14 +86,25 @@ export function CeoCenterPanel({ agentId, streamOutput, isRunning }: { agentId: 
     refetchInterval: 5000,
   })
 
-  const latest = feed[0]
-
   const TABS = [
     { key: 'daily' as const, label: '일간' },
     { key: 'weekly' as const, label: '주간' },
     { key: 'okr' as const, label: 'OKR' },
     { key: 'investor' as const, label: '투자자' },
   ]
+
+  // 탭별 키워드 필터링, 매칭 없으면 최신 항목 fallback
+  const TAB_KEYWORDS: Record<string, string[]> = {
+    daily:    ['일간', '오늘', '일일', 'today', '데일리', '당일'],
+    weekly:   ['주간', '이번 주', '주별', 'weekly', '위클리', '한 주'],
+    okr:      ['OKR', 'KR ', '목표', 'Objective', 'Key Result', '분기'],
+    investor: ['투자자', '투자', '펀딩', 'investor', '재무', 'IR '],
+  }
+  const keywords = TAB_KEYWORDS[activeTab] ?? []
+  const tabItems = feed.filter(item =>
+    keywords.some(kw => item.content.toLowerCase().includes(kw.toLowerCase()))
+  )
+  const displayItem = tabItems.length > 0 ? tabItems[0] : feed[0]
 
   return (
     <div className="h-full flex flex-col">
@@ -118,14 +134,14 @@ export function CeoCenterPanel({ agentId, streamOutput, isRunning }: { agentId: 
             </div>
             <pre className="text-base text-dim leading-loose whitespace-pre-wrap font-sans">{streamOutput || ''}</pre>
           </div>
-        ) : latest ? (
+        ) : displayItem ? (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-xs text-muted">{new Date(latest.created_at).toLocaleString('ko-KR')}</p>
+              <p className="text-xs text-muted">{new Date(displayItem.created_at).toLocaleString('ko-KR')}</p>
               <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">{TABS.find(t => t.key === activeTab)?.label}</span>
             </div>
             <div className="text-base text-dim leading-loose whitespace-pre-wrap">
-              {latest.content}
+              {displayItem.content}
             </div>
           </div>
         ) : streamOutput ? (
@@ -135,7 +151,7 @@ export function CeoCenterPanel({ agentId, streamOutput, isRunning }: { agentId: 
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
-            <span className="text-5xl opacity-20">👔</span>
+            <span className="text-4xl opacity-20">📊</span>
             <div>
               <p className="text-base text-muted mb-1">CEO 브리핑을 생성하세요</p>
               <p className="text-sm text-muted/60">하단 입력창에서 지시하거나 오른쪽 빠른 실행을 사용하세요</p>

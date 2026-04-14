@@ -105,16 +105,6 @@ export const integrationsApi = {
   delete: (id: string) => api.delete(`/api/integrations/${id}`),
 }
 
-// n8n
-export const n8nApi = {
-  templates: () => api.get('/api/n8n/templates').then(r => r.data.data),
-  workflows: (missionId: string) =>
-    api.get('/api/n8n/workflows', { params: { mission_id: missionId } }).then(r => r.data.data),
-  deploy: (data: { mission_id: string; template_id: string; params?: Record<string,unknown>; activate?: boolean }) =>
-    api.post('/api/n8n/deploy', data).then(r => r.data),
-  test: (missionId: string) => api.post('/api/n8n/test', { mission_id: missionId }).then(r => r.data),
-}
-
 // 이슈/티켓
 export const issuesApi = {
   list: (params?: { mission_id?: string; status?: string; priority?: string }) =>

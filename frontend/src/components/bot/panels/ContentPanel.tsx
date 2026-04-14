@@ -69,14 +69,21 @@ export function ContentLeftPanel({ missionId, selectedType, onTypeChange, onItem
           <p className="text-xs text-muted/60">Research Bot에서 keep한 아이템이 없습니다</p>
         ) : (
           <div className="space-y-1.5">
-            {keptItems.slice(0, 5).map(item => (
+            {keptItems.slice(0, 10).map(item => (
               <button
                 key={item.id}
                 onClick={() => onItemSelect?.(item)}
                 className="w-full flex items-start gap-2 px-2 py-1.5 rounded bg-bg hover:bg-primary/5 hover:border-primary/20 border border-transparent transition-colors text-left"
               >
                 <span className="text-green-400 text-xs mt-0.5 shrink-0">✓</span>
-                <span className="text-xs text-dim leading-snug line-clamp-2">{item.title}</span>
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-xs text-dim leading-snug line-clamp-2">{item.title}</span>
+                  {(item.summary || item.content) && (
+                    <span className="text-[10px] text-muted/70 leading-snug line-clamp-1">
+                      {(item.summary ?? item.content ?? '').slice(0, 80)}
+                    </span>
+                  )}
+                </div>
               </button>
             ))}
           </div>
