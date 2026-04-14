@@ -19,10 +19,15 @@ interface Props {
   onOutputChunk?: (chunk: string) => void
   onScreenshot?: (dataUrl: string) => void
   esRef: React.MutableRefObject<EventSource | null>
+  /** 선택된 모델 ID (백엔드 ?model= 파라미터로 전달) */
+  modelId?: string
+  /** 외부 프로바이더 API 키 (URL 파라미터로 전달 — EventSource는 커스텀 헤더 불가) */
+  apiKeys?: Record<string, string>
 }
 
 export function LiveStreamDrawer({
-  agentId, task, isRunning, onStageChange, onDone, onError, onOutputChunk, onScreenshot, esRef
+  agentId, task, isRunning, onStageChange, onDone, onError, onOutputChunk, onScreenshot, esRef,
+  modelId, apiKeys,
 }: Props) {
   const [open, setOpen] = useState(false)
   const [lines, setLines] = useState<StreamLine[]>([])
@@ -53,7 +58,17 @@ export function LiveStreamDrawer({
         } catch { /* ignore */ }
       }
       if (cancelled) return  // cleanup이 먼저 실행됐으면 중단
-      const url = `http://localhost:3001/api/agents/${agentId}/stream?task=${encodeURIComponent(task)}&token=${encodeURIComponent(token)}`
+      // model 파라미터 추가 (선택된 경우)
+      const params = new URLSearchParams({ task, token })
+      if (modelId) params.set('model', modelId)
+      // 외부 프로바이더 API 키를 쿼리 파라미터로 전달
+      // (EventSource는 커스텀 헤더 설정 불가이므로 URL 파라미터 사용)
+      if (apiKeys) {
+        if (apiKeys['X-OpenAI-Key'])    params.set('openai_key',    apiKeys['X-OpenAI-Key'])
+        if (apiKeys['X-Perplexity-Key']) params.set('perplexity_key', apiKeys['X-Perplexity-Key'])
+        if (apiKeys['X-Gemini-Key'])    params.set('gemini_key',    apiKeys['X-Gemini-Key'])
+      }
+      const url = `http://localhost:3001/api/agents/${agentId}/stream?${params.toString()}`
       es = new EventSource(url)
       esRef.current = es
 

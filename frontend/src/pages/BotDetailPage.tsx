@@ -6,6 +6,7 @@ import { useAppStore } from '../store/app.store'
 import { Trash2, Settings, ArrowLeft, Send, Square, RotateCcw, Clock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Copy, ExternalLink, X } from 'lucide-react'
 import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
 import { LiveStreamDrawer } from '../components/bot/LiveStreamDrawer'
+import { ModelSwitcher, getModelApiHeaders, type ModelId, type ModeId } from '../components/bot/ModelSwitcher'
 import { XTerminal, type XTerminalRef } from '../components/bot/XTerminal'
 import { ResearchLeftPanel, ResearchCenterPanel, ResearchRightPanel } from '../components/bot/panels/ResearchPanel'
 import { BuildLeftPanel, BuildCenterPanel, BuildRightPanel } from '../components/bot/panels/BuildPanel'
@@ -187,6 +188,7 @@ function PencilInAppView({ url, onClose }: { url: string; onClose: () => void })
 function AntigravityRightPanel({
   task, setTask, isRunning, onRun, onCancel, onReset, placeholder,
   streamOutput, children,
+  selectedModel, selectedMode, botRole, onModelChange, onModeChange,
 }: {
   task: string
   setTask: (v: string) => void
@@ -197,6 +199,11 @@ function AntigravityRightPanel({
   placeholder: string
   streamOutput: string
   children?: React.ReactNode
+  selectedModel: ModelId
+  selectedMode: ModeId
+  botRole: string
+  onModelChange: (m: ModelId) => void
+  onModeChange: (m: ModeId) => void
 }) {
   const hasOutput = !!streamOutput
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -289,7 +296,16 @@ function AntigravityRightPanel({
               el.style.height = Math.min(el.scrollHeight, 128) + 'px'
             }}
           />
-          <div className="flex items-center gap-1.5 justify-end">
+          <div className="flex items-center gap-1.5">
+            {/* 모델 스위처 — 입력창 좌측 하단 */}
+            <ModelSwitcher
+              selectedModel={selectedModel}
+              selectedMode={selectedMode}
+              botRole={botRole}
+              onModelChange={onModelChange}
+              onModeChange={onModeChange}
+            />
+            <div className="flex-1" />
             <button
               onClick={onReset}
               title="초기화"
@@ -340,6 +356,7 @@ function UnifiedTerminalLayout({
   agentId, isRunning, task, setTask, onRun, onCancel, onReset,
   placeholder, streamOutput, termRef, onTerminalExit, onOutputCapture,
   centerContent, rightChildren, pencilUrl, onPencilClose,
+  selectedModel, selectedMode, botRole, onModelChange, onModeChange,
 }: {
   agentId: string
   isRunning: boolean
@@ -357,6 +374,11 @@ function UnifiedTerminalLayout({
   rightChildren?: React.ReactNode
   pencilUrl?: string | null
   onPencilClose?: () => void
+  selectedModel: ModelId
+  selectedMode: ModeId
+  botRole: string
+  onModelChange: (m: ModelId) => void
+  onModeChange: (m: ModeId) => void
 }) {
   const leftArea = (
     <ResizableSplit
@@ -407,6 +429,11 @@ function UnifiedTerminalLayout({
           onReset={onReset}
           placeholder={placeholder}
           streamOutput={streamOutput}
+          selectedModel={selectedModel}
+          selectedMode={selectedMode}
+          botRole={botRole}
+          onModelChange={onModelChange}
+          onModeChange={onModeChange}
         >
           {rightChildren}
         </AntigravityRightPanel>
@@ -427,6 +454,10 @@ export default function BotDetailPage() {
   const [historyLimit, setHistoryLimit] = useState(20)
   const [expandedRuns, setExpandedRuns] = useState<Set<string>>(new Set())
   const [activeResearchTrack, setActiveResearchTrack] = useState<'business' | 'informational'>('business')
+
+  // 모델 / 모드 선택 state
+  const [selectedModel, setSelectedModel] = useState<ModelId>('claude-sonnet-4-6')
+  const [selectedMode, setSelectedMode] = useState<ModeId>('default')
 
   // 이전 봇에서 전달된 pendingBotInput을 task 초기값으로 사용
   const [task, setTask] = useState(() => pendingBotInput ?? '')
@@ -863,6 +894,11 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
           rightChildren={rightChildren}
           pencilUrl={pencilInAppUrl}
           onPencilClose={() => setPencilInAppUrl(null)}
+          selectedModel={selectedModel}
+          selectedMode={selectedMode}
+          botRole={agent.role}
+          onModelChange={setSelectedModel}
+          onModeChange={setSelectedMode}
         />
       )
 
@@ -1116,6 +1152,8 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
             onOutputChunk={(chunk) => setStreamOutput(prev => prev + chunk)}
             onScreenshot={(url) => setDesignScreenshot(url)}
             esRef={esRef}
+            modelId={selectedModel}
+            apiKeys={getModelApiHeaders(selectedModel)}
           />
         </div>
       )}
@@ -1136,9 +1174,22 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
             onOutputChunk={(chunk) => setStreamOutput(prev => prev + chunk)}
             onScreenshot={(url) => setDesignScreenshot(url)}
             esRef={esRef}
+            modelId={selectedModel}
+            apiKeys={getModelApiHeaders(selectedModel)}
           />
 
-          <div className="flex items-end gap-3 px-5 py-4 bg-surface border-t border-border">
+          <div className="flex flex-col gap-2 px-5 py-4 bg-surface border-t border-border">
+            {/* 모델 스위처 — 입력창 위 좌측 */}
+            <div className="flex items-center">
+              <ModelSwitcher
+                selectedModel={selectedModel}
+                selectedMode={selectedMode}
+                botRole={agent.role}
+                onModelChange={setSelectedModel}
+                onModeChange={setSelectedMode}
+              />
+            </div>
+            <div className="flex items-end gap-3">
             <div className="flex-1">
               <textarea
                 value={task}
@@ -1191,7 +1242,8 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
                 실행
               </button>
             )}
-          </div>
+            </div>{/* flex items-end gap-3 닫기 */}
+          </div>{/* flex flex-col gap-2 닫기 */}
         </div>
       )}
         </>

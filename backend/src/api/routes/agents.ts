@@ -391,6 +391,16 @@ export function agentsRouter(db: DbClient): Router {
         ? req.query.task
         : undefined;
 
+    // 모델 / 외부 API 키 쿼리 파라미터 파싱
+    const overrideModel = typeof req.query.model === 'string' && req.query.model.length > 0
+      ? req.query.model
+      : undefined;
+    const externalKeys = {
+      openai:     typeof req.query.openai_key === 'string'     ? req.query.openai_key     : undefined,
+      perplexity: typeof req.query.perplexity_key === 'string' ? req.query.perplexity_key : undefined,
+      gemini:     typeof req.query.gemini_key === 'string'     ? req.query.gemini_key     : undefined,
+    };
+
     // SSE 헤더 설정
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -449,7 +459,7 @@ export function agentsRouter(db: DbClient): Router {
       }
 
       // 모든 봇: routeToExecutor (feed_items 저장, UI 표시)
-      await routeToExecutor({ agent: agentFull, task: enrichedTask, db, send });
+      await routeToExecutor({ agent: agentFull, task: enrichedTask, db, send, overrideModel, externalKeys });
       send('done', { success: true });
       // 실행 성공 기록 (output 포함)
       const outputToSave = accumulatedOutput.trim().slice(0, 50000); // 최대 50KB
