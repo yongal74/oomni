@@ -482,27 +482,8 @@ export function agentsRouter(db: DbClient): Router {
     res.end();
   });
 
-  // POST /api/agents/:id/chat — chunked HTTP 스트리밍 (EventSource 대체)
+  // POST /api/agents/:id/chat — chunked HTTP 스트리밍 (Electron 로컬 앱 — auth 불필요)
   router.post('/:id/chat', async (req: Request, res: Response) => {
-    // Authorization: Bearer <token> 헤더, 바디 token, 쿼리 token 순으로 검증
-    const authHeader = req.headers['authorization'] ?? '';
-    const bearerToken = typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
-      ? authHeader.slice(7)
-      : '';
-    const queryToken = typeof req.query.token === 'string' ? req.query.token : '';
-    const bodyToken = typeof req.body?.token === 'string' ? req.body.token : '';
-    const token = bearerToken || bodyToken || queryToken;
-
-    if (!token) {
-      res.status(401).json({ error: '인증이 필요합니다', code: 'AUTH_REQUIRED' });
-      return;
-    }
-    const sessionRow = await verifyStreamToken(db, token);
-    if (!sessionRow) {
-      res.status(401).json({ error: '세션이 만료되었거나 유효하지 않습니다', code: 'SESSION_INVALID' });
-      return;
-    }
-
     const agentResult = await db.query('SELECT * FROM agents WHERE id = $1', [req.params.id]);
     const agentRows = agentResult.rows as Array<{ id: string; is_active: boolean }>;
 

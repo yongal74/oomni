@@ -15,7 +15,7 @@ import { ContentLeftPanel, ContentCenterPanel, ContentRightPanel } from '../comp
 import { GrowthLeftPanel, GrowthCenterPanel, GrowthRightPanel } from '../components/bot/panels/GrowthPanel'
 import { OpsLeftPanel, OpsCenterPanel, OpsRightPanel } from '../components/bot/panels/OpsPanel'
 import { CeoLeftPanel, CeoCenterPanel, CeoRightPanel } from '../components/bot/panels/CeoPanel'
-import { DesignCenterPanel, DesignRightPanel } from '../components/bot/panels/DesignPanel'
+import { DesignLeftPanel, DesignCenterPanel, DesignRightPanel } from '../components/bot/panels/DesignPanel'
 import { CommonLeftPanel, CommonCenterPanel, CommonRightPanel } from '../components/bot/panels/GenericPanel'
 import { cn } from '../lib/utils'
 import type { ResearchItem } from '../lib/api'
@@ -356,45 +356,53 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
 
         {/* 완료된 대화 쌍 */}
         {chatHistory.map((pair, i) => (
-          <div key={i} className="space-y-2">
-            {/* 사용자 메시지 — 우측 박스 */}
-            <div className="flex justify-end">
-              <div className="max-w-[88%] bg-primary/12 border border-primary/25 rounded-2xl rounded-tr-sm px-3.5 py-2.5 text-[13px] text-text leading-relaxed whitespace-pre-wrap">
-                {pair.userMsg}
+          <div key={i} className="space-y-1.5">
+            {/* 사용자 메시지 — 전체 너비 박스 */}
+            <div className="w-full bg-primary/8 border border-primary/20 rounded-lg px-3 py-2.5">
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-[9px] text-primary/50 uppercase tracking-widest font-medium">나</span>
               </div>
+              <p className="text-[13px] text-text leading-relaxed whitespace-pre-wrap">{pair.userMsg}</p>
             </div>
-            {/* AI 응답 — 전체 텍스트 */}
-            <div className="pr-1 pl-0.5">
+            {/* AI 응답 — 전체 너비 박스 */}
+            <div className="w-full bg-bg border border-border rounded-lg px-3 py-2.5">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[9px] text-muted/50 uppercase tracking-widest font-medium">AI</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] text-muted/30">{pair.ts}</span>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(pair.assistantMsg)}
+                    className="text-[9px] text-muted/40 hover:text-muted flex items-center gap-0.5 transition-colors"
+                  >
+                    <Copy size={9} /> 복사
+                  </button>
+                </div>
+              </div>
               <pre className={cn(
                 'text-[13px] leading-[1.75] whitespace-pre-wrap font-sans break-words',
                 pair.isError ? 'text-red-400' : 'text-dim'
               )}>
                 {pair.assistantMsg}
               </pre>
-              <div className="mt-1.5 flex items-center gap-2">
-                <span className="text-[10px] text-muted/40">{pair.ts}</span>
-                <button
-                  onClick={() => navigator.clipboard.writeText(pair.assistantMsg)}
-                  className="text-[10px] text-muted/40 hover:text-muted flex items-center gap-0.5 transition-colors"
-                >
-                  <Copy size={9} /> 복사
-                </button>
-              </div>
             </div>
           </div>
         ))}
 
         {/* 현재 실행 중인 대화 쌍 */}
         {pendingUserMsg && (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {/* 사용자 메시지 */}
-            <div className="flex justify-end">
-              <div className="max-w-[88%] bg-primary/12 border border-primary/25 rounded-2xl rounded-tr-sm px-3.5 py-2.5 text-[13px] text-text leading-relaxed whitespace-pre-wrap">
-                {pendingUserMsg}
+            <div className="w-full bg-primary/8 border border-primary/20 rounded-lg px-3 py-2.5">
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-[9px] text-primary/50 uppercase tracking-widest font-medium">나</span>
               </div>
+              <p className="text-[13px] text-text leading-relaxed whitespace-pre-wrap">{pendingUserMsg}</p>
             </div>
             {/* AI 스트리밍 응답 */}
-            <div className="pr-1 pl-0.5">
+            <div className="w-full bg-bg border border-border rounded-lg px-3 py-2.5">
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-[9px] text-muted/50 uppercase tracking-widest font-medium">AI</span>
+              </div>
               {streamOutput ? (
                 <pre className="text-[13px] text-dim leading-[1.75] whitespace-pre-wrap font-sans break-words">
                   {streamOutput}
@@ -403,7 +411,7 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
                   )}
                 </pre>
               ) : (
-                <div className="flex items-center gap-1.5 py-1.5">
+                <div className="flex items-center gap-1.5 py-1">
                   {[0, 1, 2].map(n => (
                     <span
                       key={n}
@@ -613,6 +621,7 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [quota, setQuota] = useState<{ plan: string; runCount: number; limit: number; exceeded: boolean; remaining: number } | null>(null)
   const [pencilStatus, setPencilStatus] = useState<{ connected: boolean } | null>(null)
+  const [selectedTemplate, setSelectedTemplate] = useState('landing')
   // Pencil/localhost URL 감지 (터미널 출력에서 파싱 → 인앱 iframe 표시)
   const [pencilInAppUrl, setPencilInAppUrl] = useState<string | null>(null)
 
@@ -1002,6 +1011,7 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
         if (role === 'research') return <div className="p-3"><ResearchRightPanel
           item={selectedResearchItem}
           agentId={agent.id}
+          missionId={missionId ?? ''}
           activeTrack={activeResearchTrack}
           onSkillSelect={(s: string) => handleSkillRun(s)}
           onFileUpload={(content, filename) => setTask(`__track:${activeResearchTrack}__ 다음 파일(${filename}) 내용을 분석하고 리서치 인사이트를 추출해줘:\n\n${content}`)}
@@ -1079,7 +1089,7 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
 
       // ── Design Bot — 기존 레이아웃 + Pencil 인앱 URL 감지 추가 ─────────────
       case 'design': return {
-        left: null,
+        left: <DesignLeftPanel selectedTemplate={selectedTemplate} onTemplateChange={setSelectedTemplate} onApplyTemplate={(prompt) => designTerminalRef.current?.send(prompt)} />,
         center: <ResizableSplit
           initialTopPercent={55}
           minTopPx={80}

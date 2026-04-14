@@ -514,6 +514,7 @@ export function ResearchRightPanel({
   item,
   onSkillSelect,
   agentId,
+  missionId,
   onFileUpload,
   activeTrack,
 }: {
@@ -522,6 +523,7 @@ export function ResearchRightPanel({
   onNextBot?: () => void
   onSkillSelect?: (prompt: string) => void
   agentId?: string
+  missionId?: string
   onFileUpload?: (content: string, filename: string) => void
   activeTrack?: ResearchTrack
 }) {
@@ -529,6 +531,15 @@ export function ResearchRightPanel({
   const [outputsMap, setOutputsMap] = useState<Record<string, Record<string, string>>>({})
   const outputs = item ? (outputsMap[item.id] ?? {}) : {}
   const [expandedType, setExpandedType] = useState<string | null>(null)
+
+  // kept 항목 목록 (2차 분석용)
+  const { data: allItems = [] } = useQuery<ResearchItem[]>({
+    queryKey: ['research', missionId],
+    queryFn: () => researchApi.list(missionId!),
+    enabled: !!missionId && !item,
+    staleTime: 5000,
+  })
+  const keptItems = allItems.filter(i => i.filter_decision === 'keep')
 
   useEffect(() => {
     setExpandedType(null)
@@ -618,6 +629,43 @@ export function ResearchRightPanel({
         </div>
       </div>
 
+      {/* 보관 항목 2차 분석 */}
+      {keptItems.length > 0 && (
+        <div>
+          <p className="text-xs text-muted uppercase tracking-widest mb-2">
+            ✅ 보관 항목 ({keptItems.length})
+          </p>
+          <div className="space-y-1 mb-2 max-h-32 overflow-y-auto">
+            {keptItems.map(ki => (
+              <div key={ki.id} className="text-[11px] text-dim px-2 py-1 rounded bg-bg border border-border/60 truncate">
+                {ki.title}
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => {
+              const keptSummary = keptItems.map((ki, idx) =>
+                `[${idx + 1}] ${ki.title}\n${ki.summary ?? ''}`
+              ).join('\n\n')
+              const trackNote = activeTrack === 'business' ? '사업성' : activeTrack === 'informational' ? '정보성' : ''
+              onSkillSelect?.(`${trackNote ? `__track:${activeTrack}__ ` : ''}보관된 리서치 항목 ${keptItems.length}개를 종합 분석하고 핵심 인사이트와 액션 플랜을 도출해줘:\n\n${keptSummary}`)
+            }}
+            className="w-full py-2 px-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-xs font-medium hover:bg-green-500/20 transition-colors"
+          >
+            📊 보관 항목 종합 분석
+          </button>
+          {agentId && (
+            <div className="mt-2">
+              <NextBotDropdown
+                currentAgentId={agentId}
+                currentRole="research"
+                content={keptItems.map((ki, idx) => `[${idx + 1}] ${ki.title}\n${ki.summary ?? ''}`).join('\n\n')}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {onFileUpload && (
         <div>
           <p className="text-xs text-muted uppercase tracking-widest mb-2">파일 업로드</p>
@@ -630,10 +678,12 @@ export function ResearchRightPanel({
           </button>
         </div>
       )}
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-xs text-muted/60 text-center">좌측 아이템 클릭 시<br />상세 정보가 표시됩니다</p>
-      </div>
-      {agentId && (
+      {keptItems.length === 0 && (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-xs text-muted/60 text-center">좌측 아이템 클릭 시<br />상세 정보가 표시됩니다</p>
+        </div>
+      )}
+      {agentId && keptItems.length === 0 && (
         <div className="border-t border-border pt-4">
           <NextBotDropdown currentAgentId={agentId} currentRole="research" />
         </div>

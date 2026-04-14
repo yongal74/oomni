@@ -32,7 +32,7 @@
 - 버그 수정: x.x.X (patch)
 - 기능 추가: x.X.0 (minor)
 - 상용화 전환: X.0.0 (major)
-- 현재 버전: **v2.9.11**
+- 현재 버전: **v2.9.12**
 
 ## 프로젝트 컨텍스트
 OOMNI는 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼입니다.
@@ -78,20 +78,41 @@ OOMNI는 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼입니다
 - `forwardRef`로 export, 부모에서 `ref.current?.send(text)` 호출 가능
 - **주의**: Design/Build 봇의 "빠른실행" 버튼은 이제 모두 terminalRef.send()로 처리
 
-### 우측 채팅 패널 — AntigravityRightPanel (v2.9.11~)
+### 우측 채팅 패널 — AntigravityRightPanel (v2.9.12~, Streamable HTTP)
 - **위치**: `BotDetailPage.tsx` → `AntigravityRightPanel` 컴포넌트 (Research/Content/Growth/Ops/CEO 봇 공통)
-- **UI 구조**: 상단 채팅 히스토리 + 하단 입력창
-  - 사용자 메시지: 우측 정렬 박스 (bg-primary/12, rounded-2xl rounded-tr-sm)
-  - AI 응답: 좌측 pre 텍스트 전체 스트리밍 표시 (스크롤, 복사 버튼)
-  - 실행 중: 바운싱 점 3개 → 스트리밍 텍스트 실시간 표시
-- **상태 관리**:
+- **아키텍처**: SSE(EventSource) → **Streamable HTTP(fetch + ReadableStream)** 완전 전환 (v2.9.12)
+  - 엔드포인트: `POST /api/agents/:id/chat` (백엔드 `agents.ts` 추가)
+  - Auth: `Authorization: Bearer {token}` 헤더 (기존 URL 쿼리 파라미터 방식 폐기)
+  - `response.body.getReader()` + JSON 라인 파싱으로 청크 수신
+- **forwardRef + useImperativeHandle**: `AntigravityRightPanelRef.runTask(prompt)` 외부 호출 가능
+  - `UnifiedTerminalLayout`에서 `rightPanelRef` prop으로 전달
+  - 스킬 버튼 클릭 시 `unifiedRightPanelRef.current?.runTask(prompt)` 호출
+- **자체 상태 관리** (props 의존 제거):
+  - `task`, `isChatRunning`, `chatHistory`, `pendingUserMsg`, `streamOutput`, `abortRef` 모두 내부 state
   - `chatHistory: ChatPair[]` — 완료된 대화 쌍 누적
-  - `pendingUserMsg` — 현재 실행 중인 사용자 메시지
-  - `capturedTaskRef` — 실행 시작 시 task 캡처
-  - `streamOutputRef` — 최신 streamOutput 추적
-  - `prevIsRunningRef` — isRunning 전환 감지
-- **생명주기**: isRunning true 시작 → task 캡처, isRunning false 전환 → chatHistory에 push
-- **중요**: SSE 아키텍처(LiveStreamDrawer → streamOutput)는 변경 없음, 표시 방식만 개선
+- **UI 구조**: 상단 채팅 히스토리 + 하단 입력창
+  - 사용자 메시지: 우측 정렬 박스
+  - AI 응답: 좌측 pre 텍스트 전체 스트리밍 표시
+- **중요**: `LiveStreamDrawer`는 Integration/Generic 봇에만 유지, 통합 봇에서는 완전 제거
+
+### XTerminal isRunning 의존성 제거 (v2.9.12~)
+- **버그**: `alwaysOn=true` 모드에서 채팅 Enter 시 `isRunning` 상태 변경 → WebSocket 재연결 → 터미널도 반응
+- **수정**: `useEffect` 의존성 배열에서 `isRunning` 제거
+  - Before: `}, [isRunning, alwaysOn, agentId, shellMode])`
+  - After: `}, [alwaysOn, agentId, shellMode])`
+- **절대 다시 추가하지 말 것**: `isRunning`을 WebSocket 연결 useEffect deps에 넣으면 채팅/터미널 동시 활성화 버그 재발
+
+### N8N 봇 완전 제거 (v2.9.12~)
+- **v2.9.11 미완**: `N8nPage.tsx` 파일만 삭제, DB에 n8n agent는 남아있어 sidebar에 계속 표시됨
+- **v2.9.12 완전 수정**:
+  - DB migration v7: `UPDATE SET role='ops'` → `DELETE FROM agents WHERE role='n8n'`
+  - DB migration v8 추가: `DELETE FROM agents WHERE name LIKE '%n8n%'` (v7으로 이미 변환된 잔재 제거)
+- **주의**: OpsPanel 내부 N8N 연동 기능(`OpsPanel.tsx`)은 유지 — 페이지만 제거
+
+### 대시보드 비용 탭 (v2.9.12~)
+- **버그**: `(costData?.data ?? []).map()` → 백엔드가 배열이 아닌 객체 `{by_agent:[...], total_cost_usd:...}` 반환
+- **수정**: `const byAgent = (costData?.data as any)?.by_agent ?? []` 사용
+- row 필드: `agent_name`, `run_count`, `cost_usd`, `input_tokens`, `output_tokens`
 
 ### Build/Design Bot 터미널 (v2.9.7~) — Antigravity IDE 스타일
 - **alwaysOn** prop: 페이지 마운트 즉시 WebSocket 연결 (isRunning 무관)
@@ -169,12 +190,13 @@ Research → Content → Build → Design → Growth → Ops → CEO
 ## 봇 역할별 실행 방식
 | 봇 | 실행 방식 | 하단 입력 | 우측 패널 | 비고 |
 |----|-----------|-----------|-----------|------|
-| Research | SSE (LiveStreamDrawer) | ✅ 채팅 입력 | AntigravityRightPanel (채팅 UI) | 리서치 결과 스트리밍 |
-| Content | SSE (LiveStreamDrawer) | ✅ 채팅 입력 | AntigravityRightPanel (채팅 UI) | Research 결과 본문 포함 |
+| Research | Streamable HTTP (fetch POST /chat) | ✅ 채팅 입력 | AntigravityRightPanel (자체 스트리밍) | 리서치 결과 스트리밍 |
+| Content | Streamable HTTP (fetch POST /chat) | ✅ 채팅 입력 | AntigravityRightPanel (자체 스트리밍) | Research 결과 본문 포함 |
 | Build | PTY (XTerminal, ResizableSplit) | ❌ 터미널 직접 입력 | BuildRightPanel | 코드에디터(위)+터미널(아래) |
 | Design | PTY (XTerminal, ResizableSplit) | ❌ 터미널 직접 입력 | DesignRightPanel | 미리보기(위)+터미널(아래), 좌측패널 없음 |
-| Growth | SSE (LiveStreamDrawer) | ✅ 채팅 입력 | AntigravityRightPanel (채팅 UI) | 탭별 키워드 필터링 |
-| Ops/CEO | SSE (LiveStreamDrawer) | ✅ 채팅 입력 | AntigravityRightPanel (채팅 UI) | CEO: 탭별 키워드 필터링 |
+| Growth | Streamable HTTP (fetch POST /chat) | ✅ 채팅 입력 | AntigravityRightPanel (자체 스트리밍) | 탭별 키워드 필터링 |
+| Ops | Streamable HTTP (fetch POST /chat) | ✅ 채팅 입력 | AntigravityRightPanel (자체 스트리밍) | N8N 연동 기능은 OpsPanel 내부에 유지 |
+| CEO | Streamable HTTP (fetch POST /chat) | ✅ 채팅 입력 | AntigravityRightPanel (자체 스트리밍) | 탭별 키워드 필터링 |
 
 ## 코드 작성 원칙
 1. 모든 결과물은 반드시 파일로 저장
