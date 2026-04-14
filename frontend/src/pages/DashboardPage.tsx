@@ -614,30 +614,35 @@ export default function DashboardPage() {
             <div className="max-h-80 overflow-y-auto">
               {!missionId ? (
                 <div className="text-center text-muted text-[12px] py-6">미션을 선택하면 비용 데이터를 확인할 수 있습니다</div>
-              ) : (costData?.data ?? []).length === 0 ? (
-                <div className="text-center text-muted text-[12px] py-6">비용 데이터가 없습니다<br/><span className="text-[10px] opacity-60">봇 실행 후 집계됩니다</span></div>
-              ) : (
-                <table className="w-full text-[12px]">
-                  <thead>
-                    <tr className="text-muted text-left border-b border-border">
-                      <th className="pb-2 font-normal">봇</th>
-                      <th className="pb-2 font-normal text-right">실행 수</th>
-                      <th className="pb-2 font-normal text-right">총 비용</th>
-                      <th className="pb-2 font-normal text-right">토큰</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(costData?.data ?? []).map((row: Record<string, unknown>, i: number) => (
-                      <tr key={i} className="border-b border-border last:border-0">
-                        <td className="py-2 text-text">{String(row.agent_name ?? '-')}</td>
-                        <td className="py-2 text-right text-muted">{String(row.run_count ?? 0)}</td>
-                        <td className="py-2 text-right text-primary">${parseFloat(String(row.total_cost_usd ?? '0')).toFixed(4)}</td>
-                        <td className="py-2 text-right text-muted">{Number(row.total_tokens ?? 0).toLocaleString()}</td>
+              ) : (() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const byAgent: Record<string, unknown>[] = (costData?.data as any)?.by_agent ?? []
+                if (byAgent.length === 0) return (
+                  <div className="text-center text-muted text-[12px] py-6">비용 데이터가 없습니다<br/><span className="text-[10px] opacity-60">봇 실행 후 집계됩니다</span></div>
+                )
+                return (
+                  <table className="w-full text-[12px]">
+                    <thead>
+                      <tr className="text-muted text-left border-b border-border">
+                        <th className="pb-2 font-normal">봇</th>
+                        <th className="pb-2 font-normal text-right">실행 수</th>
+                        <th className="pb-2 font-normal text-right">총 비용</th>
+                        <th className="pb-2 font-normal text-right">토큰</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+                    </thead>
+                    <tbody>
+                      {byAgent.map((row, i) => (
+                        <tr key={i} className="border-b border-border last:border-0">
+                          <td className="py-2 text-text">{String(row.agent_name ?? '-')}</td>
+                          <td className="py-2 text-right text-muted">{String(row.run_count ?? 0)}</td>
+                          <td className="py-2 text-right text-primary">${Number(row.cost_usd ?? 0).toFixed(4)}</td>
+                          <td className="py-2 text-right text-muted">{(Number(row.input_tokens ?? 0) + Number(row.output_tokens ?? 0)).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )
+              })()}
             </div>
           )}
 

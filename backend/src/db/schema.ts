@@ -320,9 +320,9 @@ const MIGRATIONS: Migration[] = [
   },
   {
     version: 7,
-    description: 'agents 테이블 role CHECK에서 n8n 제거 — 기존 n8n 봇을 ops로 마이그레이션',
+    description: 'agents 테이블 role CHECK에서 n8n 제거 — 기존 n8n 봇 삭제',
     sql: `
-      UPDATE agents SET role = 'ops' WHERE role = 'n8n';
+      DELETE FROM agents WHERE role = 'n8n';
       DROP TABLE IF EXISTS agents_v6;
       ALTER TABLE agents RENAME TO agents_v6;
       CREATE TABLE agents (
@@ -341,6 +341,13 @@ const MIGRATIONS: Migration[] = [
       );
       INSERT OR IGNORE INTO agents SELECT * FROM agents_v6;
       DROP TABLE IF EXISTS agents_v6;
+    `,
+  },
+  {
+    version: 8,
+    description: 'n8n 이름 포함 agents 정리 — v7에서 ops로 변환된 n8n 봇 삭제',
+    sql: `
+      DELETE FROM agents WHERE name LIKE '%n8n%';
     `,
   },
 ];

@@ -482,6 +482,101 @@ export function agentsRouter(db: DbClient): Router {
     res.end();
   });
 
+  // POST /api/agents/:id/chat — chunked HTTP 스트리밍 (EventSource 대체)
+  router.post('/:id/chat', async (req: Request, res: Response) => {
+    // Authorization: Bearer <token> 헤더, 바디 token, 쿼리 token 순으로 검증
+    const authHeader = req.headers['authorization'] ?? '';
+    const bearerToken = typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : '';
+    const queryToken = typeof req.query.token === 'string' ? req.query.token : '';
+    const bodyToken = typeof req.body?.token === 'string' ? req.body.token : '';
+    const token = bearerToken || bodyToken || queryToken;
+
+    if (!token) {
+      res.status(401).json({ error: '인증이 필요합니다', code: 'AUTH_REQUIRED' });
+      return;
+    }
+    const sessionRow = await verifyStreamToken(db, token);
+    if (!sessionRow) {
+      res.status(401).json({ error: '세션이 만료되었거나 유효하지 않습니다', code: 'SESSION_INVALID' });
+      return;
+    }
+
+    const agentResult = await db.query('SELECT * FROM agents WHERE id = $1', [req.params.id]);
+    const agentRows = agentResult.rows as Array<{ id: string; is_active: boolean }>;
+
+    if (agentRows.length === 0) {
+      res.status(404).json({ error: '봇을 찾을 수 없습니다' });
+      return;
+    }
+
+    const agent = agentRows[0];
+    if (!agent.is_active) {
+      res.status(409).json({ error: '비활성 봇은 실행할 수 없습니다' });
+      return;
+    }
+
+    const task: string = typeof req.body?.task === 'string' && req.body.task.length > 0
+      ? req.body.task
+      : '정기 실행';
+    const overrideModel = typeof req.body?.model === 'string' && req.body.model.length > 0
+      ? req.body.model
+      : undefined;
+
+    // chunked HTTP 스트리밍 헤더 설정
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    // JSON 라인 전송 헬퍼
+    let accumulatedOutput = '';
+    const send = (event: string, data: unknown): void => {
+      res.write(JSON.stringify({ event, data }) + '\n');
+      if (event === 'output' && data && typeof data === 'object') {
+        const d = data as Record<string, unknown>;
+        if (typeof d.text === 'string') accumulatedOutput += d.text;
+        if (typeof d.chunk === 'string') accumulatedOutput += d.chunk;
+      }
+    };
+
+    const agentFull = agentRows[0] as {
+      id: string; name: string; role: string; mission_id: string;
+      is_active: boolean; system_prompt: string; budget_cents: number;
+    };
+
+    send('start', { agentId: agentFull.id, task });
+
+    // 실행 기록 생성 (heartbeat_runs)
+    const runId = uuidv4();
+    await db.query(
+      `INSERT INTO heartbeat_runs (id, agent_id, task, status, started_at) VALUES ($1,$2,$3,'running',strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
+      [runId, agentFull.id, task]
+    ).catch(() => {});
+
+    try {
+      await routeToExecutor({ agent: agentFull, task, db, send, overrideModel });
+      res.write(JSON.stringify({ event: 'done', data: { success: true } }) + '\n');
+      const outputToSave = accumulatedOutput.trim().slice(0, 50000);
+      await db.query(
+        `UPDATE heartbeat_runs SET status='completed', output=$1, finished_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=$2`,
+        [outputToSave || null, runId]
+      ).catch(() => {});
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      res.write(JSON.stringify({ event: 'error', data: { message: errMsg } }) + '\n');
+      const outputToSave = accumulatedOutput.trim().slice(0, 50000);
+      await db.query(
+        `UPDATE heartbeat_runs SET status='failed', output=$1, error=$2, finished_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=$3`,
+        [outputToSave || null, errMsg, runId]
+      ).catch(() => {});
+    }
+
+    res.end();
+  });
+
   // GET /api/agents/:id/heartbeat-runs — heartbeat_runs 테이블 실행 기록 조회
   router.get('/:id/heartbeat-runs', async (req: Request, res: Response) => {
     try {

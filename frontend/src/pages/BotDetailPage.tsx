@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentsApi, paymentsApi, type Agent, type HeartbeatRun } from '../lib/api'
@@ -188,82 +188,153 @@ function PencilInAppView({ url, onClose }: { url: string; onClose: () => void })
   )
 }
 
-// ── 채팅 패널 — 사용자 입력 박스 + AI 응답 스트리밍 ──────────────────────────
-interface ChatPair { userMsg: string; assistantMsg: string; ts: string }
+// ── 채팅 패널 — 자기완결형 (task 입력/스트리밍/히스토리 내부 관리) ───────────
+interface ChatPair { userMsg: string; assistantMsg: string; ts: string; isError?: boolean }
 
-function AntigravityRightPanel({
-  task, setTask, isRunning, onRun, onCancel, onReset, placeholder,
-  streamOutput, children,
-  selectedModel, selectedMode, botRole, onModelChange, onModeChange,
-}: {
-  task: string
-  setTask: (v: string) => void
-  isRunning: boolean
-  onRun: () => void
-  onCancel: () => void
-  onReset: () => void
+export interface AntigravityRightPanelRef {
+  runTask: (prompt: string) => void
+}
+
+const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
+  agentId: string
   placeholder: string
-  streamOutput: string
   children?: React.ReactNode
   selectedModel: ModelId
   selectedMode: ModeId
   botRole: string
   onModelChange: (m: ModelId) => void
   onModeChange: (m: ModeId) => void
-}) {
+  onOutputCapture?: (text: string) => void
+}>(function AntigravityRightPanel(
+  { agentId, placeholder, children, selectedModel, selectedMode, botRole, onModelChange, onModeChange, onOutputCapture },
+  ref
+) {
+  const [task, setTask] = useState('')
   const [chatHistory, setChatHistory] = useState<ChatPair[]>([])
   const [pendingUserMsg, setPendingUserMsg] = useState('')
+  const [streamOutput, setStreamOutput] = useState('')
+  const [isChatRunning, setIsChatRunning] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const prevIsRunningRef = useRef(false)
-  const capturedTaskRef = useRef('')
-  const streamOutputRef = useRef(streamOutput)
-
-  // 항상 최신 streamOutput을 ref에 반영
-  useEffect(() => { streamOutputRef.current = streamOutput }, [streamOutput])
-
-  // 실행 시작/종료 감지 → 채팅 히스토리 관리
-  useEffect(() => {
-    const wasRunning = prevIsRunningRef.current
-    prevIsRunningRef.current = isRunning
-
-    if (isRunning && !wasRunning) {
-      // 실행 시작: 사용자 메시지 캡처
-      capturedTaskRef.current = task
-      setPendingUserMsg(task)
-    } else if (!isRunning && wasRunning) {
-      // 실행 완료: 히스토리에 추가
-      const userMsg = capturedTaskRef.current
-      const assistantMsg = streamOutputRef.current
-      if (userMsg) {
-        setChatHistory(prev => [
-          ...prev,
-          {
-            userMsg,
-            assistantMsg: assistantMsg || '(결과 없음)',
-            ts: new Date().toLocaleTimeString('ko-KR', { hour12: false }),
-          },
-        ])
-      }
-      capturedTaskRef.current = ''
-      setPendingUserMsg('')
-    }
-  }, [isRunning]) // eslint-disable-line react-hooks/exhaustive-deps
+  const abortRef = useRef<AbortController | null>(null)
 
   // 새 메시지 또는 스트리밍 시 자동 스크롤
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatHistory, streamOutput])
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onRun() }
+  const handleRun = useCallback(async (userMsg?: string) => {
+    const msgToSend = (userMsg ?? task).trim()
+    if (!msgToSend || isChatRunning) return
+
+    const token: string =
+      sessionStorage.getItem('session_token') ??
+      (await (window as unknown as { electronAPI?: { getInternalApiKey?: () => Promise<string> } }).electronAPI?.getInternalApiKey?.()) ??
+      ''
+
+    abortRef.current = new AbortController()
+    setIsChatRunning(true)
+    setPendingUserMsg(msgToSend)
+    setStreamOutput('')
+    setTask('')
+
+    let accumulated = ''
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/agents/${agentId}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ task: msgToSend, model: selectedModel }),
+        signal: abortRef.current.signal,
+      })
+
+      if (!response.ok || !response.body) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+        for (const line of lines) {
+          if (!line.trim()) continue
+          try {
+            const parsed = JSON.parse(line) as { event: string; data: unknown }
+            if (parsed.event === 'output') {
+              const d = parsed.data as Record<string, unknown>
+              const text = (d.chunk as string) || (d.text as string) || ''
+              accumulated += text
+              setStreamOutput(prev => prev + text)
+              onOutputCapture?.(accumulated)
+            } else if (parsed.event === 'error') {
+              const d = parsed.data as Record<string, unknown>
+              throw new Error((d.message as string) || '실행 오류')
+            }
+          } catch (parseErr) {
+            // JSON 파싱 실패는 무시 (부분 청크)
+          }
+        }
+      }
+
+      setChatHistory(prev => [...prev, {
+        userMsg: msgToSend,
+        assistantMsg: accumulated || '(결과 없음)',
+        ts: new Date().toLocaleTimeString('ko-KR', { hour12: false }),
+      }])
+    } catch (err) {
+      if ((err as { name?: string }).name === 'AbortError') {
+        // 사용자 취소
+        if (accumulated) {
+          setChatHistory(prev => [...prev, {
+            userMsg: msgToSend,
+            assistantMsg: accumulated + '\n\n[취소됨]',
+            ts: new Date().toLocaleTimeString('ko-KR', { hour12: false }),
+          }])
+        }
+      } else {
+        const errMsg = err instanceof Error ? err.message : String(err)
+        setChatHistory(prev => [...prev, {
+          userMsg: msgToSend,
+          assistantMsg: `오류: ${errMsg}`,
+          ts: new Date().toLocaleTimeString('ko-KR', { hour12: false }),
+          isError: true,
+        }])
+      }
+    } finally {
+      setIsChatRunning(false)
+      setPendingUserMsg('')
+      setStreamOutput('')
+      abortRef.current = null
+    }
+  }, [agentId, isChatRunning, selectedModel, task, onOutputCapture])
+
+  useImperativeHandle(ref, () => ({
+    runTask(prompt: string) {
+      setTask(prompt)
+      handleRun(prompt)
+    },
+  }), [handleRun])
+
+  const handleCancel = () => {
+    abortRef.current?.abort()
   }
 
-  // 리셋: 히스토리도 함께 초기화
   const handleReset = () => {
+    handleCancel()
     setChatHistory([])
     setPendingUserMsg('')
-    capturedTaskRef.current = ''
-    onReset()
+    setStreamOutput('')
+    setTask('')
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleRun() }
   }
 
   const isEmpty = chatHistory.length === 0 && !pendingUserMsg
@@ -294,7 +365,10 @@ function AntigravityRightPanel({
             </div>
             {/* AI 응답 — 전체 텍스트 */}
             <div className="pr-1 pl-0.5">
-              <pre className="text-[13px] text-dim leading-[1.75] whitespace-pre-wrap font-sans break-words">
+              <pre className={cn(
+                'text-[13px] leading-[1.75] whitespace-pre-wrap font-sans break-words',
+                pair.isError ? 'text-red-400' : 'text-dim'
+              )}>
                 {pair.assistantMsg}
               </pre>
               <div className="mt-1.5 flex items-center gap-2">
@@ -324,7 +398,7 @@ function AntigravityRightPanel({
               {streamOutput ? (
                 <pre className="text-[13px] text-dim leading-[1.75] whitespace-pre-wrap font-sans break-words">
                   {streamOutput}
-                  {isRunning && (
+                  {isChatRunning && (
                     <span className="inline-block w-0.5 h-[1.1em] bg-primary ml-0.5 animate-pulse align-text-bottom" />
                   )}
                 </pre>
@@ -363,7 +437,7 @@ function AntigravityRightPanel({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             rows={2}
-            disabled={isRunning}
+            disabled={isChatRunning}
             className={cn(
               'w-full bg-bg border border-border rounded-xl px-3 py-2.5 text-sm text-text placeholder-muted/60',
               'focus:outline-none focus:border-primary/60 resize-none leading-relaxed',
@@ -391,9 +465,9 @@ function AntigravityRightPanel({
             >
               <RotateCcw size={12} />
             </button>
-            {isRunning ? (
+            {isChatRunning ? (
               <button
-                onClick={onCancel}
+                onClick={handleCancel}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30"
               >
                 <Square size={11} />
@@ -401,7 +475,7 @@ function AntigravityRightPanel({
               </button>
             ) : (
               <button
-                onClick={onRun}
+                onClick={() => handleRun()}
                 disabled={!task.trim()}
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors',
@@ -418,26 +492,19 @@ function AntigravityRightPanel({
       </div>
     </div>
   )
-}
+})
 
 // 유니파이드 터미널 레이아웃 — Research/Ops/Growth/CEO/Content용
 // 좌측(2/3): 상단 센터콘텐츠 + 하단 XTerminal
-// 우측(1/3): AntigravityRightPanel (+ 기존 우측 패널 스킬)
+// 우측(1/3): AntigravityRightPanel (자기완결형, 내부에서 task/stream 관리)
 function UnifiedTerminalLayout({
-  agentId, isRunning, task, setTask, onRun, onCancel, onReset,
-  placeholder, streamOutput, termRef, onTerminalExit, onOutputCapture,
+  agentId, placeholder, termRef, onTerminalExit, onOutputCapture,
   centerContent, rightChildren, pencilUrl, onPencilClose,
   selectedModel, selectedMode, botRole, onModelChange, onModeChange,
+  rightPanelRef,
 }: {
   agentId: string
-  isRunning: boolean
-  task: string
-  setTask: (v: string) => void
-  onRun: () => void
-  onCancel: () => void
-  onReset: () => void
   placeholder: string
-  streamOutput: string
   termRef: React.RefObject<XTerminalRef>
   onTerminalExit: () => void
   onOutputCapture: (text: string) => void
@@ -450,6 +517,7 @@ function UnifiedTerminalLayout({
   botRole: string
   onModelChange: (m: ModelId) => void
   onModeChange: (m: ModeId) => void
+  rightPanelRef?: React.RefObject<AntigravityRightPanelRef>
 }) {
   const leftArea = (
     <ResizableSplit
@@ -472,10 +540,9 @@ function UnifiedTerminalLayout({
         <XTerminal
           ref={termRef}
           agentId={agentId}
-          isRunning={isRunning}
+          isRunning={false}
           alwaysOn
           shellMode
-          taskHint={task}
           onExit={onTerminalExit}
           onOutputCapture={onOutputCapture}
           className="h-full"
@@ -492,19 +559,15 @@ function UnifiedTerminalLayout({
       left={leftArea}
       right={
         <AntigravityRightPanel
-          task={task}
-          setTask={setTask}
-          isRunning={isRunning}
-          onRun={onRun}
-          onCancel={onCancel}
-          onReset={onReset}
+          ref={rightPanelRef}
+          agentId={agentId}
           placeholder={placeholder}
-          streamOutput={streamOutput}
           selectedModel={selectedModel}
           selectedMode={selectedMode}
           botRole={botRole}
           onModelChange={onModelChange}
           onModeChange={onModeChange}
+          onOutputCapture={onOutputCapture}
         >
           {rightChildren}
         </AntigravityRightPanel>
@@ -539,12 +602,14 @@ export default function BotDetailPage() {
   const [contentType, setContentType] = useState('blog')
 const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null)
   const [streamOutput, setStreamOutput] = useState('')
+  const [, setStreamError] = useState<string | null>(null)
   const [lastOutput, setLastOutput] = useState('')  // 다음봇 전달용 최신 결과물
   const [designScreenshot, setDesignScreenshot] = useState<string | null>(null)
   const esRef = useRef<EventSource | null>(null)
   const terminalRef = useRef<XTerminalRef>(null)       // Build Bot 터미널 주입
   const designTerminalRef = useRef<XTerminalRef>(null)  // Design Bot 터미널 주입
   const unifiedTerminalRef = useRef<XTerminalRef>(null) // Unified layout 터미널 ref
+  const unifiedRightPanelRef = useRef<AntigravityRightPanelRef>(null) // Unified 우측 채팅 패널 ref
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [quota, setQuota] = useState<{ plan: string; runCount: number; limit: number; exceeded: boolean; remaining: number } | null>(null)
   const [pencilStatus, setPencilStatus] = useState<{ connected: boolean } | null>(null)
@@ -641,6 +706,9 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agent])
 
+  // Unified Terminal Layout 적용 대상 역할
+  const UNIFIED_ROLES = ['research', 'content', 'growth', 'ops', 'ceo']
+
   const handleRun = async () => {
     if (!task.trim() || isRunning) return
     // 무료 플랜 한도 확인 — 테스트 중 비활성화
@@ -652,23 +720,23 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
     const stages = ROLE_STAGES[agent?.role ?? 'default'] ?? ROLE_STAGES.default
     setCurrentStage(stages[0].key) // 첫 단계 즉시 활성화
     setStreamOutput('') // reset stream for new run
+    setStreamError(null)
     setIsRunning(true)
   }
 
   // 빠른 실행 버튼: prompt를 task에 설정하고 즉시 실행
-  const handleSkillRun = async (prompt: string) => {
-    if (isRunning) return
-    // 무료 플랜 한도 확인 — 테스트 중 비활성화
-    // if (quota?.plan === 'free') {
-    //   const fresh = await paymentsApi.quota().catch(() => quota)
-    //   setQuota(fresh)
-    //   if (fresh?.exceeded) { setTask(prompt); setShowUpgradeModal(true); return }
-    // }
-    setTask(prompt)
-    const stages = ROLE_STAGES[agent?.role ?? 'default'] ?? ROLE_STAGES.default
-    setCurrentStage(stages[0].key)
-    setStreamOutput('')
-    setIsRunning(true)
+  const handleSkillRun = (prompt: string) => {
+    if (agent && UNIFIED_ROLES.includes(agent.role)) {
+      setTask(prompt)  // keep for other uses
+      unifiedRightPanelRef.current?.runTask(prompt)
+    } else {
+      if (isRunning) return
+      setTask(prompt)
+      const stages = ROLE_STAGES[agent?.role ?? 'default'] ?? ROLE_STAGES.default
+      setCurrentStage(stages[0].key)
+      setStreamOutput('')
+      setIsRunning(true)
+    }
   }
 
   // 실행 취소
@@ -684,6 +752,7 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
     if (isRunning) handleCancel()
     setTask('')
     setStreamOutput('')
+    setStreamError(null)
     setLastOutput('')
     setCurrentStage(null)
     setPencilInAppUrl(null)
@@ -877,9 +946,6 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
     )
   }
 
-  // Unified Terminal Layout 적용 대상 역할
-  const UNIFIED_ROLES = ['research', 'content', 'growth', 'ops', 'ceo']
-
   // 역할별 Left/Center/Right 패널
   const renderPanels = () => {
     if (showSettings) {
@@ -950,14 +1016,7 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
       const unifiedCenter = (
         <UnifiedTerminalLayout
           agentId={agent.id}
-          isRunning={isRunning}
-          task={task}
-          setTask={setTask}
-          onRun={handleRun}
-          onCancel={handleCancel}
-          onReset={handleReset}
           placeholder={placeholder}
-          streamOutput={streamOutput}
           termRef={unifiedTerminalRef}
           onTerminalExit={() => { setIsRunning(false); setCurrentStage('done') }}
           onOutputCapture={handleUnifiedOutputCapture}
@@ -970,6 +1029,7 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
           botRole={agent.role}
           onModelChange={setSelectedModel}
           onModeChange={setSelectedMode}
+          rightPanelRef={unifiedRightPanelRef}
         />
       )
 
@@ -1209,25 +1269,6 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
           </div>
         )}
       </div>
-
-      {/* ── Unified 레이아웃용 숨겨진 SSE 스트리머 ── */}
-      {isUnified && (
-        <div className="hidden">
-          <LiveStreamDrawer
-            agentId={agent.id}
-            task={task}
-            isRunning={isRunning}
-            onStageChange={setCurrentStage}
-            onDone={handleDone}
-            onError={() => { setIsRunning(false); setCurrentStage(null) }}
-            onOutputChunk={(chunk) => setStreamOutput(prev => prev + chunk)}
-            onScreenshot={(url) => setDesignScreenshot(url)}
-            esRef={esRef}
-            modelId={selectedModel}
-            apiKeys={getModelApiHeaders(selectedModel)}
-          />
-        </div>
-      )}
 
       {/* ── 하단: 스트림 드로어 + 프롬프트 입력
            Unified 레이아웃(Research/Ops/Growth/CEO/Content/n8n)은

@@ -217,7 +217,8 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
       wsRef.current = null
       setConnected(false)
     }
-  }, [isRunning, alwaysOn, agentId, shellMode]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [alwaysOn, agentId, shellMode]) // eslint-disable-line react-hooks/exhaustive-deps
+  // isRunning 제거: alwaysOn 모드에서 isRunning 변경 시 터미널 재연결 방지
 
   const handleKill = () => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {

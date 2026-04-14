@@ -32,7 +32,7 @@
 - 버그 수정: x.x.X (patch)
 - 기능 추가: x.X.0 (minor)
 - 상용화 전환: X.0.0 (major)
-- 현재 버전: **v2.9.8**
+- 현재 버전: **v2.9.11**
 
 ## 프로젝트 컨텍스트
 OOMNI는 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼입니다.
@@ -77,6 +77,21 @@ OOMNI는 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼입니다
 - `send()`: `ws.send(JSON.stringify({ type: 'input', data: text + '\r' }))` — Enter 포함 자동 주입
 - `forwardRef`로 export, 부모에서 `ref.current?.send(text)` 호출 가능
 - **주의**: Design/Build 봇의 "빠른실행" 버튼은 이제 모두 terminalRef.send()로 처리
+
+### 우측 채팅 패널 — AntigravityRightPanel (v2.9.11~)
+- **위치**: `BotDetailPage.tsx` → `AntigravityRightPanel` 컴포넌트 (Research/Content/Growth/Ops/CEO 봇 공통)
+- **UI 구조**: 상단 채팅 히스토리 + 하단 입력창
+  - 사용자 메시지: 우측 정렬 박스 (bg-primary/12, rounded-2xl rounded-tr-sm)
+  - AI 응답: 좌측 pre 텍스트 전체 스트리밍 표시 (스크롤, 복사 버튼)
+  - 실행 중: 바운싱 점 3개 → 스트리밍 텍스트 실시간 표시
+- **상태 관리**:
+  - `chatHistory: ChatPair[]` — 완료된 대화 쌍 누적
+  - `pendingUserMsg` — 현재 실행 중인 사용자 메시지
+  - `capturedTaskRef` — 실행 시작 시 task 캡처
+  - `streamOutputRef` — 최신 streamOutput 추적
+  - `prevIsRunningRef` — isRunning 전환 감지
+- **생명주기**: isRunning true 시작 → task 캡처, isRunning false 전환 → chatHistory에 push
+- **중요**: SSE 아키텍처(LiveStreamDrawer → streamOutput)는 변경 없음, 표시 방식만 개선
 
 ### Build/Design Bot 터미널 (v2.9.7~) — Antigravity IDE 스타일
 - **alwaysOn** prop: 페이지 마운트 즉시 WebSocket 연결 (isRunning 무관)
@@ -152,13 +167,14 @@ OOMNI는 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼입니다
 Research → Content → Build → Design → Growth → Ops → CEO
 
 ## 봇 역할별 실행 방식
-| 봇 | 실행 방식 | 하단 입력 | 비고 |
-|----|-----------|-----------|------|
-| Research | SSE (LiveStreamDrawer) | ✅ 채팅 입력 | 리서치 결과 스트리밍 |
-| Content | SSE (LiveStreamDrawer) | ✅ 채팅 입력 | 콘텐츠 생성 스트리밍 |
-| Build | PTY (XTerminal, ResizableSplit) | ❌ 터미널 직접 입력 | 코드에디터(위)+터미널(아래) |
-| Design | PTY (XTerminal, ResizableSplit) | ❌ 터미널 직접 입력 | 미리보기(위)+터미널(아래), 좌측패널 없음 |
-| Growth/Ops/CEO | SSE (LiveStreamDrawer) | ✅ 채팅 입력 | 결과 스트리밍 |
+| 봇 | 실행 방식 | 하단 입력 | 우측 패널 | 비고 |
+|----|-----------|-----------|-----------|------|
+| Research | SSE (LiveStreamDrawer) | ✅ 채팅 입력 | AntigravityRightPanel (채팅 UI) | 리서치 결과 스트리밍 |
+| Content | SSE (LiveStreamDrawer) | ✅ 채팅 입력 | AntigravityRightPanel (채팅 UI) | Research 결과 본문 포함 |
+| Build | PTY (XTerminal, ResizableSplit) | ❌ 터미널 직접 입력 | BuildRightPanel | 코드에디터(위)+터미널(아래) |
+| Design | PTY (XTerminal, ResizableSplit) | ❌ 터미널 직접 입력 | DesignRightPanel | 미리보기(위)+터미널(아래), 좌측패널 없음 |
+| Growth | SSE (LiveStreamDrawer) | ✅ 채팅 입력 | AntigravityRightPanel (채팅 UI) | 탭별 키워드 필터링 |
+| Ops/CEO | SSE (LiveStreamDrawer) | ✅ 채팅 입력 | AntigravityRightPanel (채팅 UI) | CEO: 탭별 키워드 필터링 |
 
 ## 코드 작성 원칙
 1. 모든 결과물은 반드시 파일로 저장
@@ -166,6 +182,16 @@ Research → Content → Build → Design → Growth → Ops → CEO
 3. 한국어로 결과물 작성 (코드 제외)
 4. 각 단계 완료 시 간략한 완료 메시지 출력
 5. 에러 발생 시 원인과 대안 명시
+
+### CEO/Growth봇 탭별 필터링 (v2.9.11~)
+- **CEO봇**: `TAB_KEYWORDS` 맵으로 일간/주간/OKR/투자자별 키워드 매칭 → 관련 feed 우선 표시, 없으면 최신 fallback
+- **Growth봇**: `GROWTH_TAB_KEYWORDS` 맵으로 마케팅/웹로그/CS 탭 필터링, CDP 탭은 `CdpSegmentTab` 별도 컴포넌트 유지
+- **공통 패턴**: `feed.filter(item => keywords.some(kw => item.content.toLowerCase().includes(kw.toLowerCase())))`
+
+### Content Bot Research 연동 (v2.9.11~)
+- **파일**: `BotDetailPage.tsx` line ~907, `ContentPanel.tsx`
+- onItemSelect: `item.title`만 포함 → `item.content ?? item.summary` 전체 원문 포함 (`=== 리서치 원문 ===` 섹션)
+- ContentLeftPanel: `slice(0,5)` → `slice(0,10)`, 각 아이템에 summary 한 줄 미리보기
 
 ## 릴리즈 체크리스트
 1. `package.json` 버전 bump
