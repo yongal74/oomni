@@ -291,8 +291,10 @@ const MIGRATIONS: Migration[] = [
   },
   {
     version: 5,
-    description: 'research_items 테이블 outputs_json 컬럼 추가',
-    sql: `ALTER TABLE research_items ADD COLUMN outputs_json TEXT;`,
+    description: 'research_items 테이블 outputs_json 컬럼 추가 (SCHEMA_SQL + columnPatch로 이동됨, no-op)',
+    // SCHEMA_SQL에 이미 outputs_json이 포함됨 → 신규 설치 시 duplicate column 오류로 v6~v8 실행 불가
+    // columnPatch가 기존 DB 처리, SCHEMA_SQL이 신규 DB 처리 → 이 마이그레이션은 no-op
+    sql: `SELECT 1;`,
   },
   {
     version: 6,
@@ -348,6 +350,23 @@ const MIGRATIONS: Migration[] = [
     description: 'n8n 이름 포함 agents 정리 — v7에서 ops로 변환된 n8n 봇 삭제',
     sql: `
       DELETE FROM agents WHERE name LIKE '%n8n%';
+    `,
+  },
+  {
+    version: 9,
+    description: 'FK 참조 수정 — agents_v5/v6 → agents (migration v6/v7 ALTER TABLE RENAME 부작용 수정)',
+    // 근본 원인: SQLite는 ALTER TABLE agents RENAME TO agents_v5 실행 시
+    // 다른 테이블의 DDL(sqlite_master.sql)에서 REFERENCES agents → REFERENCES "agents_v5"로 자동 업데이트.
+    // 이후 agents_v5 DROP 시 heartbeat_runs/feed_items/cost_events/issues/schedules/token_usage의
+    // FK 참조가 존재하지 않는 "agents_v5"를 가리켜 foreign_keys=ON 상태에서 INSERT 시
+    // "no such table: main.agents_v5" 오류 발생.
+    // PRAGMA writable_schema로 sqlite_master를 직접 패치하여 수정.
+    sql: `
+      PRAGMA writable_schema = ON;
+      UPDATE sqlite_master
+        SET sql = REPLACE(REPLACE(sql, 'agents_v5', 'agents'), 'agents_v6', 'agents')
+        WHERE sql LIKE '%agents_v5%' OR sql LIKE '%agents_v6%';
+      PRAGMA writable_schema = OFF;
     `,
   },
 ];

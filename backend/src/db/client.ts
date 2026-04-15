@@ -155,6 +155,7 @@ export function initDb(): DbClient {
   const columnPatches = [
     { sql: "ALTER TABLE token_usage ADD COLUMN mission_id TEXT DEFAULT ''",   label: 'token_usage.mission_id' },
     { sql: "ALTER TABLE heartbeat_runs ADD COLUMN task TEXT DEFAULT ''",       label: 'heartbeat_runs.task' },
+    { sql: "ALTER TABLE research_items ADD COLUMN outputs_json TEXT",          label: 'research_items.outputs_json' },
   ];
   for (const patch of columnPatches) {
     try {
