@@ -11,7 +11,7 @@
 - 버전 변경 시: push → GitHub Release → 랜딩페이지 순서 필수
 
 ### 3. 버전 관리
-- 버그 수정: x.x.X (patch) / 기능 추가: x.X.0 (minor) / 현재 버전: **v2.9.19**
+- 버그 수정: x.x.X (patch) / 기능 추가: x.X.0 (minor) / 현재 버전: **v2.9.20**
 
 ---
 
@@ -89,18 +89,21 @@ OOMNI — 솔로 창업자용 AI 에이전트 자동화 플랫폼. 봇 파이프
 - SCHEMA_SQL 먼저 실행 시 빈 agents 테이블 생성 → repair가 데이터 있는 agents_v5 삭제
 
 ### SQLite ALTER TABLE RENAME → FK 참조 자동 업데이트 주의 (v2.9.17~)
-- SQLite 3.26.0+ 에서 `ALTER TABLE foo RENAME TO foo_bak` 실행 시 **다른 테이블의 DDL(sqlite_master.sql)에서 FK 참조가 자동으로 `foo_bak`으로 변경됨**
-- 이후 `foo_bak` DROP 시 FK 참조가 dangling → `foreign_keys=ON`에서 INSERT/UPDATE 시 "no such table: main.foo_bak" 오류
-- **해결책 (v2.9.19~)**: RENAME 전 `PRAGMA legacy_alter_table = ON` 설정으로 FK 자동 업데이트 원천 차단
+- SQLite 3.26.0+ 에서 `ALTER TABLE foo RENAME TO foo_bak` 실행 시 **다른 테이블의 DDL에서 FK 참조가 자동으로 `foo_bak`으로 변경됨**
+- 이후 `foo_bak` DROP 시 FK 참조가 dangling → `foreign_keys=ON`에서 INSERT 시 "no such table: main.foo_bak" 오류
+- **해결책 (v2.9.20~)**: RENAME 전 `PRAGMA legacy_alter_table = ON` 설정으로 FK 자동 업데이트 원천 차단
   ```sql
   PRAGMA legacy_alter_table = ON;
   ALTER TABLE agents RENAME TO agents_vN;
   PRAGMA legacy_alter_table = OFF;
   -- ... CREATE TABLE agents, INSERT, DROP agents_vN
   ```
-- **PRAGMA writable_schema 사용 금지**: SQLite 최신 버전에서 트랜잭션 내 sqlite_master 수정 불가 ("table sqlite_master may not be modified")
-- 기존 corrupt DB 치유: DROP+CREATE 방식으로 child 테이블 재구축 (migration v10)
+- 기존 corrupt DB 치유: `client.ts`의 `postMigrationFkRepair()` — sqlite_master 조회 후 오염 테이블만 조건부 DROP+CREATE
 - **절대 금지**: `ALTER TABLE agents RENAME TO agents_vN` 패턴을 `PRAGMA legacy_alter_table = ON/OFF` 없이 사용
+
+### 포트 3001 EADDRINUSE 처리 (v2.9.20~)
+- `backend/src/index.ts`: `server.on('error')` 핸들러 필수 — 없으면 EADDRINUSE가 uncaughtException → Electron 오류 다이얼로그
+- `electron/main.js`: 500ms 타임아웃에서 `testConn.destroy()` 전 `testConn.removeAllListeners('error')` 필수 — 없으면 launchBackend 두 번 호출
 
 ### 마이그레이션 chain-break 방지 (v2.9.17~)
 - SCHEMA_SQL에 컬럼이 이미 포함된 경우, 해당 컬럼을 추가하는 migration은 반드시 **no-op(`SELECT 1;`)으로 변경**
