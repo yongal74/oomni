@@ -607,22 +607,30 @@ export function agentsRouter(db: DbClient): Router {
     res.json({ ok: true });
   });
 
-  // GET /api/agents/:id/pencil-status — Pencil MCP 연동 상태 확인
+  // GET /api/agents/:id/pencil-status — Pencil MCP 연동 상태 확인 (npx 독립, Antigravity 완전 무관)
   router.get('/:id/pencil-status', (_req: Request, res: Response) => {
-    const antigravityBase = path.join(os.homedir(), '.gemini', 'antigravity', 'extensions');
     try {
-      if (!fs.existsSync(antigravityBase)) {
-        res.json({ connected: false, reason: 'antigravity_not_found' });
-        return;
-      }
-      const entries = fs.readdirSync(antigravityBase);
-      const pencilExt = entries.find(e => e.startsWith('highagency.pencildev'));
-      if (!pencilExt) {
-        res.json({ connected: false, reason: 'pencil_ext_not_found' });
-        return;
-      }
-      const exePath = path.join(antigravityBase, pencilExt, 'out', 'mcp-server-windows-x64.exe');
-      res.json({ connected: fs.existsSync(exePath), exePath });
+      // npx 경로 탐색 — Pencil MCP는 npx @pencilapp/mcp-server로 실행 (Antigravity 비의존)
+      const npxCandidates = process.platform === 'win32' ? [
+        path.join(path.dirname(process.execPath), 'npx.cmd'),
+        path.join(os.homedir(), 'AppData', 'Roaming', 'npm', 'npx.cmd'),
+        'C:\\Program Files\\nodejs\\npx.cmd',
+        'C:\\nvm4w\\nodejs\\npx.cmd',
+        'C:\\nvm\\nodejs\\npx.cmd',
+        path.join(os.homedir(), 'scoop', 'shims', 'npx.cmd'),
+      ] : [
+        path.join(path.dirname(process.execPath), 'npx'),
+        '/usr/local/bin/npx',
+        '/usr/bin/npx',
+        path.join(os.homedir(), '.npm-global', 'bin', 'npx'),
+        path.join(os.homedir(), '.nvm', 'versions', 'node', 'current', 'bin', 'npx'),
+      ];
+      const npxPath = npxCandidates.find(p => fs.existsSync(p)) ?? null;
+      res.json({
+        connected: !!npxPath,
+        method: 'npx',
+        npxPath: npxPath ?? 'not_found',
+      });
     } catch {
       res.json({ connected: false, reason: 'error' });
     }

@@ -270,6 +270,8 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
         const lines = lineBuffer.split('\n')
         // 마지막 요소는 불완전한 라인일 수 있으므로 버퍼에 보관
         lineBuffer = lines.pop() ?? ''
+        // 서버 에러 이벤트: throw를 루프 내 try-catch 밖에서 처리해야 묵살 방지
+        let serverError: Error | null = null
         for (const line of lines) {
           if (!line.trim()) continue
           try {
@@ -285,12 +287,14 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
               if (typeof d.stage === 'string') onStageChange?.(d.stage)
             } else if (parsed.event === 'error') {
               const d = parsed.data as Record<string, unknown>
-              throw new Error((d.message as string) || '실행 오류')
+              // 루프 내 throw는 catch(parseErr)에 잡혀 묵살됨 — 반드시 루프 밖에서 throw
+              serverError = new Error((d.message as string) || '실행 오류')
             }
-          } catch (parseErr) {
-            // JSON 파싱 실패는 무시 (부분 청크)
+          } catch {
+            // JSON 파싱 실패만 무시 (불완전한 청크 경계)
           }
         }
+        if (serverError) throw serverError
       }
 
       setChatHistory(prev => [...prev, {

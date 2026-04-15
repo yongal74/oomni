@@ -65,33 +65,44 @@ const ROLE_INSTRUCTIONS: Record<AgentRole, string> = {
   ceo: '너는 CEO 역할의 AI 봇이다. 모든 봇의 활동 결과를 종합하여 일일/주간 보고서를 생성하고, 핵심 지표를 분석하며, 전략적 방향을 제안해라. OOMNI API에서 최근 피드와 비용 데이터를 가져와 종합 보고서를 작성하고 사람의 승인을 요청해라.',
 };
 
-// ── Pencil MCP 설정 빌더 ──────────────────────────────────────────────────────
+// ── Pencil MCP 설정 빌더 — npx 독립 실행 (Antigravity 완전 제거) ─────────────
+function findNpxPath(): string {
+  if (process.env.NPX_PATH && fs.existsSync(process.env.NPX_PATH)) return process.env.NPX_PATH;
+  if (process.platform === 'win32') {
+    const candidates = [
+      path.join(path.dirname(process.execPath), 'npx.cmd'),
+      path.join(os.homedir(), 'AppData', 'Roaming', 'npm', 'npx.cmd'),
+      'C:\\Program Files\\nodejs\\npx.cmd',
+      'C:\\nvm4w\\nodejs\\npx.cmd',
+      'C:\\nvm\\nodejs\\npx.cmd',
+      path.join(os.homedir(), 'scoop', 'shims', 'npx.cmd'),
+    ];
+    return candidates.find(p => fs.existsSync(p)) ?? 'npx';
+  }
+  const candidates = [
+    path.join(path.dirname(process.execPath), 'npx'),
+    '/usr/local/bin/npx',
+    '/usr/bin/npx',
+    path.join(os.homedir(), '.npm-global', 'bin', 'npx'),
+  ];
+  return candidates.find(p => fs.existsSync(p)) ?? 'npx';
+}
+
 function buildMcpConfig(role: string): string | null {
   if (role !== 'design') return null;
-
-  const antigravityBase = path.join(os.homedir(), '.gemini', 'antigravity', 'extensions');
-  if (!fs.existsSync(antigravityBase)) return null;
-
-  const entries = fs.readdirSync(antigravityBase);
-  const pencilExt = entries.find(e => e.startsWith('highagency.pencildev'));
-  if (!pencilExt) return null;
-
-  const exeName = process.platform === 'win32'
-    ? 'mcp-server-windows-x64.exe'
-    : process.platform === 'darwin'
-      ? 'mcp-server-macos-arm64'
-      : 'mcp-server-linux-x64';
-  const exePath = path.join(antigravityBase, pencilExt, 'out', exeName);
-  if (!fs.existsSync(exePath)) return null;
-
-  const config = {
-    mcpServers: {
-      pencil: { command: exePath, args: ['--app', 'oomni'] },
-    },
-  };
-  const tmpPath = path.join(os.tmpdir(), `oomni-mcp-${Date.now()}.json`);
-  fs.writeFileSync(tmpPath, JSON.stringify(config));
-  return tmpPath;
+  try {
+    const npx = findNpxPath();
+    const config = {
+      mcpServers: {
+        pencil: { command: npx, args: ['-y', '@pencilapp/mcp-server'], env: {} },
+      },
+    };
+    const tmpPath = path.join(os.tmpdir(), `oomni-mcp-${Date.now()}.json`);
+    fs.writeFileSync(tmpPath, JSON.stringify(config));
+    return tmpPath;
+  } catch {
+    return null;
+  }
 }
 
 export class AgentRunner extends EventEmitter {

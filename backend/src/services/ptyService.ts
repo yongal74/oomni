@@ -53,22 +53,36 @@ function getApiKey(): string {
   return process.env.ANTHROPIC_API_KEY ?? '';
 }
 
+function findNpxPath(): string {
+  if (process.env.NPX_PATH && fs.existsSync(process.env.NPX_PATH)) return process.env.NPX_PATH;
+  if (process.platform === 'win32') {
+    const candidates = [
+      path.join(path.dirname(process.execPath), 'npx.cmd'),
+      path.join(os.homedir(), 'AppData', 'Roaming', 'npm', 'npx.cmd'),
+      'C:\\Program Files\\nodejs\\npx.cmd',
+      'C:\\nvm4w\\nodejs\\npx.cmd',
+      'C:\\nvm\\nodejs\\npx.cmd',
+      path.join(os.homedir(), 'scoop', 'shims', 'npx.cmd'),
+    ];
+    return candidates.find(p => fs.existsSync(p)) ?? 'npx';
+  }
+  const candidates = [
+    path.join(path.dirname(process.execPath), 'npx'),
+    '/usr/local/bin/npx',
+    '/usr/bin/npx',
+    path.join(os.homedir(), '.npm-global', 'bin', 'npx'),
+  ];
+  return candidates.find(p => fs.existsSync(p)) ?? 'npx';
+}
+
 function getMcpConfig(agentId: string): string | null {
-  // Pencil MCP 경로 (Design bot용이지만 Build bot도 사용 가능)
-  const antigravityBase = path.join(os.homedir(), '.gemini', 'antigravity', 'extensions');
-  if (!fs.existsSync(antigravityBase)) return null;
-
+  // Pencil MCP — npx @pencilapp/mcp-server (Antigravity 완전 독립)
   try {
-    const entries = fs.readdirSync(antigravityBase);
-    const pencilExt = entries.find(e => e.startsWith('highagency.pencildev'));
-    if (!pencilExt) return null;
-    const exePath = path.join(antigravityBase, pencilExt, 'out', 'mcp-server-windows-x64.exe');
-    if (!fs.existsSync(exePath)) return null;
-
+    const npx = findNpxPath();
     const cfgPath = path.join(os.tmpdir(), `pty-mcp-${agentId}.json`);
     const config = {
       mcpServers: {
-        pencil: { command: exePath, args: ['--app', 'antigravity'], env: {} },
+        pencil: { command: npx, args: ['-y', '@pencilapp/mcp-server'], env: {} },
       },
     };
     fs.writeFileSync(cfgPath, JSON.stringify(config, null, 2));

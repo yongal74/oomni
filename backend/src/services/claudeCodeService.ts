@@ -101,13 +101,19 @@ function findNpxPath(): string {
   }
   if (process.platform === 'win32') {
     const candidates = [
+      // node 실행 파일과 같은 디렉토리 (nvm4w / nvm / 표준 설치 공통 패턴)
+      path.join(path.dirname(process.execPath), 'npx.cmd'),
       path.join(os.homedir(), 'AppData', 'Roaming', 'npm', 'npx.cmd'),
       'C:\\Program Files\\nodejs\\npx.cmd',
+      'C:\\nvm4w\\nodejs\\npx.cmd',
+      'C:\\nvm\\nodejs\\npx.cmd',
       path.join(os.homedir(), 'scoop', 'shims', 'npx.cmd'),
     ];
     return candidates.find(p => fs.existsSync(p)) ?? 'npx';
   }
   const candidates = [
+    // node 실행 파일과 같은 디렉토리
+    path.join(path.dirname(process.execPath), 'npx'),
     '/usr/local/bin/npx',
     '/usr/bin/npx',
     path.join(os.homedir(), '.npm-global', 'bin', 'npx'),
