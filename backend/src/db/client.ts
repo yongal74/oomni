@@ -184,14 +184,18 @@ export function initDb(): DbClient {
     logger.info('[DB] 스키마 마이그레이션 완료');
   }
 
-  // migration v9(writable_schema 패치) 적용 후 스키마 캐시 강제 갱신
+  // migration v9(writable_schema 패치) 또는 v10(DROP+CREATE 재구축) 적용 후 스키마 캐시 강제 갱신
   // 이유: PRAGMA writable_schema로 sqlite_master를 수정해도 현재 연결의 인메모리
   //      스키마 캐시(schema cookie)는 갱신되지 않는다. FK 참조가 stale 상태로 남아
   //      같은 세션에서 INSERT 시 "no such table: main.agents_v5" 오류가 계속 발생.
   //      → DB 재연결로 파일에서 스키마를 새로 파싱해야 근본 수정됨.
-  const v9Applied = migrationResults.find(r => r.version === 9 && r.status === 'applied');
-  if (v9Applied) {
-    logger.info('[DB] migration v9 적용됨 — 스키마 캐시 갱신을 위해 DB 재연결');
+  //      v10: DROP+CREATE는 정상 DDL 경로여서 schema cookie가 자동 갱신되지만,
+  //           안전을 위해 재연결 적용.
+  const needsReconnect = migrationResults.find(
+    r => (r.version === 9 || r.version === 10) && r.status === 'applied'
+  );
+  if (needsReconnect) {
+    logger.info(`[DB] migration v${needsReconnect.version} 적용됨 — 스키마 캐시 갱신을 위해 DB 재연결`);
     db.close();
     db = new Database(DB_PATH, { verbose: undefined });
     db.pragma('journal_mode = WAL');
