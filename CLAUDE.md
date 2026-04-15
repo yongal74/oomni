@@ -11,7 +11,7 @@
 - 버전 변경 시: push → GitHub Release → 랜딩페이지 순서 필수
 
 ### 3. 버전 관리
-- 버그 수정: x.x.X (patch) / 기능 추가: x.X.0 (minor) / 현재 버전: **v2.9.17**
+- 버그 수정: x.x.X (patch) / 기능 추가: x.X.0 (minor) / 현재 버전: **v2.9.18**
 
 ---
 
@@ -98,6 +98,7 @@ OOMNI — 솔로 창업자용 AI 에이전트 자동화 플랫폼. 봇 파이프
     WHERE sql LIKE '%old_name%';
   PRAGMA writable_schema = OFF;
   ```
+- **필수**: writable_schema 패치 migration 적용 후 반드시 DB 재연결(`db.close()` + `new Database()`) — 현재 세션의 스키마 캐시가 갱신되지 않으면 같은 세션에서 여전히 오류 발생 (v2.9.18~)
 - **절대 금지**: migration에서 `ALTER TABLE agents RENAME TO agents_vN` 패턴 신규 추가 — 반드시 위 패치 동반
 
 ### 마이그레이션 chain-break 방지 (v2.9.17~)

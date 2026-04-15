@@ -1,6 +1,6 @@
 {
   "name": "oomni-frontend",
-  "version": "2.9.10",
+  "version": "2.9.18",
   "type": "module",
   "scripts": {
     "dev": "vite",
