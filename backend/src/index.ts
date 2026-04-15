@@ -124,6 +124,18 @@ async function main() {
   logger.info(`[Main] ${agents.rows.length}개 봇 스케줄 복원 완료`);
 
   // 8. 서버 시작
+  // EADDRINUSE: uncaughtException으로 올라가지 않도록 server.on('error') 필수
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      logger.warn(
+        `[Main] 포트 ${config.PORT} 이미 사용 중 — 다른 OOMNI 인스턴스가 실행 중입니다. ` +
+        '앱을 완전히 종료 후 재시작하세요.'
+      );
+      // 프로세스를 죽이지 않음: Electron이 uncaughtException 다이얼로그를 띄우는 것을 방지
+    } else {
+      throw err;
+    }
+  });
   server.listen(config.PORT, () => {
     logger.info(`[Main] OOMNI 서버 시작: http://localhost:${config.PORT}`);
     logger.info(`[Main] WebSocket: ws://localhost:${config.PORT}/ws`);

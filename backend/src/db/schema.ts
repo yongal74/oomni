@@ -362,126 +362,20 @@ const MIGRATIONS: Migration[] = [
   },
   {
     version: 9,
-    description: 'FK 참조 수정 (no-op) — v10 DROP+CREATE 방식으로 대체됨',
-    // 원래 PRAGMA writable_schema 방식이었으나, SQLite 최신 버전에서
-    // 트랜잭션 안에서 sqlite_master UPDATE 자체가 금지("table sqlite_master may not be modified").
-    // → v6/v7에 PRAGMA legacy_alter_table = ON 추가로 근본 차단.
-    // → v10에서 DROP+CREATE 방식으로 기존 corrupt DB 치유.
-    sql: `SELECT 1;`,
-  },
-  {
-    version: 10,
-    description: 'child 테이블 FK 완전 재구축 — DROP+CREATE로 REFERENCES agents(id) 정정 (v9 writable_schema 실패 대비)',
-    // v6/v7에서 legacy_alter_table 없이 RENAME 했던 DB에서 v9 writable_schema가
-    // WAL 모드 비호환으로 실패했을 경우를 위한 근본 수정.
-    // PRAGMA legacy_alter_table = ON 사용: RENAME 시 다른 테이블 FK 자동 업데이트 방지.
-    // DROP + CREATE 방식으로 sqlite_master를 정상 경로로 업데이트 → schema cookie 자동 갱신.
+    description: 'FK 참조 수정 — agents_v5/v6 → agents (migration v6/v7 ALTER TABLE RENAME 부작용 수정)',
+    // 근본 원인: SQLite는 ALTER TABLE agents RENAME TO agents_v5 실행 시
+    // 다른 테이블의 DDL(sqlite_master.sql)에서 REFERENCES agents → REFERENCES "agents_v5"로 자동 업데이트.
+    // 이후 agents_v5 DROP 시 heartbeat_runs/feed_items/cost_events/issues/schedules/token_usage의
+    // FK 참조가 존재하지 않는 "agents_v5"를 가리켜 foreign_keys=ON 상태에서 INSERT 시
+    // "no such table: main.agents_v5" 오류 발생.
+    // PRAGMA writable_schema로 sqlite_master를 직접 패치하여 수정.
+    // 실패 시 client.ts의 postMigrationFkRepair()가 DROP+CREATE 방식으로 보완.
     sql: `
-      PRAGMA legacy_alter_table = ON;
-
-      ALTER TABLE heartbeat_runs RENAME TO _hbr_bak;
-      CREATE TABLE heartbeat_runs (
-        id            TEXT PRIMARY KEY,
-        agent_id      TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-        status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','running','completed','failed','skipped')),
-        session_id    TEXT,
-        output        TEXT,
-        error         TEXT,
-        tokens_input  INTEGER NOT NULL DEFAULT 0,
-        tokens_output INTEGER NOT NULL DEFAULT 0,
-        cost_usd      REAL NOT NULL DEFAULT 0,
-        started_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-        finished_at   TEXT,
-        task          TEXT NOT NULL DEFAULT ''
-      );
-      INSERT OR IGNORE INTO heartbeat_runs (id, agent_id, status, session_id, output, error, tokens_input, tokens_output, cost_usd, started_at, finished_at)
-        SELECT id, agent_id, status, session_id, output, error, tokens_input, tokens_output, cost_usd, started_at, finished_at FROM _hbr_bak;
-      DROP TABLE _hbr_bak;
-      CREATE INDEX IF NOT EXISTS idx_heartbeat_runs_agent_id ON heartbeat_runs(agent_id);
-      CREATE INDEX IF NOT EXISTS idx_heartbeat_runs_status ON heartbeat_runs(status);
-
-      ALTER TABLE feed_items RENAME TO _fi_bak;
-      CREATE TABLE feed_items (
-        id               TEXT PRIMARY KEY,
-        agent_id         TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-        run_id           TEXT REFERENCES heartbeat_runs(id) ON DELETE SET NULL,
-        type             TEXT NOT NULL CHECK (type IN ('info','result','approval','error')),
-        content          TEXT NOT NULL,
-        action_label     TEXT,
-        action_data      TEXT,
-        requires_approval INTEGER NOT NULL DEFAULT 0,
-        approved_at      TEXT,
-        rejected_at      TEXT,
-        created_at       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-      );
-      INSERT OR IGNORE INTO feed_items SELECT * FROM _fi_bak;
-      DROP TABLE _fi_bak;
-      CREATE INDEX IF NOT EXISTS idx_feed_items_agent_id ON feed_items(agent_id);
-      CREATE INDEX IF NOT EXISTS idx_feed_items_requires_approval ON feed_items(requires_approval) WHERE requires_approval = 1;
-
-      ALTER TABLE cost_events RENAME TO _ce_bak;
-      CREATE TABLE cost_events (
-        id            TEXT PRIMARY KEY,
-        agent_id      TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-        run_id        TEXT NOT NULL,
-        tokens_input  INTEGER NOT NULL DEFAULT 0,
-        tokens_output INTEGER NOT NULL DEFAULT 0,
-        cost_usd      REAL NOT NULL DEFAULT 0,
-        created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-      );
-      INSERT OR IGNORE INTO cost_events SELECT * FROM _ce_bak;
-      DROP TABLE _ce_bak;
-      CREATE INDEX IF NOT EXISTS idx_cost_events_agent_id ON cost_events(agent_id);
-
-      ALTER TABLE issues RENAME TO _iss_bak;
-      CREATE TABLE issues (
-        id          TEXT PRIMARY KEY,
-        mission_id  TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
-        agent_id    TEXT REFERENCES agents(id) ON DELETE SET NULL,
-        title       TEXT NOT NULL,
-        description TEXT,
-        status      TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','in_progress','done','cancelled')),
-        priority    TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low','medium','high')),
-        parent_id   TEXT REFERENCES issues(id) ON DELETE SET NULL,
-        created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-      );
-      INSERT OR IGNORE INTO issues SELECT * FROM _iss_bak;
-      DROP TABLE _iss_bak;
-
-      ALTER TABLE schedules RENAME TO _sch_bak;
-      CREATE TABLE schedules (
-        id            TEXT PRIMARY KEY,
-        agent_id      TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-        mission_id    TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
-        name          TEXT NOT NULL DEFAULT '',
-        trigger_type  TEXT NOT NULL DEFAULT 'interval' CHECK (trigger_type IN ('interval','cron','webhook','bot_complete')),
-        trigger_value TEXT NOT NULL DEFAULT '',
-        is_active     INTEGER NOT NULL DEFAULT 1,
-        last_run_at   TEXT,
-        created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-      );
-      INSERT OR IGNORE INTO schedules SELECT * FROM _sch_bak;
-      DROP TABLE _sch_bak;
-      CREATE INDEX IF NOT EXISTS idx_schedules_agent_id ON schedules(agent_id);
-
-      ALTER TABLE token_usage RENAME TO _tu_bak;
-      CREATE TABLE token_usage (
-        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-        agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-        mission_id TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
-        run_id TEXT,
-        input_tokens INTEGER NOT NULL DEFAULT 0,
-        output_tokens INTEGER NOT NULL DEFAULT 0,
-        cost_usd REAL NOT NULL DEFAULT 0,
-        model TEXT DEFAULT 'claude-3-5-sonnet',
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
-      );
-      INSERT OR IGNORE INTO token_usage SELECT * FROM _tu_bak;
-      DROP TABLE _tu_bak;
-      CREATE INDEX IF NOT EXISTS idx_token_usage_agent_id ON token_usage(agent_id);
-      CREATE INDEX IF NOT EXISTS idx_token_usage_mission_id ON token_usage(mission_id);
-
-      PRAGMA legacy_alter_table = OFF;
+      PRAGMA writable_schema = ON;
+      UPDATE sqlite_master
+        SET sql = REPLACE(REPLACE(sql, 'agents_v5', 'agents'), 'agents_v6', 'agents')
+        WHERE sql LIKE '%agents_v5%' OR sql LIKE '%agents_v6%';
+      PRAGMA writable_schema = OFF;
     `,
   },
 ];

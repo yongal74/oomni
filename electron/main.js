@@ -136,7 +136,12 @@ function startBackend() {
       }
     })
     testConn.on('error', () => launchBackend(backendPath, resolve))
-    testConn.setTimeout(500, () => { testConn.destroy(); launchBackend(backendPath, resolve) })
+    testConn.setTimeout(500, () => {
+      // destroy()가 'error' 이벤트를 발생시켜 launchBackend가 두 번 호출되는 레이스 방지
+      testConn.removeAllListeners('error')
+      testConn.destroy()
+      launchBackend(backendPath, resolve)
+    })
   })
 }
 

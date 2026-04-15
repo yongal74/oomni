@@ -184,18 +184,14 @@ export function initDb(): DbClient {
     logger.info('[DB] 스키마 마이그레이션 완료');
   }
 
-  // migration v9(writable_schema 패치) 또는 v10(DROP+CREATE 재구축) 적용 후 스키마 캐시 강제 갱신
+  // migration v9(writable_schema 패치) 적용 후 스키마 캐시 강제 갱신
   // 이유: PRAGMA writable_schema로 sqlite_master를 수정해도 현재 연결의 인메모리
   //      스키마 캐시(schema cookie)는 갱신되지 않는다. FK 참조가 stale 상태로 남아
   //      같은 세션에서 INSERT 시 "no such table: main.agents_v5" 오류가 계속 발생.
   //      → DB 재연결로 파일에서 스키마를 새로 파싱해야 근본 수정됨.
-  //      v10: DROP+CREATE는 정상 DDL 경로여서 schema cookie가 자동 갱신되지만,
-  //           안전을 위해 재연결 적용.
-  const needsReconnect = migrationResults.find(
-    r => (r.version === 9 || r.version === 10) && r.status === 'applied'
-  );
-  if (needsReconnect) {
-    logger.info(`[DB] migration v${needsReconnect.version} 적용됨 — 스키마 캐시 갱신을 위해 DB 재연결`);
+  const v9Applied = migrationResults.find(r => r.version === 9 && r.status === 'applied');
+  if (v9Applied) {
+    logger.info('[DB] migration v9 적용됨 — 스키마 캐시 갱신을 위해 DB 재연결');
     db.close();
     db = new Database(DB_PATH, { verbose: undefined });
     db.pragma('journal_mode = WAL');
@@ -203,7 +199,166 @@ export function initDb(): DbClient {
     logger.info('[DB] DB 재연결 완료 — 스키마 캐시 갱신됨');
   }
 
+  // ── writable_schema 실패 대비 보완 복구 ────────────────────────────────────
+  // migration v9(PRAGMA writable_schema)가 일부 SQLite 버전에서 실패할 경우를 위한 안전망.
+  // sqlite_master를 조회해 실제로 agents_v5/v6를 참조하는 테이블만 조건부 DROP+CREATE.
+  // 트랜잭션을 테이블별 개별 실행 → 하나 실패해도 나머지 정상 동작.
+  postMigrationFkRepair(db);
+
   return createClient();
+}
+
+// ── FK 오염 테이블 DDL 정의 (REFERENCES agents(id) 정정용) ──────────────────
+const CHILD_TABLE_DDLS: Record<string, string> = {
+  heartbeat_runs: `CREATE TABLE heartbeat_runs (
+    id            TEXT PRIMARY KEY,
+    agent_id      TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','running','completed','failed','skipped')),
+    session_id    TEXT,
+    output        TEXT,
+    error         TEXT,
+    tokens_input  INTEGER NOT NULL DEFAULT 0,
+    tokens_output INTEGER NOT NULL DEFAULT 0,
+    cost_usd      REAL NOT NULL DEFAULT 0,
+    started_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    finished_at   TEXT,
+    task          TEXT NOT NULL DEFAULT ''
+  )`,
+  feed_items: `CREATE TABLE feed_items (
+    id               TEXT PRIMARY KEY,
+    agent_id         TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    run_id           TEXT REFERENCES heartbeat_runs(id) ON DELETE SET NULL,
+    type             TEXT NOT NULL CHECK (type IN ('info','result','approval','error')),
+    content          TEXT NOT NULL,
+    action_label     TEXT,
+    action_data      TEXT,
+    requires_approval INTEGER NOT NULL DEFAULT 0,
+    approved_at      TEXT,
+    rejected_at      TEXT,
+    created_at       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+  cost_events: `CREATE TABLE cost_events (
+    id            TEXT PRIMARY KEY,
+    agent_id      TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    run_id        TEXT NOT NULL,
+    tokens_input  INTEGER NOT NULL DEFAULT 0,
+    tokens_output INTEGER NOT NULL DEFAULT 0,
+    cost_usd      REAL NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+  issues: `CREATE TABLE issues (
+    id          TEXT PRIMARY KEY,
+    mission_id  TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+    agent_id    TEXT REFERENCES agents(id) ON DELETE SET NULL,
+    title       TEXT NOT NULL,
+    description TEXT,
+    status      TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','in_progress','done','cancelled')),
+    priority    TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low','medium','high')),
+    parent_id   TEXT REFERENCES issues(id) ON DELETE SET NULL,
+    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+  schedules: `CREATE TABLE schedules (
+    id            TEXT PRIMARY KEY,
+    agent_id      TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    mission_id    TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+    name          TEXT NOT NULL DEFAULT '',
+    trigger_type  TEXT NOT NULL DEFAULT 'interval' CHECK (trigger_type IN ('interval','cron','webhook','bot_complete')),
+    trigger_value TEXT NOT NULL DEFAULT '',
+    is_active     INTEGER NOT NULL DEFAULT 1,
+    last_run_at   TEXT,
+    created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+  token_usage: `CREATE TABLE token_usage (
+    id         TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    agent_id   TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    mission_id TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+    run_id     TEXT,
+    input_tokens  INTEGER NOT NULL DEFAULT 0,
+    output_tokens INTEGER NOT NULL DEFAULT 0,
+    cost_usd   REAL NOT NULL DEFAULT 0,
+    model      TEXT DEFAULT 'claude-3-5-sonnet',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+};
+
+const CHILD_TABLE_INDEXES: Record<string, string[]> = {
+  heartbeat_runs: [
+    'CREATE INDEX IF NOT EXISTS idx_heartbeat_runs_agent_id ON heartbeat_runs(agent_id)',
+    'CREATE INDEX IF NOT EXISTS idx_heartbeat_runs_status ON heartbeat_runs(status)',
+  ],
+  feed_items: [
+    'CREATE INDEX IF NOT EXISTS idx_feed_items_agent_id ON feed_items(agent_id)',
+    "CREATE INDEX IF NOT EXISTS idx_feed_items_requires_approval ON feed_items(requires_approval) WHERE requires_approval = 1",
+  ],
+  cost_events: [
+    'CREATE INDEX IF NOT EXISTS idx_cost_events_agent_id ON cost_events(agent_id)',
+  ],
+  issues: [],
+  schedules: [
+    'CREATE INDEX IF NOT EXISTS idx_schedules_agent_id ON schedules(agent_id)',
+  ],
+  token_usage: [
+    'CREATE INDEX IF NOT EXISTS idx_token_usage_agent_id ON token_usage(agent_id)',
+    'CREATE INDEX IF NOT EXISTS idx_token_usage_mission_id ON token_usage(mission_id)',
+  ],
+};
+
+/**
+ * migration v9 (PRAGMA writable_schema) 실패 대비 안전망.
+ * sqlite_master에서 agents_v5/v6를 참조하는 테이블을 찾아 DROP+CREATE 방식으로 개별 복구.
+ * 테이블별 독립 실행 → 하나 실패해도 나머지 정상.
+ */
+function postMigrationFkRepair(db: Database.Database): void {
+  try {
+    const dirtyRows = db.prepare(
+      `SELECT name FROM sqlite_master
+       WHERE type = 'table'
+         AND (sql LIKE '%"agents_v5"%' OR sql LIKE '%"agents_v6"%'
+              OR sql LIKE '%agents_v5%'  OR sql LIKE '%agents_v6%')
+         AND name NOT IN ('agents_v5', 'agents_v6', 'schema_migrations')`
+    ).all() as { name: string }[];
+
+    if (dirtyRows.length === 0) return;
+
+    logger.info(`[DB] FK 오염 테이블 발견: ${dirtyRows.map(r => r.name).join(', ')} — 개별 DROP+CREATE 복구`);
+
+    db.pragma('foreign_keys = OFF');
+
+    for (const { name } of dirtyRows) {
+      const ddl = CHILD_TABLE_DDLS[name];
+      if (!ddl) {
+        logger.warn(`[DB] FK 복구: ${name} DDL 정의 없음 — 건너뜀`);
+        continue;
+      }
+      try {
+        const bak = `_${name}_fkbak`;
+        // 혹시 이전 실패로 bak 테이블이 남아 있으면 정리
+        db.exec(`DROP TABLE IF EXISTS ${bak}`);
+        db.exec(`ALTER TABLE ${name} RENAME TO ${bak}`);
+        db.exec(ddl);
+        db.exec(`INSERT OR IGNORE INTO ${name} SELECT * FROM ${bak}`);
+        db.exec(`DROP TABLE ${bak}`);
+        for (const idx of CHILD_TABLE_INDEXES[name] ?? []) {
+          db.exec(idx);
+        }
+        logger.info(`[DB] FK 복구 완료: ${name}`);
+      } catch (tableErr) {
+        logger.error(`[DB] FK 복구 실패: ${name}`, tableErr);
+        // 실패한 테이블은 건너뛰고 계속
+      }
+    }
+
+    db.pragma('foreign_keys = ON');
+
+    // DROP+CREATE 후 스키마 캐시 갱신
+    logger.info('[DB] FK 복구 완료 — 스키마 캐시 갱신을 위해 DB 재연결');
+    db.close();
+    db = new Database(DB_PATH, { verbose: undefined });
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+  } catch (err) {
+    logger.error('[DB] postMigrationFkRepair 실패 (무시하고 계속):', err);
+  }
 }
 
 export function getDb(): DbClient {
