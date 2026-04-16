@@ -203,7 +203,8 @@ export function initDb(): DbClient {
   // migration v9(PRAGMA writable_schema)가 일부 SQLite 버전에서 실패할 경우를 위한 안전망.
   // sqlite_master를 조회해 실제로 agents_v5/v6를 참조하는 테이블만 조건부 DROP+CREATE.
   // 트랜잭션을 테이블별 개별 실행 → 하나 실패해도 나머지 정상 동작.
-  postMigrationFkRepair(db);
+  // 주의: 파라미터 없이 호출 — 함수 내부에서 모듈 레벨 db를 직접 교체해야 하기 때문.
+  postMigrationFkRepair();
 
   return createClient();
 }
@@ -307,8 +308,10 @@ const CHILD_TABLE_INDEXES: Record<string, string[]> = {
  * migration v9 (PRAGMA writable_schema) 실패 대비 안전망.
  * sqlite_master에서 agents_v5/v6를 참조하는 테이블을 찾아 DROP+CREATE 방식으로 개별 복구.
  * 테이블별 독립 실행 → 하나 실패해도 나머지 정상.
+ * 주의: 파라미터 이름을 'db'로 쓰지 않음 — 모듈 레벨 db 변수를 직접 업데이트해야 하기 때문.
  */
-function postMigrationFkRepair(db: Database.Database): void {
+function postMigrationFkRepair(): void {
+  if (!db) return;
   try {
     const dirtyRows = db.prepare(
       `SELECT name FROM sqlite_master
@@ -350,7 +353,7 @@ function postMigrationFkRepair(db: Database.Database): void {
 
     db.pragma('foreign_keys = ON');
 
-    // DROP+CREATE 후 스키마 캐시 갱신
+    // DROP+CREATE 후 스키마 캐시 갱신 — 모듈 레벨 db를 직접 교체
     logger.info('[DB] FK 복구 완료 — 스키마 캐시 갱신을 위해 DB 재연결');
     db.close();
     db = new Database(DB_PATH, { verbose: undefined });
