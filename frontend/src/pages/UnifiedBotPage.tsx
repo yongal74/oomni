@@ -9,8 +9,7 @@ import {
   ExternalLink, X, Telescope, BookOpen, TrendingUp, Workflow, Crown, Bot,
 } from 'lucide-react'
 import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
-import { LiveStreamDrawer } from '../components/bot/LiveStreamDrawer'
-import { ModelSwitcher, getModelApiHeaders, type ModelId, type ModeId } from '../components/bot/ModelSwitcher'
+import { ModelSwitcher, type ModelId, type ModeId } from '../components/bot/ModelSwitcher'
 import { XTerminal, type XTerminalRef } from '../components/bot/XTerminal'
 import { ResearchLeftPanel, ResearchCenterPanel, ResearchRightPanel } from '../components/bot/panels/ResearchPanel'
 import { ContentLeftPanel, ContentCenterPanel, ContentRightPanel } from '../components/bot/panels/ContentPanel'
@@ -622,8 +621,6 @@ export default function UnifiedBotPage() {
   const [selectedModel, setSelectedModel] = useState<ModelId>('claude-sonnet-4-6')
   const [selectedMode, setSelectedMode] = useState<ModeId>('default')
 
-  // 이전 봇에서 전달된 pendingBotInput을 task 초기값으로 사용
-  const [task, setTask] = useState(() => pendingBotInput ?? '')
   const [isRunning, setIsRunning] = useState(false)
   const [currentStage, setCurrentStage] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
@@ -696,19 +693,18 @@ export default function UnifiedBotPage() {
     if (!autorun || !agent || isRunning) return
     const decoded = decodeURIComponent(autorun)
     setSearchParams({}, { replace: true }) // URL에서 파라미터 제거
-    setTask(decoded)
     // 상태 업데이트 후 실행 — requestAnimationFrame으로 다음 렌더 사이클에 실행
     requestAnimationFrame(() => {
       const stages = ROLE_STAGES[agent.role] ?? ROLE_STAGES.default
       setCurrentStage(stages[0].key)
       setStreamOutput('')
       setIsRunning(true)
+      unifiedRightPanelRef.current?.runTask(decoded)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agent])
 
   const handleSkillRun = (prompt: string) => {
-    setTask(prompt)
     unifiedRightPanelRef.current?.runTask(prompt)
   }
 
@@ -723,7 +719,6 @@ export default function UnifiedBotPage() {
   // 결과/대화 초기화
   const handleReset = () => {
     if (isRunning) handleCancel()
-    setTask('')
     setStreamOutput('')
     setLastOutput('')
     setCurrentStage(null)
@@ -918,8 +913,8 @@ export default function UnifiedBotPage() {
       if (role === 'content') return <ContentLeftPanel
         missionId={missionId ?? ''}
         selectedType={contentType}
-        onTypeChange={(type) => { setContentType(type); setTask(`${type} 형식으로 콘텐츠 초안을 작성해줘`) }}
-        onItemSelect={(item) => setTask(`"${item.title}" 리서치 내용을 ${contentType} 형식으로 변환해서 콘텐츠 초안을 작성해줘\n\n=== 리서치 원문 ===\n${item.content ?? item.summary ?? ''}`)}
+        onTypeChange={(type) => { setContentType(type); handleSkillRun(`${type} 형식으로 콘텐츠 초안을 작성해줘`) }}
+        onItemSelect={(item) => handleSkillRun(`"${item.title}" 리서치 내용을 ${contentType} 형식으로 변환해서 콘텐츠 초안을 작성해줘\n\n=== 리서치 원문 ===\n${item.content ?? item.summary ?? ''}`)}
       />
       if (role === 'growth') return <GrowthLeftPanel />
       if (role === 'ops') return <OpsLeftPanel agentId={agent.id} onSkillSelect={(s) => unifiedTerminalRef.current?.send(s)} />
@@ -951,7 +946,7 @@ export default function UnifiedBotPage() {
         missionId={missionId ?? ''}
         activeTrack={activeResearchTrack}
         onSkillSelect={(s: string) => handleSkillRun(s)}
-        onFileUpload={(content, filename) => setTask(`__track:${activeResearchTrack}__ 다음 파일(${filename}) 내용을 분석하고 리서치 인사이트를 추출해줘:\n\n${content}`)}
+        onFileUpload={(content, filename) => handleSkillRun(`__track:${activeResearchTrack}__ 다음 파일(${filename}) 내용을 분석하고 리서치 인사이트를 추출해줘:\n\n${content}`)}
       /></div>
       if (role === 'content') return <div className="p-3"><ContentRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="content" content={lastOutput} /></div>
       if (role === 'growth') return <div className="p-3"><GrowthRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="growth" content={lastOutput} /></div>
@@ -998,7 +993,7 @@ export default function UnifiedBotPage() {
     return { left: leftPanel, center: unifiedCenter, isUnified: true }
   }
 
-  const { left, center, isUnified } = renderUnifiedPanels()
+  const { left, center } = renderUnifiedPanels()
 
   return (
     <div className="flex flex-col h-full">
@@ -1103,32 +1098,6 @@ export default function UnifiedBotPage() {
             </div>
           </div>
 
-          {/* Unified 레이아웃은 AntigravityRightPanel 내부에 입력창이 있으므로 하단 바 불필요 */}
-          {!isUnified && (
-            <div className="shrink-0">
-              <LiveStreamDrawer
-                agentId={agent.id}
-                task={task}
-                isRunning={isRunning}
-                onStageChange={setCurrentStage}
-                onDone={() => {
-                  setIsRunning(false)
-                  qc.invalidateQueries({ queryKey: ['bot-feed', id] })
-                  qc.invalidateQueries({ queryKey: ['issues', missionId] })
-                  if (streamOutput) setLastOutput(streamOutput)
-                  setTask('')
-                  setCurrentStage(agent?.role === 'research' ? 'sorting' : 'done')
-                  qc.invalidateQueries({ queryKey: ['research', missionId] })
-                }}
-                onError={() => { setIsRunning(false); setCurrentStage(null) }}
-                onOutputChunk={(chunk) => setStreamOutput(prev => prev + chunk)}
-                onScreenshot={() => {}}
-                esRef={esRef}
-                modelId={selectedModel}
-                apiKeys={getModelApiHeaders(selectedModel)}
-              />
-            </div>
-          )}
         </>
       )}
 

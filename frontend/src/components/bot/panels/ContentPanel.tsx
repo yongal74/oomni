@@ -5,8 +5,6 @@ import { Copy, Check, FileText, Video, Download, Film, Upload, X, ArrowUpDown, E
 import { cn } from '../../../lib/utils'
 import { ArchiveButton } from '../shared/ArchiveButton'
 import { NextBotDropdown } from '../shared/NextBotDropdown'
-import { Player } from '@remotion/player'
-import { ShortFormVideo } from '../../video/ShortFormVideo'
 
 const CONTENT_TYPES = [
   { key: 'blog', label: '블로그 포스트', emoji: '📝' },
@@ -162,7 +160,6 @@ function ShortformVideoPanel() {
   })
 
   const currentVariant = selectedScript?.variants[selectedVariant]
-  const remotionProps = currentVariant?.remotion_props
 
   return (
     <div className="h-full flex flex-col gap-4 overflow-y-auto p-5">
@@ -237,27 +234,6 @@ function ShortformVideoPanel() {
               ))}
             </div>
           </div>
-
-          {/* Remotion Player Preview */}
-          {remotionProps && (
-            <div>
-              <p className="text-xs text-muted uppercase tracking-widest mb-2">미리보기</p>
-              <div className="rounded-xl overflow-hidden border border-border bg-black" style={{ aspectRatio: '9/16' }}>
-                <Player
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  component={ShortFormVideo as any}
-                  inputProps={remotionProps}
-                  durationInFrames={remotionProps.durationInFrames}
-                  fps={remotionProps.fps}
-                  compositionWidth={remotionProps.width}
-                  compositionHeight={remotionProps.height}
-                  style={{ width: '100%', height: '100%' }}
-                  controls
-                  loop
-                />
-              </div>
-            </div>
-          )}
 
           {/* Script text */}
           <div className="bg-bg rounded-lg border border-border p-4 space-y-3">

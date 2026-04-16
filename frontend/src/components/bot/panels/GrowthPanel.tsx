@@ -9,8 +9,8 @@ import {
 import { cn } from '../../../lib/utils'
 import { ArchiveButton } from '../shared/ArchiveButton'
 import { NextBotDropdown } from '../shared/NextBotDropdown'
-import { Player } from '@remotion/player'
-import { GrowthStoryVideo, type GrowthStoryProps, type MetricType } from '../../video/GrowthStoryVideo'
+
+type MetricType = 'users' | 'revenue' | 'signups' | 'mau' | 'mrr'
 
 const TABS = [
   { key: 'marketing', label: '마케팅 실행', icon: TrendingUp },
@@ -421,17 +421,9 @@ function GrowthVideoPanel() {
   const [endValue, setEndValue] = useState('')
   const [days, setDays] = useState('30')
   const [brandName, setBrandName] = useState('')
-  const [previewProps, setPreviewProps] = useState<GrowthStoryProps | null>(null)
   const [renderStatus, setRenderStatus] = useState<string | null>(null)
 
   const selectedMetric = METRIC_OPTIONS.find(m => m.value === metricType)!
-
-  const handlePreview = () => {
-    const start = parseInt(startValue) || 0
-    const end = parseInt(endValue) || 100
-    const d = parseInt(days) || 30
-    setPreviewProps({ metricType, startValue: start, endValue: end, days: d, brandName: brandName || 'OOMNI' })
-  }
 
   const renderMutation = useMutation({
     mutationFn: () => {
@@ -536,28 +528,6 @@ function GrowthVideoPanel() {
           <div className="flex items-center justify-between text-sm mt-1">
             <span className="text-muted">{parseInt(days)}일 기준</span>
             <span className="text-dim">{startValue}{selectedMetric.unit} → {endValue}{selectedMetric.unit}</span>
-          </div>
-        </div>
-      )}
-
-      <button onClick={handlePreview} disabled={!isValid}
-        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-primary/40 text-primary hover:bg-primary/5 text-sm rounded-lg disabled:opacity-40 transition-colors">
-        <Video size={14} />미리보기
-      </button>
-
-      {previewProps && (
-        <div>
-          <p className="text-xs text-muted mb-2">미리보기</p>
-          <div className="rounded-xl overflow-hidden border border-border bg-black" style={{ aspectRatio: '9/16' }}>
-            <Player
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              component={GrowthStoryVideo as any}
-              inputProps={previewProps}
-              durationInFrames={1800} fps={30}
-              compositionWidth={1080} compositionHeight={1920}
-              style={{ width: '100%', height: '100%' }}
-              controls loop
-            />
           </div>
         </div>
       )}
