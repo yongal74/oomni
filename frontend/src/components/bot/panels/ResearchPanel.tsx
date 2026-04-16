@@ -383,8 +383,39 @@ export function ResearchCenterPanel({
     )
   }
 
+  const businessItems = visibleItems.filter(i => {
+    const tags: string[] = Array.isArray(i.tags) ? i.tags : []
+    const srcType = i.source_type as string
+    return tags.some(t => t.includes('사업성')) || srcType === 'business'
+  })
+  const informationalItems = visibleItems.filter(i => {
+    const tags: string[] = Array.isArray(i.tags) ? i.tags : []
+    const srcType = i.source_type as string
+    return tags.some(t => t.includes('정보성')) || srcType === 'informational'
+  })
+
   return (
     <div className="h-full overflow-y-auto p-4 space-y-4">
+      {/* AI 1차 필터링 결과 요약 */}
+      {(businessItems.length > 0 || informationalItems.length > 0) && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface border border-border">
+          <span className="text-[10px] text-muted uppercase tracking-widest">AI 1차 필터링 완료</span>
+          <div className="flex items-center gap-1.5 ml-auto">
+            {businessItems.length > 0 && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                📊 사업성 {businessItems.length}개
+              </span>
+            )}
+            {informationalItems.length > 0 && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                💡 정보성 {informationalItems.length}개
+              </span>
+            )}
+            <span className="text-[10px] text-muted/60">→ 2차 소팅 필요</span>
+          </div>
+        </div>
+      )}
+
       {pending.length > 0 && (
         <div>
           <p className="text-xs text-muted uppercase tracking-widest mb-3">
@@ -422,6 +453,10 @@ export function ResearchCenterPanel({
                 isSelected={selectedItem?.id === item.id}
               />
             ))}
+          </div>
+          <div className="mt-3 p-2 rounded-lg border border-green-500/20 bg-green-500/5">
+            <p className="text-[10px] text-green-400 font-medium mb-1.5">✅ {kept.length}개 KEEP 완료</p>
+            <p className="text-[10px] text-muted/70">우측 패널 하단의 "다음 봇으로 전달" 버튼을 눌러 Content Bot으로 전달하세요</p>
           </div>
         </div>
       )}

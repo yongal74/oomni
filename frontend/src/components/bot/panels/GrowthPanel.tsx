@@ -34,6 +34,59 @@ const COLOR_MAP: Record<string, string> = {
   blue: 'text-blue-400',
 }
 
+// ── 구조화된 Growth 결과 컴포넌트 ────────────────────────────────────────────
+function StructuredGrowthResult({ content }: { content: string }) {
+  // 마크다운 섹션으로 파싱 (## 헤더 기준)
+  const sections = content.split(/\n(?=#{1,3}\s)/).map(section => {
+    const lines = section.trim().split('\n')
+    const headerLine = lines[0] ?? ''
+    const headerMatch = headerLine.match(/^(#{1,3})\s+(.+)/)
+    const body = lines.slice(1).join('\n').trim()
+    return {
+      level: headerMatch ? headerMatch[1].length : 0,
+      title: headerMatch ? headerMatch[2] : headerLine,
+      body,
+      isHeader: !!headerMatch,
+    }
+  }).filter(s => s.title || s.body)
+
+  if (sections.length === 0) {
+    return <pre className="text-sm text-dim leading-relaxed whitespace-pre-wrap font-sans">{content}</pre>
+  }
+
+  return (
+    <div className="space-y-3">
+      {sections.map((section, i) => (
+        <div key={i} className={cn(
+          'rounded-lg border p-3',
+          section.level === 1 ? 'border-primary/30 bg-primary/5' :
+          section.level === 2 ? 'border-border bg-surface/60' :
+          'border-border/50 bg-bg/50'
+        )}>
+          {section.isHeader && (
+            <p className={cn(
+              'font-semibold mb-2',
+              section.level === 1 ? 'text-sm text-text' :
+              section.level === 2 ? 'text-xs text-dim' :
+              'text-xs text-muted'
+            )}>
+              {section.title}
+            </p>
+          )}
+          {section.body && (
+            <pre className="text-xs text-muted leading-relaxed whitespace-pre-wrap font-sans">
+              {section.body}
+            </pre>
+          )}
+          {!section.isHeader && (
+            <p className="text-xs text-dim leading-relaxed whitespace-pre-wrap">{section.title}</p>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ── LEFT: KPI + CDP 세그먼트 + 빠른 캠페인 ──────────────────────────────────
 export function GrowthLeftPanel({ onCampaign }: { onCampaign?: (segId: string, channel: 'email' | 'sms' | 'push') => void }) {
   const qc = useQueryClient()
@@ -297,12 +350,20 @@ export function GrowthCenterPanel({ agentId, streamOutput, isRunning }: {
         {activeTab === 'cdp' ? (
           <CdpSegmentTab />
         ) : isRunning ? (
-          <pre className="text-base text-dim leading-relaxed whitespace-pre-wrap font-sans">{streamOutput || '분석 중...'}</pre>
+          streamOutput && streamOutput.includes('\n##') ? (
+            <StructuredGrowthResult content={streamOutput} />
+          ) : (
+            <pre className="text-base text-dim leading-relaxed whitespace-pre-wrap font-sans">{streamOutput || '분석 중...'}</pre>
+          )
         ) : !displayItem ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
             <TrendingUp size={36} className="text-muted/30" />
             {streamOutput ? (
-              <pre className="text-base text-dim leading-relaxed whitespace-pre-wrap font-sans text-left">{streamOutput}</pre>
+              streamOutput.includes('\n##') ? (
+                <StructuredGrowthResult content={streamOutput} />
+              ) : (
+                <pre className="text-base text-dim leading-relaxed whitespace-pre-wrap font-sans text-left">{streamOutput}</pre>
+              )
             ) : (
               <>
                 <p className="text-base text-muted">하단 입력창에서 그로스 분석을 지시하세요</p>
@@ -311,9 +372,7 @@ export function GrowthCenterPanel({ agentId, streamOutput, isRunning }: {
             )}
           </div>
         ) : (
-          <div className="text-base text-dim leading-relaxed whitespace-pre-wrap">
-            {displayItem.content}
-          </div>
+          <StructuredGrowthResult content={displayItem.content} />
         )}
       </div>
     </div>

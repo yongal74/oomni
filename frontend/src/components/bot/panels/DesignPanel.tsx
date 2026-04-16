@@ -412,6 +412,7 @@ export function DesignCenterPanel({
 export function DesignRightPanel({
   agentId,
   onSkillSelect,
+  onPencilLaunch,
   currentRole = 'design',
   content = '',
 }: {
@@ -419,6 +420,7 @@ export function DesignRightPanel({
   nextBotName?: string
   onNextBot?: () => void
   onSkillSelect?: (prompt: string) => void
+  onPencilLaunch?: () => void
   currentRole?: string
   content?: string
 }) {
@@ -486,6 +488,22 @@ export function DesignRightPanel({
           {toastMsg}
         </div>
       )}
+
+      {/* PENCIL TOOL 실행 */}
+      <div>
+        <p className="text-xs text-muted uppercase tracking-widest mb-2">Pencil 디자인 툴</p>
+        <button
+          onClick={() => onPencilLaunch?.()}
+          className="w-full flex items-center gap-2.5 px-3 py-3 rounded-lg border border-purple-500/30 bg-purple-500/5 text-purple-400 hover:bg-purple-500/15 transition-colors text-[12px] font-medium"
+        >
+          <span className="text-base">✦</span>
+          PENCIL TOOL 실행하기
+        </button>
+        <p className="text-[10px] text-muted/60 mt-1.5 leading-relaxed">
+          하단 터미널에서 Pencil MCP가 실행됩니다.<br />
+          localhost URL이 감지되면 중앙 패널에 자동 표시됩니다.
+        </p>
+      </div>
 
       {/* 내보내기 */}
       <div>
