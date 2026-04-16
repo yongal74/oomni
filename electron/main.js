@@ -123,25 +123,8 @@ function startBackend() {
   // 환경변수 설정
   process.env.NODE_ENV = 'production'
   process.env.PORT = '3001'
-
-  // 포트 이미 사용 중인지 먼저 확인
-  return new Promise((resolve) => {
-    const testConn = http.get('http://localhost:3001/api/health', (res) => {
-      if (res.statusCode === 200) {
-        console.log('[Backend] 이미 실행 중 — 재사용')
-        resolve()
-      } else {
-        launchBackend(backendPath, resolve)
-      }
-    })
-    testConn.on('error', () => launchBackend(backendPath, resolve))
-    testConn.setTimeout(500, () => {
-      // destroy()가 'error' 이벤트를 발생시켜 launchBackend가 두 번 호출되는 레이스 방지
-      testConn.removeAllListeners('error')
-      testConn.destroy()
-      launchBackend(backendPath, resolve)
-    })
-  })
+  // 프로덕션: 항상 자체 백엔드 실행 (외부 백엔드 재사용 금지 — 키 불일치 방지)
+  return new Promise((resolve) => launchBackend(backendPath, resolve))
 }
 
 function launchBackend(backendPath, done) {
@@ -353,6 +336,17 @@ app.on('before-quit', () => {
 
 // ── IPC 핸들러 ───────────────────────────────────────────
 ipcMain.handle('get-internal-api-key', () => {
+  // 개발 모드: backend/.env에서 키를 읽어 반환 (키 불일치 방지)
+  if (isDev) {
+    try {
+      const envPath = path.join(__dirname, '../backend/.env')
+      if (fs.existsSync(envPath)) {
+        const content = fs.readFileSync(envPath, 'utf8')
+        const match = content.match(/^OOMNI_INTERNAL_API_KEY=(.+)$/m)
+        if (match && match[1]) return match[1].trim()
+      }
+    } catch {}
+  }
   return process.env.OOMNI_INTERNAL_API_KEY ?? 'oomni-internal-dev-key-change-me!'
 })
 
