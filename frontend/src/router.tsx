@@ -1,31 +1,58 @@
 import React, { useEffect, useState } from 'react'
 import { createHashRouter, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { AppLayout } from './components/layout/AppLayout'
-import { authApi } from './lib/api'
+import { authApi, agentsApi, type Agent } from './lib/api'
 
 const OnboardingPage = React.lazy(() => import('./pages/OnboardingPage'))
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'))
 const ApprovalPage = React.lazy(() => import('./pages/ApprovalPage'))
 const CostPage = React.lazy(() => import('./pages/CostPage'))
 const IntegrationsPage = React.lazy(() => import('./pages/IntegrationsPage'))
-const BotDetailPage = React.lazy(() => import('./pages/BotDetailPage'))
+const UnifiedBotPage = React.lazy(() => import('./pages/UnifiedBotPage'))
+const PtyBotPage = React.lazy(() => import('./pages/PtyBotPage'))
 const IssuesPage = React.lazy(() => import('./pages/IssuesPage'))
 const SchedulePage = React.lazy(() => import('./pages/SchedulePage'))
 const ReportPage = React.lazy(() => import('./pages/ReportPage'))
 const PinPage = React.lazy(() => import('./pages/PinPage'))
 const ResearchPage = React.lazy(() => import('./pages/ResearchPage'))
-const DevToolsPage = React.lazy(() => import('./pages/DevToolsPage'))
 const PipelinePage = React.lazy(() => import('./pages/PipelinePage'))
-const CeoBotPage = React.lazy(() => import('./pages/CeoBotPage'))
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'))
 const MonitoringPage = React.lazy(() => import('./pages/MonitoringPage'))
 
-// 봇 이동 시 컴포넌트 remount — key={id}로 상태 초기화
-function BotDetailPageWrapper() {
+// PTY 봇 역할 목록
+const PTY_ROLES = new Set(['build', 'design', 'ops'])
+
+// 봇 역할에 따라 UnifiedBotPage 또는 PtyBotPage로 분기
+// key={id}로 봇 이동 시 컴포넌트 remount — 상태 초기화
+function BotPageRouter() {
   const { id } = useParams<{ id: string }>()
+
+  const { data: agent, isLoading } = useQuery<Agent>({
+    queryKey: ['agent', id],
+    queryFn: () => agentsApi.list().then(list => list.find((a: Agent) => a.id === id)!),
+    enabled: !!id,
+  })
+
+  if (isLoading) {
+    return <Loader />
+  }
+
+  if (!agent) {
+    return <div className="p-8 text-base text-muted">봇을 찾을 수 없습니다</div>
+  }
+
+  if (PTY_ROLES.has(agent.role)) {
+    return (
+      <React.Suspense fallback={<Loader />}>
+        <PtyBotPage key={id} />
+      </React.Suspense>
+    )
+  }
+
   return (
     <React.Suspense fallback={<Loader />}>
-      <BotDetailPage key={id} />
+      <UnifiedBotPage key={id} />
     </React.Suspense>
   )
 }
@@ -103,14 +130,12 @@ export const router = createHashRouter([
       { path: 'approvals', element: <React.Suspense fallback={<Loader />}><ApprovalPage /></React.Suspense> },
       { path: 'cost', element: <React.Suspense fallback={<Loader />}><CostPage /></React.Suspense> },
       { path: 'integrations', element: <React.Suspense fallback={<Loader />}><IntegrationsPage /></React.Suspense> },
-{ path: 'bots/:id', element: <BotDetailPageWrapper /> },
+      { path: 'bots/:id', element: <BotPageRouter /> },
       { path: 'issues', element: <React.Suspense fallback={<Loader />}><IssuesPage /></React.Suspense> },
       { path: 'schedules', element: <React.Suspense fallback={<Loader />}><SchedulePage /></React.Suspense> },
       { path: 'reports', element: <React.Suspense fallback={<Loader />}><ReportPage /></React.Suspense> },
       { path: 'research', element: <React.Suspense fallback={<Loader />}><ResearchPage /></React.Suspense> },
-      { path: 'devtools', element: <React.Suspense fallback={<Loader />}><DevToolsPage /></React.Suspense> },
       { path: 'pipeline', element: <React.Suspense fallback={<Loader />}><PipelinePage /></React.Suspense> },
-      { path: 'ceo', element: <React.Suspense fallback={<Loader />}><CeoBotPage /></React.Suspense> },
       { path: 'settings', element: <React.Suspense fallback={<Loader />}><SettingsPage /></React.Suspense> },
       { path: 'monitoring', element: <React.Suspense fallback={<Loader />}><MonitoringPage /></React.Suspense> },
     ],

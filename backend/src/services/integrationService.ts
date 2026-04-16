@@ -1,5 +1,5 @@
 /**
- * Integration Bot Service
+ * Integration Service
  * 외부 서비스 연결 관리: Slack, Notion, Gmail, Stripe, GitHub, etc.
  * credentials는 Vault(AES-256-GCM)로 암호화해서 DB 저장
  * 다른 봇들이 getCredential()로 공유 사용
@@ -115,7 +115,6 @@ export class IntegrationService {
     fields: Array<{ key: string; label: string; type: string; placeholder?: string }>;
   }> {
     return [
-      // 기존 providers
       {
         id: 'slack', name: 'Slack', icon: '💬', authType: 'oauth2', category: 'communication',
         description: '채널 알림 및 메시지',
@@ -172,7 +171,6 @@ export class IntegrationService {
         description: '디자인 파일 접근 및 연동',
         fields: [{ key: 'token', label: 'Personal Access Token', type: 'password', placeholder: 'figd_...' }],
       },
-      // AI 도구
       {
         id: 'perplexity', name: 'Perplexity AI', icon: '🔍', authType: 'apikey', category: 'ai',
         description: '실시간 웹 검색 기반 AI 리서치',
@@ -183,7 +181,6 @@ export class IntegrationService {
         description: 'GPT-4o, DALL-E 이미지 생성',
         fields: [{ key: 'api_key', label: 'API Key', type: 'password', placeholder: 'sk-...' }],
       },
-      // 커뮤니케이션
       {
         id: 'telegram', name: 'Telegram Bot', icon: '✈️', authType: 'apikey', category: 'communication',
         description: '봇 알림 및 메시지 전송',
@@ -197,7 +194,6 @@ export class IntegrationService {
         description: '서버 알림 및 메시지',
         fields: [{ key: 'webhook_url', label: 'Webhook URL', type: 'text', placeholder: 'https://discord.com/api/webhooks/...' }],
       },
-      // 분석
       {
         id: 'posthog', name: 'PostHog', icon: '📊', authType: 'apikey', category: 'analytics',
         description: '제품 분석 및 이벤트 트래킹',
@@ -214,7 +210,6 @@ export class IntegrationService {
           { key: 'api_secret', label: 'API Secret', type: 'password' },
         ],
       },
-      // 결제
       {
         id: 'polar', name: 'Polar', icon: '⭐', authType: 'apikey', category: 'payments',
         description: '오픈소스 수익화 플랫폼',

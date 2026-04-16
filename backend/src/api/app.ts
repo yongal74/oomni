@@ -7,12 +7,10 @@ import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import session from 'express-session';
-import passport from 'passport';
 import { ApiError } from '../middleware/apiError';
 import { agentsRouter } from './routes/agents';
 import { feedRouter } from './routes/feed';
 import { integrationsRouter } from './routes/integrations';
-import { n8nRouter } from './routes/n8n';
 import { costRouter } from './routes/cost';
 import { missionsRouter } from './routes/missions';
 import { issuesRouter } from './routes/issues';
@@ -22,14 +20,10 @@ import { reportsRouter } from './routes/reports';
 import { researchRouter } from './routes/research';
 import { authRouter } from './routes/auth';
 import { settingsRouter } from './routes/settings';
-import { devtoolsRouter } from './routes/devtools';
 import { ceoRouter } from './routes/ceo';
 import { templatesRouter } from './routes/templates';
-import { videoRouter } from './routes/video';
 import { obsidianRouter } from './routes/obsidian';
 import { backupRouter } from './routes/backup';
-import { paymentsRouter } from './routes/payments';
-import { cdpRouter } from './routes/cdp';
 import { designSystemsRouter } from './routes/design-systems';
 import { logger } from '../logger';
 
@@ -96,10 +90,6 @@ export function createApp(options: AppOptions): Application {
     cookie: { secure: false, httpOnly: true, maxAge: 5 * 60 * 1000 }, // 5분 (OAuth 플로우용)
   }));
 
-  // ── Passport 초기화 ──────────────────────────────────────
-  app.use(passport.initialize());
-  app.use(passport.session());
-
   // ── 설정 라우터 (인증 없이 접근 가능, 온보딩용) ──────────
   app.use('/api/settings', settingsRouter());
 
@@ -143,39 +133,20 @@ export function createApp(options: AppOptions): Application {
   app.use('/api/agents', triggerLimiter);
   app.use('/api/feed', feedRouter(options.db));
   app.use('/api/integrations', integrationsRouter(options.db));
-  app.use('/api/n8n', n8nRouter(options.db));
   app.use('/api/cost', costRouter(options.db));
   app.use('/api/issues', issuesRouter(options.db));
   app.use('/api/schedules', schedulesRouter(options.db));
   app.use('/api/reports', reportsRouter(options.db));
   app.use('/api/research', researchRouter(options.db));
-  app.use('/api/devtools', devtoolsRouter());
   app.use('/api/ceo', ceoRouter(options.db));
   app.use('/api/templates', templatesRouter(options.db));
-  app.use('/api/video', videoRouter());
   app.use('/api/obsidian', obsidianRouter());
   app.use('/api/backup', backupRouter());
-  app.use('/api/payments', paymentsRouter());
-  app.use('/api/cdp', cdpRouter());
   app.use('/api/design-systems', designSystemsRouter(options.db));
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
-
-  // ── Swagger UI (개발 환경 전용) ───────────────────────────
-  if (process.env.NODE_ENV !== 'production') {
-    (async () => {
-      try {
-        const swaggerUi = await import('swagger-ui-express');
-        const { swaggerSpec } = await import('./swagger');
-        app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-        logger.info('[Swagger] API 문서: http://localhost:3001/api/docs');
-      } catch (err) {
-        logger.warn('[Swagger] swagger-ui-express 로드 실패 (무시)', err);
-      }
-    })();
-  }
 
   // ── 전역 에러 핸들러 ──────────────────────────────────────
   // ApiError: 정의된 HTTP 상태코드 + 코드 반환

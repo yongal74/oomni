@@ -8,7 +8,6 @@ import {
   ChevronLeft, Code2, Crown, DollarSign, FileText,
   GitBranch, LayoutDashboard, Palette, Plug, Plus,
   Search, Settings2, Telescope, TrendingUp, Workflow,
-  Wrench,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { oomniWs } from '../../lib/ws'
@@ -61,7 +60,6 @@ const NAV_ITEMS: NavIconItem[] = [
   { to: '/dashboard/issues',     icon: FileText,         label: '티켓' },
   { to: '/dashboard/schedules',  icon: Calendar,         label: '자동화' },
   // 도구
-  { to: '/dashboard/devtools',   icon: Wrench,           label: '개발 환경' },
   { to: '/dashboard/research',   icon: Search,           label: 'Research Studio' },
   { to: '/dashboard/pipeline',   icon: GitBranch,        label: '파이프라인' },
   { to: '/dashboard/integrations', icon: Plug,           label: 'Obsidian' },

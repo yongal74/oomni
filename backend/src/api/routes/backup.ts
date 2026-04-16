@@ -4,7 +4,7 @@
  * POST /api/backup/import - JSON을 DB에 복원
  */
 import { Router, type Request, type Response } from 'express';
-import { getDb } from '../../db/client.js';
+import { getDb } from '../../db/client';
 
 const EXPORT_TABLES = [
   'missions',

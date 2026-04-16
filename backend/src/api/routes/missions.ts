@@ -1,8 +1,8 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import { getDb } from '../../db/client.js';
-import { logger } from '../../logger.js';
+import { getDb } from '../../db/client';
+import { logger } from '../../logger';
 
 const CreateMissionSchema = z.object({
   name: z.string().min(1).max(200),

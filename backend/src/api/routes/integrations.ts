@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { getVault } from '../../crypto/vault';
-import { IntegrationService, SUPPORTED_PROVIDERS } from '../../bots/integration';
+import { IntegrationService, SUPPORTED_PROVIDERS } from '../../services/integrationService';
 
 const SaveCredentialSchema = z.object({
   mission_id: z.string().min(1),

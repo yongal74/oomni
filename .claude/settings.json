@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"[CLAUDE HOOK] 파일 수정 전: CLAUDE.md + .claude/rules/ 규칙 확인 완료 여부 체크\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd C:\\Users\\장우경\\oomni\\backend && npx tsc --noEmit 2>&1 | tail -5 || echo \"[tsc] 오류 확인 필요\""
+          }
+        ]
+      }
+    ]
+  }
+}

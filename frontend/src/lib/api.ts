@@ -172,16 +172,6 @@ export const settingsApi = {
     api.get('/api/settings/google-oauth').then(r => r.data),
 }
 
-// CDP 연동 API
-export const cdpApi = {
-  status: (): Promise<{ connected: boolean; mode: 'live' | 'demo' }> =>
-    api.get('/api/cdp/status').then(r => r.data),
-  segments: (): Promise<{ data: Array<{ id: string; label: string; icon: string; color: string; count: number }>; mode: string }> =>
-    api.get('/api/cdp/segments').then(r => r.data),
-  campaign: (body: { segment_id: string; channel: 'email' | 'sms' | 'push'; message: string }): Promise<{ success: boolean; message: string; sent_count?: number }> =>
-    api.post('/api/cdp/campaign', body).then(r => r.data),
-}
-
 // 통합 연동 설정
 export const integrationsSettingsApi = {
   get: (): Promise<{ cdp_configured: boolean; cdp_key_masked: string | null; video_configured: boolean; video_key_masked: string | null }> =>
@@ -260,48 +250,82 @@ export const authApi = {
     authAxios.post('/api/auth/pin/verify', { pin }).then(r => r.data),
 }
 
-// ── 숏폼 영상 API ────────────────────────────────────────────────────────────
-export const videoApi = {
-  generateScript: (topic: string, type: 'content' | 'growth') =>
-    api.post<{ success: boolean; script: ShortFormScript }>('/api/video/script', { topic, type }).then(r => r.data),
-  listScripts: () =>
-    api.get<{ success: boolean; scripts: ScriptSummary[] }>('/api/video/scripts').then(r => r.data),
-  getScript: (id: string) =>
-    api.get<{ success: boolean; script: ShortFormScript }>(`/api/video/scripts/${id}`).then(r => r.data),
-  renderVideo: (script_id: string, variant_index = 0) =>
-    api.post<{ success: boolean; message: string; output_path: string }>('/api/video/render', { script_id, variant_index }).then(r => r.data),
-  listVideos: () =>
-    api.get<{ success: boolean; videos: VideoMeta[] }>('/api/video/list').then(r => r.data),
-  vrewExport: (id: string) =>
-    api.post<{ success: boolean; file_path: string }>(`/api/video/vrew-export/${id}`).then(r => r.data),
-  downloadUrl: (id: string) => `${api.defaults.baseURL}/api/video/download/${id}`,
+// ── 제거된 기능 스텁 (v3.0 PIN 전용 전환 후 해당 기능 미지원) ──────────────
+export interface ShortFormScriptVariant {
+  remotion_props: {
+    durationInFrames: number
+    fps: number
+    width: number
+    height: number
+    [key: string]: unknown
+  }
+  hook: string
+  problem: string
+  solution: string[]
+  proof: string
+  cta: string
 }
 
-// ── 결제/구독 ────────────────────────────────────────────────────────────────
+export interface ShortFormScript {
+  id: string
+  title: string
+  topic: string
+  script: string
+  status: string
+  created_at: string
+  variants: ShortFormScriptVariant[]
+}
+
 export interface Subscription {
-  plan: 'free' | 'personal' | 'team'
-  status: 'active' | 'cancelled' | 'expired' | 'pending'
-  current_period_end?: string
-  license_valid_until?: string
+  plan: string
+  status: string
   display_name?: string
   email?: string
+  license_valid_until?: string
+  current_period_end?: string
 }
 
-export interface Plan {
+interface CdpSegment {
   id: string
-  name: string
-  price: number
-  period: string
-  description: string
+  label: string
+  icon?: string
+  color: string
+  count: number
+}
+
+interface CdpSegmentsResult {
+  data: CdpSegment[]
+  mode: string
+}
+
+export const videoApi = {
+  listScripts: (): Promise<{ scripts: ShortFormScript[] }> => Promise.resolve({ scripts: [] }),
+  generateScript: (_topic: string, _role: string): Promise<{ script: ShortFormScript }> =>
+    Promise.reject(new Error('videoApi 미지원 (v3)')),
+  renderVideo: (_id: string, _variant: number): Promise<{ message: string; output_path: string }> =>
+    Promise.reject(new Error('videoApi 미지원 (v3)')),
+  vrewExport: (_id: string): Promise<{ file_path: string }> =>
+    Promise.reject(new Error('videoApi 미지원 (v3)')),
+  getScript: (_id: string): Promise<{ script: ShortFormScript }> =>
+    Promise.reject(new Error('videoApi 미지원 (v3)')),
+}
+
+export const cdpApi = {
+  status: (): Promise<{ data: unknown; mode: string; connected: boolean }> =>
+    Promise.resolve({ data: null, mode: 'none', connected: false }),
+  segments: (): Promise<CdpSegmentsResult> =>
+    Promise.resolve({ data: [], mode: 'none' }),
+  campaign: (_vars: unknown): Promise<unknown> =>
+    Promise.reject(new Error('cdpApi 미지원 (v3)')),
 }
 
 export const paymentsApi = {
-  plans: () => api.get<{ data: Record<string, Plan> }>('/api/payments/plans').then(r => r.data.data),
-  subscription: () => api.get<{ data: Subscription }>('/api/payments/subscription').then(r => r.data.data),
-  confirm: (body: { paymentKey: string; orderId: string; amount: number; plan: string }) =>
-    api.post<{ data: { success: boolean; message: string } }>('/api/payments/toss/confirm', body).then(r => r.data.data),
-  cancel: () => api.post('/api/payments/subscription/cancel').then(r => r.data),
-  quota: () => api.get<{ data: { plan: string; runCount: number; limit: number; exceeded: boolean; remaining: number } }>('/api/payments/quota').then(r => r.data.data),
+  subscription: (): Promise<Subscription> =>
+    Promise.resolve({ plan: 'license', status: 'active' }),
+  quota: (): Promise<{ plan: string; runCount: number; limit: number; exceeded: boolean; remaining: number }> =>
+    Promise.resolve({ plan: 'license', runCount: 0, limit: 99999, exceeded: false, remaining: 99999 }),
+  cancel: (): Promise<unknown> =>
+    Promise.reject(new Error('paymentsApi 미지원 (v3)')),
 }
 
 // 타입들
@@ -362,56 +386,6 @@ export interface HeartbeatRun {
   cost_usd: number
   started_at: string
   finished_at?: string
-}
-
-// Video types
-export interface ScriptVariant {
-  hook: string
-  problem: string
-  solution: string[]
-  proof: string
-  cta: string
-  vrew_text?: string
-  remotion_props?: {
-    durationInFrames: number
-    fps: number
-    width: number
-    height: number
-    slides: Array<{
-      type: 'hook' | 'problem' | 'solution' | 'proof' | 'cta'
-      startFrame: number
-      durationInFrames: number
-      content: string | string[]
-      backgroundColor?: string
-      textColor?: string
-    }>
-  }
-}
-
-export interface ShortFormScript {
-  id: string
-  title: string
-  topic: string
-  type: 'content' | 'growth'
-  variants: ScriptVariant[]
-  created_at: string
-}
-
-export interface ScriptSummary {
-  id: string
-  title: string
-  topic: string
-  type: 'content' | 'growth'
-  variant_count: number
-  created_at: string
-}
-
-export interface VideoMeta {
-  id: string
-  filename: string
-  path: string
-  size_bytes: number
-  created_at: string
 }
 
 // 디자인 시스템

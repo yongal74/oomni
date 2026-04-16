@@ -3,26 +3,27 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentsApi, paymentsApi, type Agent, type HeartbeatRun } from '../lib/api'
 import { useAppStore } from '../store/app.store'
-import { Trash2, Settings, ArrowLeft, Send, Square, RotateCcw, Clock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Copy, ExternalLink, X, Telescope, Code2, Palette, BookOpen, TrendingUp, Workflow, Plug, Crown, Bot } from 'lucide-react'
+import {
+  Trash2, Settings, ArrowLeft, Send, Square, RotateCcw,
+  Clock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Copy,
+  ExternalLink, X, Telescope, BookOpen, TrendingUp, Workflow, Crown, Bot,
+} from 'lucide-react'
 import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
 import { LiveStreamDrawer } from '../components/bot/LiveStreamDrawer'
 import { ModelSwitcher, getModelApiHeaders, type ModelId, type ModeId } from '../components/bot/ModelSwitcher'
 import { XTerminal, type XTerminalRef } from '../components/bot/XTerminal'
 import { ResearchLeftPanel, ResearchCenterPanel, ResearchRightPanel } from '../components/bot/panels/ResearchPanel'
-import { BuildLeftPanel, BuildCenterPanel, BuildRightPanel } from '../components/bot/panels/BuildPanel'
-import type { FileNode } from '../lib/api'
 import { ContentLeftPanel, ContentCenterPanel, ContentRightPanel } from '../components/bot/panels/ContentPanel'
 import { GrowthLeftPanel, GrowthCenterPanel, GrowthRightPanel } from '../components/bot/panels/GrowthPanel'
 import { OpsLeftPanel, OpsCenterPanel, OpsRightPanel } from '../components/bot/panels/OpsPanel'
 import { CeoLeftPanel, CeoCenterPanel, CeoRightPanel } from '../components/bot/panels/CeoPanel'
-import { DesignCenterPanel, DesignRightPanel } from '../components/bot/panels/DesignPanel'
-import { CommonLeftPanel, CommonCenterPanel, CommonRightPanel } from '../components/bot/panels/GenericPanel'
+import { CommonLeftPanel, CommonCenterPanel } from '../components/bot/panels/GenericPanel'
 import { cn } from '../lib/utils'
 import type { ResearchItem } from '../lib/api'
 
 const BOT_ICONS_MAP: Record<string, React.ElementType> = {
-  research: Telescope, build: Code2, design: Palette, content: BookOpen,
-  growth: TrendingUp, ops: Workflow, integration: Plug, ceo: Crown,
+  research: Telescope, content: BookOpen,
+  growth: TrendingUp, ops: Workflow, ceo: Crown,
 }
 function BotIcon({ role, size = 20 }: { role: string; size?: number }) {
   const Icon = BOT_ICONS_MAP[role] || Bot
@@ -30,19 +31,16 @@ function BotIcon({ role, size = 20 }: { role: string; size?: number }) {
 }
 
 const ROLE_LABEL: Record<string, string> = {
-  research: 'Research', build: 'Build', design: 'Design', content: 'Content',
-  growth: 'Growth', ops: 'Ops', integration: 'Integration', ceo: 'CEO',
+  research: 'Research', content: 'Content',
+  growth: 'Growth', ops: 'Ops', ceo: 'CEO',
 }
 
 const PLACEHOLDER: Record<string, string> = {
   research:    '"오늘 AI 트렌드 수집하고 신호강도 채점해줘"',
   content:     '"리서치 결과로 블로그 포스트 초안 작성해줘"',
-  build:       '"Research Bot SSE 연결 버그 수정해줘"',
   growth:      '"이번 주 사용자 증가 분석하고 캠페인 추천해줘"',
   ops:         '"Slack 메시지 → 이슈 자동 생성 워크플로우 만들어줘"',
   ceo:         '"이번 주 전체 봇 현황 브리핑 작성해줘"',
-  design:      '"다크 테마 랜딩 히어로 섹션 디자인해줘"',
-  integration: '"GitHub 이슈 → Slack 알림 연결해줘"',
   default:     '봇에게 지시사항을 입력하세요...',
 }
 
@@ -519,7 +517,7 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
   )
 })
 
-// 유니파이드 터미널 레이아웃 — Research/Ops/Growth/CEO/Content용
+// Unified Terminal Layout — Research/Content/Growth/Ops/CEO용
 // 좌측(2/3): 상단 센터콘텐츠 + 하단 XTerminal
 // 우측(1/3): AntigravityRightPanel (자기완결형, 내부에서 task/stream 관리)
 function UnifiedTerminalLayout({
@@ -607,7 +605,7 @@ function UnifiedTerminalLayout({
   )
 }
 
-export default function BotDetailPage() {
+export default function UnifiedBotPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -631,21 +629,14 @@ export default function BotDetailPage() {
   const [showSettings, setShowSettings] = useState(false)
   const [selectedResearchItem, setSelectedResearchItem] = useState<ResearchItem | null>(null)
   const [contentType, setContentType] = useState('blog')
-const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null)
   const [streamOutput, setStreamOutput] = useState('')
-  const [, setStreamError] = useState<string | null>(null)
   const [lastOutput, setLastOutput] = useState('')  // 다음봇 전달용 최신 결과물
-  const [designScreenshot, setDesignScreenshot] = useState<string | null>(null)
+  const [pencilInAppUrl, setPencilInAppUrl] = useState<string | null>(null)
   const esRef = useRef<EventSource | null>(null)
-  const terminalRef = useRef<XTerminalRef>(null)       // Build Bot 터미널 주입
-  const designTerminalRef = useRef<XTerminalRef>(null)  // Design Bot 터미널 주입
-  const unifiedTerminalRef = useRef<XTerminalRef>(null) // Unified layout 터미널 ref
-  const unifiedRightPanelRef = useRef<AntigravityRightPanelRef>(null) // Unified 우측 채팅 패널 ref
+  const unifiedTerminalRef = useRef<XTerminalRef>(null)
+  const unifiedRightPanelRef = useRef<AntigravityRightPanelRef>(null)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [quota, setQuota] = useState<{ plan: string; runCount: number; limit: number; exceeded: boolean; remaining: number } | null>(null)
-  const [pencilStatus, setPencilStatus] = useState<{ connected: boolean } | null>(null)
-  // Pencil/localhost URL 감지 (터미널 출력에서 파싱 → 인앱 iframe 표시)
-  const [pencilInAppUrl, setPencilInAppUrl] = useState<string | null>(null)
 
   const { data: agent, isLoading } = useQuery<Agent>({
     queryKey: ['agent', id],
@@ -684,37 +675,15 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Design Bot: Pencil MCP 연동 상태 조회
-  useEffect(() => {
-    if (agent?.role === 'design') {
-      fetch(`http://localhost:3001/api/agents/${id}/pencil-status`)
-        .then(r => r.json())
-        .then(setPencilStatus)
-        .catch(() => {})
-    }
-  }, [agent?.role, id])
-
   // 터미널 출력에서 localhost URL 감지 → Pencil 인앱 뷰 자동 표시
-  // Design봇 터미널과 Unified 터미널 모두 감지
   const handleUnifiedOutputCapture = useCallback((text: string) => {
     setLastOutput(text)
-    setStreamOutput(text)   // 우측 채팅 스트리밍 → 중앙 패널(ResearchCenterPanel 등)에 전달
+    setStreamOutput(text)   // 우측 채팅 스트리밍 → 중앙 패널에 전달
     // localhost:포트 URL 패턴 감지 (Pencil이 서빙하는 포트)
     const urlMatch = text.match(/https?:\/\/localhost:(\d{4,5})\b/)
     if (urlMatch) {
       const detectedUrl = urlMatch[0].trim()
       // 백엔드 API 포트 3001은 제외
-      if (!detectedUrl.includes(':3001')) {
-        setPencilInAppUrl(prev => prev ?? detectedUrl)
-      }
-    }
-  }, [])
-
-  const handleDesignOutputCapture = useCallback((text: string) => {
-    setLastOutput(text)
-    const urlMatch = text.match(/https?:\/\/localhost:(\d{4,5})\b/)
-    if (urlMatch) {
-      const detectedUrl = urlMatch[0].trim()
       if (!detectedUrl.includes(':3001')) {
         setPencilInAppUrl(prev => prev ?? detectedUrl)
       }
@@ -738,37 +707,9 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agent])
 
-  // Unified Terminal Layout 적용 대상 역할
-  const UNIFIED_ROLES = ['research', 'content', 'growth', 'ops', 'ceo']
-
-  const handleRun = async () => {
-    if (!task.trim() || isRunning) return
-    // 무료 플랜 한도 확인 — 테스트 중 비활성화
-    // if (quota?.plan === 'free') {
-    //   const fresh = await paymentsApi.quota().catch(() => quota)
-    //   setQuota(fresh)
-    //   if (fresh?.exceeded) { setShowUpgradeModal(true); return }
-    // }
-    const stages = ROLE_STAGES[agent?.role ?? 'default'] ?? ROLE_STAGES.default
-    setCurrentStage(stages[0].key) // 첫 단계 즉시 활성화
-    setStreamOutput('') // reset stream for new run
-    setStreamError(null)
-    setIsRunning(true)
-  }
-
-  // 빠른 실행 버튼: prompt를 task에 설정하고 즉시 실행
   const handleSkillRun = (prompt: string) => {
-    if (agent && UNIFIED_ROLES.includes(agent.role)) {
-      setTask(prompt)  // keep for other uses
-      unifiedRightPanelRef.current?.runTask(prompt)
-    } else {
-      if (isRunning) return
-      setTask(prompt)
-      const stages = ROLE_STAGES[agent?.role ?? 'default'] ?? ROLE_STAGES.default
-      setCurrentStage(stages[0].key)
-      setStreamOutput('')
-      setIsRunning(true)
-    }
+    setTask(prompt)
+    unifiedRightPanelRef.current?.runTask(prompt)
   }
 
   // 실행 취소
@@ -784,38 +725,14 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
     if (isRunning) handleCancel()
     setTask('')
     setStreamOutput('')
-    setStreamError(null)
     setLastOutput('')
     setCurrentStage(null)
     setPencilInAppUrl(null)
     qc.invalidateQueries({ queryKey: ['bot-feed', id] })
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleRun()
-    }
-  }
-
-  const handleDone = () => {
-    setIsRunning(false)
-    qc.invalidateQueries({ queryKey: ['bot-feed', id] })
-    qc.invalidateQueries({ queryKey: ['issues', missionId] })
-    if (streamOutput) setLastOutput(streamOutput)
-    setTask('')
-
-    if (agent?.role === 'research') {
-      setCurrentStage('sorting')
-    } else {
-      setCurrentStage('done')
-    }
-    qc.invalidateQueries({ queryKey: ['research', missionId] })
-  }
-
   const handleNextBot = () => {
     if (!nextBot) return
-    // 현재 봇의 최신 결과물을 다음 봇 입력으로 전달
     if (lastOutput) setPendingBotInput(lastOutput)
     navigate(`/dashboard/bots/${nextBot.id}`)
   }
@@ -978,215 +895,110 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
     )
   }
 
-  // 역할별 Left/Center/Right 패널
-  const renderPanels = () => {
+  // 역할별 Left/Center 패널 (Unified 전용)
+  const renderUnifiedPanels = () => {
     if (showSettings) {
       return {
         left: <CommonLeftPanel agent={agent} onUpdate={(d) => update.mutate(d as Partial<Agent>)} />,
         center: <CommonCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
-        right: <CommonRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} />,
         isUnified: false,
       }
     }
 
-    // ── Unified Terminal Layout (Research/Content/Growth/Ops/n8n/CEO) ──────────
-    if (UNIFIED_ROLES.includes(agent.role)) {
-      const role = agent.role as string
+    const role = agent.role as string
 
-      // 역할별 좌측 사이드바
-      const leftPanel: React.ReactNode | null = (() => {
-        if (role === 'research') return <ResearchLeftPanel
-          missionId={missionId ?? ''}
-          activeTrack={activeResearchTrack}
-          onTrackChange={setActiveResearchTrack}
-          onRunWithTrack={(_track: string, prompt: string) => handleSkillRun(prompt)}
-        />
-        if (role === 'content') return <ContentLeftPanel
-          missionId={missionId ?? ''}
-          selectedType={contentType}
-          onTypeChange={(type) => { setContentType(type); setTask(`${type} 형식으로 콘텐츠 초안을 작성해줘`) }}
-          onItemSelect={(item) => setTask(`"${item.title}" 리서치 내용을 ${contentType} 형식으로 변환해서 콘텐츠 초안을 작성해줘\n\n=== 리서치 원문 ===\n${item.content ?? item.summary ?? ''}`)}
-        />
-        if (role === 'growth') return <GrowthLeftPanel />
-        if (role === 'ops') return <OpsLeftPanel agentId={agent.id} onSkillSelect={(s) => unifiedTerminalRef.current?.send(s)} />
-        if (role === 'ceo') return <CeoLeftPanel missionId={missionId ?? ''} />
-        return null
-      })()
+    // 역할별 좌측 사이드바
+    const leftPanel: React.ReactNode | null = (() => {
+      if (role === 'research') return <ResearchLeftPanel
+        missionId={missionId ?? ''}
+        activeTrack={activeResearchTrack}
+        onTrackChange={setActiveResearchTrack}
+        onRunWithTrack={(_track: string, prompt: string) => handleSkillRun(prompt)}
+      />
+      if (role === 'content') return <ContentLeftPanel
+        missionId={missionId ?? ''}
+        selectedType={contentType}
+        onTypeChange={(type) => { setContentType(type); setTask(`${type} 형식으로 콘텐츠 초안을 작성해줘`) }}
+        onItemSelect={(item) => setTask(`"${item.title}" 리서치 내용을 ${contentType} 형식으로 변환해서 콘텐츠 초안을 작성해줘\n\n=== 리서치 원문 ===\n${item.content ?? item.summary ?? ''}`)}
+      />
+      if (role === 'growth') return <GrowthLeftPanel />
+      if (role === 'ops') return <OpsLeftPanel agentId={agent.id} onSkillSelect={(s) => unifiedTerminalRef.current?.send(s)} />
+      if (role === 'ceo') return <CeoLeftPanel missionId={missionId ?? ''} />
+      return null
+    })()
 
-      // 역할별 센터 콘텐츠 (상단 결과 영역)
-      const centerContent: React.ReactNode = (() => {
-        if (role === 'research') return <ResearchCenterPanel
-          missionId={missionId ?? ''}
-          onItemClick={setSelectedResearchItem}
-          streamOutput={streamOutput}
-          isRunning={isRunning}
-          activeTrack={activeResearchTrack}
-        />
-        if (role === 'content') return <ContentCenterPanel agentId={agent.id} selectedType={contentType} streamOutput={streamOutput} isRunning={isRunning} />
-        if (role === 'growth') return <GrowthCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />
-        if (role === 'ops') return <OpsCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />
-        if (role === 'ceo') return <CeoCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />
-        return null
-      })()
+    // 역할별 센터 콘텐츠 (상단 결과 영역)
+    const centerContent: React.ReactNode = (() => {
+      if (role === 'research') return <ResearchCenterPanel
+        missionId={missionId ?? ''}
+        onItemClick={setSelectedResearchItem}
+        streamOutput={streamOutput}
+        isRunning={isRunning}
+        activeTrack={activeResearchTrack}
+      />
+      if (role === 'content') return <ContentCenterPanel agentId={agent.id} selectedType={contentType} streamOutput={streamOutput} isRunning={isRunning} />
+      if (role === 'growth') return <GrowthCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />
+      if (role === 'ops') return <OpsCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />
+      if (role === 'ceo') return <CeoCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />
+      return null
+    })()
 
-      // 역할별 우측 패널 (AntigravityRightPanel 하단 children)
-      const rightChildren: React.ReactNode = (() => {
-        if (role === 'research') return <div className="p-3"><ResearchRightPanel
-          item={selectedResearchItem}
-          agentId={agent.id}
-          missionId={missionId ?? ''}
-          activeTrack={activeResearchTrack}
-          onSkillSelect={(s: string) => handleSkillRun(s)}
-          onFileUpload={(content, filename) => setTask(`__track:${activeResearchTrack}__ 다음 파일(${filename}) 내용을 분석하고 리서치 인사이트를 추출해줘:\n\n${content}`)}
-        /></div>
-        if (role === 'content') return <div className="p-3"><ContentRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="content" content={lastOutput} /></div>
-        if (role === 'growth') return <div className="p-3"><GrowthRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="growth" content={lastOutput} /></div>
-        if (role === 'ops') return <div className="p-3"><OpsRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="ops" content={lastOutput} /></div>
-        if (role === 'ceo') return <div className="p-3"><CeoRightPanel missionId={missionId ?? ''} agentId={agent.id} onSkillSelect={handleSkillRun} currentRole="ceo" content={lastOutput} /></div>
-        return null
-      })()
+    // 역할별 우측 패널 (AntigravityRightPanel 하단 children)
+    const rightChildren: React.ReactNode = (() => {
+      if (role === 'research') return <div className="p-3"><ResearchRightPanel
+        item={selectedResearchItem}
+        agentId={agent.id}
+        missionId={missionId ?? ''}
+        activeTrack={activeResearchTrack}
+        onSkillSelect={(s: string) => handleSkillRun(s)}
+        onFileUpload={(content, filename) => setTask(`__track:${activeResearchTrack}__ 다음 파일(${filename}) 내용을 분석하고 리서치 인사이트를 추출해줘:\n\n${content}`)}
+      /></div>
+      if (role === 'content') return <div className="p-3"><ContentRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="content" content={lastOutput} /></div>
+      if (role === 'growth') return <div className="p-3"><GrowthRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="growth" content={lastOutput} /></div>
+      if (role === 'ops') return <div className="p-3"><OpsRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="ops" content={lastOutput} /></div>
+      if (role === 'ceo') return <div className="p-3"><CeoRightPanel missionId={missionId ?? ''} agentId={agent.id} onSkillSelect={handleSkillRun} currentRole="ceo" content={lastOutput} /></div>
+      return null
+    })()
 
-      const unifiedCenter = (
-        <UnifiedTerminalLayout
-          agentId={agent.id}
-          placeholder={placeholder}
-          termRef={unifiedTerminalRef}
-          onTerminalExit={() => { setIsRunning(false); setCurrentStage('done') }}
-          onOutputCapture={handleUnifiedOutputCapture}
-          centerContent={centerContent}
-          rightChildren={rightChildren}
-          pencilUrl={pencilInAppUrl}
-          onPencilClose={() => setPencilInAppUrl(null)}
-          selectedModel={selectedModel}
-          selectedMode={selectedMode}
-          botRole={agent.role}
-          onModelChange={setSelectedModel}
-          onModeChange={setSelectedMode}
-          rightPanelRef={unifiedRightPanelRef}
-          onChatStart={() => {
-            const stages = ROLE_STAGES[agent?.role ?? 'default'] ?? ROLE_STAGES.default
-            setIsRunning(true)
-            setStreamOutput('')
-            setCurrentStage(stages[0].key)
-          }}
-          onChatDone={() => { setIsRunning(false); setCurrentStage('done') }}
-          onStageChange={setCurrentStage}
-        />
-      )
+    const unifiedCenter = (
+      <UnifiedTerminalLayout
+        agentId={agent.id}
+        placeholder={placeholder}
+        termRef={unifiedTerminalRef}
+        onTerminalExit={() => { setIsRunning(false); setCurrentStage('done') }}
+        onOutputCapture={handleUnifiedOutputCapture}
+        centerContent={centerContent}
+        rightChildren={rightChildren}
+        pencilUrl={pencilInAppUrl}
+        onPencilClose={() => setPencilInAppUrl(null)}
+        selectedModel={selectedModel}
+        selectedMode={selectedMode}
+        botRole={agent.role}
+        onModelChange={setSelectedModel}
+        onModeChange={setSelectedMode}
+        rightPanelRef={unifiedRightPanelRef}
+        onChatStart={() => {
+          const s = ROLE_STAGES[agent?.role ?? 'default'] ?? ROLE_STAGES.default
+          setIsRunning(true)
+          setStreamOutput('')
+          setCurrentStage(s[0].key)
+        }}
+        onChatDone={() => {
+          setIsRunning(false)
+          setCurrentStage(agent?.role === 'research' ? 'sorting' : 'done')
+          if (streamOutput) setLastOutput(streamOutput)
+          qc.invalidateQueries({ queryKey: ['bot-feed', id] })
+          qc.invalidateQueries({ queryKey: ['research', missionId] })
+          qc.invalidateQueries({ queryKey: ['issues', missionId] })
+        }}
+        onStageChange={setCurrentStage}
+      />
+    )
 
-      return { left: leftPanel, center: unifiedCenter, right: null, isUnified: true }
-    }
-
-    // ── Build Bot — 기존 레이아웃 유지 ───────────────────────────────────────
-    switch (agent.role) {
-      case 'build': return {
-        left: <BuildLeftPanel
-          agentId={agent.id}
-          selectedFilePath={selectedBuildFile?.path ?? null}
-          onFileSelect={setSelectedBuildFile}
-        />,
-        center: <ResizableSplit
-          initialTopPercent={45}
-          minTopPx={100}
-          minBottomPx={80}
-          top={<BuildCenterPanel
-            agentId={agent.id}
-            selectedFile={selectedBuildFile}
-            isRunning={isRunning}
-            streamContent={streamOutput}
-          />}
-          bottom={<XTerminal
-            ref={terminalRef}
-            agentId={agent.id}
-            isRunning={isRunning}
-            alwaysOn
-            shellMode
-            taskHint={task}
-            onExit={() => { setIsRunning(false); setCurrentStage('done') }}
-            onOutputCapture={(text) => setLastOutput(text)}
-            className="h-full"
-          />}
-        />,
-        right: <BuildRightPanel
-          agentId={agent.id}
-          nextBotName={nextBot?.name}
-          onNextBot={handleNextBot}
-          onSkillSelect={(skill: string) => terminalRef.current?.send(skill)}
-          currentRole="build"
-          content={lastOutput}
-        />,
-        isUnified: false,
-      }
-
-      // ── Design Bot — 기존 레이아웃 + Pencil 인앱 URL 감지 추가 ─────────────
-      case 'design': return {
-        left: null,
-        center: <ResizableSplit
-          initialTopPercent={55}
-          minTopPx={80}
-          minBottomPx={80}
-          top={
-            <div className="h-full flex flex-col overflow-hidden">
-              {/* Pencil 인앱 뷰 — URL 감지 시 상단 표시 */}
-              {pencilInAppUrl && (
-                <div style={{ height: '45%', minHeight: 80, flexShrink: 0 }} className="overflow-hidden border-b border-border">
-                  <PencilInAppView url={pencilInAppUrl} onClose={() => setPencilInAppUrl(null)} />
-                </div>
-              )}
-              {/* Pencil 툴바 */}
-              <div className="shrink-0 border-b border-[#222] bg-[#111] px-3 py-1.5 flex items-center gap-2">
-                <span className="text-[11px] text-muted">✦ Pencil 디자인 미리보기</span>
-                <div className="flex-1" />
-                {pencilStatus?.connected ? (
-                  <button
-                    onClick={() => designTerminalRef.current?.send('claude --dangerously-skip-permissions')}
-                    className="text-[11px] px-2 py-0.5 rounded bg-purple-500/15 text-purple-400 hover:bg-purple-500/25 transition-colors"
-                  >
-                    ✦ Pencil 강제 시작
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      fetch(`http://localhost:3001/api/agents/${agent.id}/pencil-status`)
-                        .then(r => r.json()).then(setPencilStatus).catch(() => {})
-                    }}
-                    className="text-[11px] px-2 py-0.5 rounded bg-border text-muted hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
-                  >
-                    Pencil 연결 확인
-                  </button>
-                )}
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <DesignCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} screenshotUrl={designScreenshot} />
-              </div>
-            </div>
-          }
-          bottom={<XTerminal
-            ref={designTerminalRef}
-            agentId={agent.id}
-            isRunning={isRunning}
-            alwaysOn
-            shellMode
-            taskHint={task}
-            onExit={() => { setIsRunning(false); setCurrentStage('done') }}
-            onOutputCapture={handleDesignOutputCapture}
-            className="h-full"
-          />}
-        />,
-        right: <DesignRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s) => designTerminalRef.current?.send(s)} currentRole="design" content={lastOutput} />,
-        isUnified: false,
-      }
-
-      default: return {
-        left: <CommonLeftPanel agent={agent} onUpdate={(d) => update.mutate(d as Partial<Agent>)} />,
-        center: <CommonCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />,
-        right: <CommonRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} currentRole={agent.role} content={lastOutput} />,
-        isUnified: false,
-      }
-    }
+    return { left: leftPanel, center: unifiedCenter, isUnified: true }
   }
 
-  const { left, center, right, isUnified } = renderPanels()
+  const { left, center, isUnified } = renderUnifiedPanels()
 
   return (
     <div className="flex flex-col h-full">
@@ -1207,26 +1019,6 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
               )}>
                 {agent.is_active ? '● 활성' : '○ 비활성'}
               </span>
-              {agent.role === 'design' && pencilStatus !== null && (
-                <button
-                  onClick={() => {
-                    if (!pencilStatus.connected) {
-                      // alert 대신 연결 확인 재시도
-                      fetch(`http://localhost:3001/api/agents/${id}/pencil-status`)
-                        .then(r => r.json()).then(setPencilStatus).catch(() => {})
-                    }
-                  }}
-                  className={cn(
-                    'text-xs px-2 py-1 rounded-full font-medium transition-colors',
-                    pencilStatus.connected
-                      ? 'bg-purple-500/15 text-purple-400'
-                      : 'bg-border text-muted hover:bg-yellow-500/10 hover:text-yellow-400'
-                  )}
-                  title={pencilStatus.connected ? 'Pencil MCP 연결 중' : 'Pencil.dev 앱을 실행하면 자동 연결됩니다'}
-                >
-                  {pencilStatus.connected ? '✦ Pencil MCP 연결됨' : '✦ Pencil MCP 미연결 — 클릭'}
-                </button>
-              )}
             </div>
             <div className="text-sm text-muted mt-0.5">{ROLE_LABEL[agent.role]} Bot</div>
           </div>
@@ -1242,6 +1034,13 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
           >
             <Settings size={15} />
             설정
+          </button>
+          <button
+            onClick={handleReset}
+            title="결과 초기화"
+            className="p-2 text-muted hover:text-text transition-colors rounded-lg"
+          >
+            <RotateCcw size={15} />
           </button>
           <button
             onClick={() => { if (confirm('이 봇을 삭제할까요?')) remove.mutate() }}
@@ -1289,116 +1088,47 @@ const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null
         </div>
       ) : (
         <>
-      {/* ── 메인 3패널 ────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* LEFT — 좌측 사이드바 (Design Bot은 없음, Unified는 기존 left panel) */}
-        {left && (
-          <div className="border-r border-border overflow-y-auto shrink-0 bg-surface/30 w-56">
-            {left}
-          </div>
-        )}
-
-        {/* CENTER — Unified: UnifiedTerminalLayout이 우측 패널 포함 / 기존: center만 */}
-        <div className="flex-1 overflow-hidden">
-          {center}
-        </div>
-
-        {/* RIGHT — Unified 레이아웃은 right panel이 내부에 포함되어 있으므로 미표시 */}
-        {!isUnified && right && (
-          <div className="border-l border-border overflow-y-auto shrink-0 bg-surface/30 w-64">
-            {right}
-          </div>
-        )}
-      </div>
-
-      {/* ── 하단: 스트림 드로어 + 프롬프트 입력
-           Unified 레이아웃(Research/Ops/Growth/CEO/Content/n8n)은
-           AntigravityRightPanel 내부에 입력창이 있으므로 하단 바 불필요
-           Build/Design은 터미널 사용 → 하단 바 불필요 ── */}
-      {!isUnified && agent.role !== 'build' && agent.role !== 'design' && (
-        <div className="shrink-0">
-          <LiveStreamDrawer
-            agentId={agent.id}
-            task={task}
-            isRunning={isRunning}
-            onStageChange={setCurrentStage}
-            onDone={handleDone}
-            onError={() => { setIsRunning(false); setCurrentStage(null) }}
-            onOutputChunk={(chunk) => setStreamOutput(prev => prev + chunk)}
-            onScreenshot={(url) => setDesignScreenshot(url)}
-            esRef={esRef}
-            modelId={selectedModel}
-            apiKeys={getModelApiHeaders(selectedModel)}
-          />
-
-          <div className="flex flex-col gap-2 px-5 py-4 bg-surface border-t border-border">
-            {/* 모델 스위처 — 입력창 위 좌측 */}
-            <div className="flex items-center">
-              <ModelSwitcher
-                selectedModel={selectedModel}
-                selectedMode={selectedMode}
-                botRole={agent.role}
-                onModelChange={setSelectedModel}
-                onModeChange={setSelectedMode}
-              />
-            </div>
-            <div className="flex items-end gap-3">
-            <div className="flex-1">
-              <textarea
-                value={task}
-                onChange={e => setTask(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={placeholder}
-                rows={1}
-                disabled={isRunning}
-                className={cn(
-                  'w-full bg-bg border border-border rounded-xl px-4 py-3 text-base text-text placeholder-muted/60',
-                  'focus:outline-none focus:border-primary/60 resize-none leading-relaxed',
-                  'transition-colors disabled:opacity-50 max-h-36 overflow-y-auto'
-                )}
-                onInput={e => {
-                  const el = e.currentTarget
-                  el.style.height = 'auto'
-                  el.style.height = Math.min(el.scrollHeight, 144) + 'px'
-                }}
-              />
-            </div>
-
-            <button
-              onClick={handleReset}
-              title="입력창과 결과를 모두 초기화합니다"
-              className="flex items-center gap-1.5 px-3 py-3 rounded-xl text-sm transition-colors shrink-0 text-muted hover:text-text hover:bg-surface border border-border"
-            >
-              <RotateCcw size={14} />
-              Reset
-            </button>
-
-            {isRunning ? (
-              <button
-                onClick={handleCancel}
-                className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors shrink-0 bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30"
-              >
-                <Square size={14} />
-                취소
-              </button>
-            ) : (
-              <button
-                onClick={handleRun}
-                disabled={!task.trim()}
-                className={cn(
-                  'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-colors shrink-0',
-                  'bg-primary text-white hover:bg-primary-hover',
-                  'disabled:opacity-40 disabled:cursor-not-allowed'
-                )}
-              >
-                <Send size={14} />
-                실행
-              </button>
+          {/* ── 메인 3패널 ────────────────────────────────────── */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* LEFT — 좌측 사이드바 */}
+            {left && (
+              <div className="border-r border-border overflow-y-auto shrink-0 bg-surface/30 w-56">
+                {left}
+              </div>
             )}
-            </div>{/* flex items-end gap-3 닫기 */}
-          </div>{/* flex flex-col gap-2 닫기 */}
-        </div>
-      )}
+
+            {/* CENTER — UnifiedTerminalLayout이 우측 패널 포함 */}
+            <div className="flex-1 overflow-hidden">
+              {center}
+            </div>
+          </div>
+
+          {/* Unified 레이아웃은 AntigravityRightPanel 내부에 입력창이 있으므로 하단 바 불필요 */}
+          {!isUnified && (
+            <div className="shrink-0">
+              <LiveStreamDrawer
+                agentId={agent.id}
+                task={task}
+                isRunning={isRunning}
+                onStageChange={setCurrentStage}
+                onDone={() => {
+                  setIsRunning(false)
+                  qc.invalidateQueries({ queryKey: ['bot-feed', id] })
+                  qc.invalidateQueries({ queryKey: ['issues', missionId] })
+                  if (streamOutput) setLastOutput(streamOutput)
+                  setTask('')
+                  setCurrentStage(agent?.role === 'research' ? 'sorting' : 'done')
+                  qc.invalidateQueries({ queryKey: ['research', missionId] })
+                }}
+                onError={() => { setIsRunning(false); setCurrentStage(null) }}
+                onOutputChunk={(chunk) => setStreamOutput(prev => prev + chunk)}
+                onScreenshot={() => {}}
+                esRef={esRef}
+                modelId={selectedModel}
+                apiKeys={getModelApiHeaders(selectedModel)}
+              />
+            </div>
+          )}
         </>
       )}
 

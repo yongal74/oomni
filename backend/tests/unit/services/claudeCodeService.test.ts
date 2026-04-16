@@ -369,8 +369,10 @@ describe('ClaudeCodeService', () => {
       const service = ClaudeCodeService.create('agent-skill', 'research');
       await service.execute('/collect market data', () => {});
 
-      // The last arg (the task) should contain skill content
-      const taskArg = capturedArgs[capturedArgs.length - 1];
+      // resolved task is placed right after '--print' flag
+      const printIdx = capturedArgs.indexOf('--print');
+      expect(printIdx).toBeGreaterThan(-1);
+      const taskArg = capturedArgs[printIdx + 1];
       expect(taskArg).toContain(skillContent);
     });
 
@@ -385,7 +387,10 @@ describe('ClaudeCodeService', () => {
       const service = ClaudeCodeService.create('agent-1', 'research');
       await service.execute('analyze market trends', () => {});
 
-      const taskArg = capturedArgs[capturedArgs.length - 1];
+      // resolved task is placed right after '--print' flag
+      const printIdx = capturedArgs.indexOf('--print');
+      expect(printIdx).toBeGreaterThan(-1);
+      const taskArg = capturedArgs[printIdx + 1];
       expect(taskArg).toContain('analyze market trends');
     });
 

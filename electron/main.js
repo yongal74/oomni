@@ -19,7 +19,6 @@ let mainWindow = null
 function setupCSP() {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     // 우리 앱 페이지(file:// 또는 localhost:5174)에만 CSP 적용
-    // Firebase OAuth 팝업 페이지의 inline script 차단 방지
     const isAppPage = details.url.startsWith('file://') || details.url.startsWith(`http://localhost:${FRONTEND_PORT}`)
     if (!isAppPage) {
       return callback({ responseHeaders: details.responseHeaders })
@@ -28,7 +27,7 @@ function setupCSP() {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          `default-src 'self' file: data: http://localhost:${FRONTEND_PORT}; script-src 'self' file: http://localhost:${FRONTEND_PORT} https://*.firebaseapp.com https://apis.google.com https://www.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: file:; connect-src 'self' http://localhost:3001 http://localhost:${FRONTEND_PORT} ws://localhost:3001 https://*.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://apis.google.com https://firestore.googleapis.com; frame-src https://*.firebaseapp.com https://accounts.google.com https://apis.google.com https://www.google.com`
+          `default-src 'self' file: data: http://localhost:${FRONTEND_PORT}; script-src 'self' file: http://localhost:${FRONTEND_PORT}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: file:; connect-src 'self' http://localhost:3001 http://localhost:${FRONTEND_PORT} ws://localhost:3001`
         ],
       },
     })
@@ -198,28 +197,7 @@ function createWindow() {
   })
 
   // 외부 링크는 기본 브라우저에서 열기
-  // Firebase OAuth 팝업은 Electron 안에서 허용 (signInWithPopup 작동에 필요)
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    const isFirebaseAuth =
-      url.includes('accounts.google.com') ||
-      url.includes('firebaseapp.com/__/auth') ||
-      url.includes('solo-factory-os.firebaseapp.com') ||
-      url.includes('apis.google.com/o/oauth2')
-    if (isFirebaseAuth) {
-      return {
-        action: 'allow',
-        overrideBrowserWindowOptions: {
-          width: 500,
-          height: 650,
-          webPreferences: {
-            contextIsolation: false,     // window.opener.postMessage() 작동에 필요
-            nodeIntegration: false,
-            sandbox: false,
-            webSecurity: false,          // Firebase opener.postMessage() 크로스오리진 허용
-          },
-        },
-      }
-    }
     shell.openExternal(url)
     return { action: 'deny' }
   })
@@ -393,42 +371,6 @@ ipcMain.handle('open-external', (_event, url) => {
 })
 
 ipcMain.handle('get-app-version', () => app.getVersion())
-
-// ── Google OAuth IPC 핸들러 ───────────────────────────────
-ipcMain.handle('google-oauth-start', () => {
-  return new Promise((resolve) => {
-    const oauthWindow = new BrowserWindow({
-      width: 500,
-      height: 700,
-      webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: false },
-      title: 'Google 로그인',
-      autoHideMenuBar: true,
-      parent: mainWindow,
-      modal: false,
-    })
-
-    oauthWindow.loadURL('http://localhost:3001/api/auth/google')
-
-    let callbackReached = false
-
-    // did-navigate + did-redirect-navigation 모두 감지 (Google OAuth 리다이렉트 체인 대응)
-    const onNavigate = (_event, url) => {
-      if (!callbackReached && (url.includes('/api/auth/google/callback') || url.includes('google/callback'))) {
-        callbackReached = true
-        // 백엔드가 pendingGoogleToken 세팅할 시간 2초 확보 후 창 닫기
-        setTimeout(() => { if (!oauthWindow.isDestroyed()) oauthWindow.close() }, 2000)
-      }
-    }
-
-    oauthWindow.webContents.on('did-navigate', onNavigate)
-    oauthWindow.webContents.on('did-redirect-navigation', onNavigate)
-
-    // 창이 닫힐 때 (완료 or 사용자 수동 닫기) Promise 해결 → 프론트가 결과 확인 가능
-    oauthWindow.on('closed', () => {
-      resolve({ started: true, completed: callbackReached })
-    })
-  })
-})
 
 // ── 알림 IPC 핸들러 ──────────────────────────────────────
 // Frontend usage:

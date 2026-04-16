@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
-import { logger } from '../../logger.js';
+import { logger } from '../../logger';
 
 const RecordCostSchema = z.object({
   agent_id: z.string().min(1),

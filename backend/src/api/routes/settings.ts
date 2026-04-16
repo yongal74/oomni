@@ -7,7 +7,6 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { saveSettings, readSettings } from '../../config';
-import { reinitGoogleStrategy } from './auth.js';
 
 const ApiKeySchema = z.object({
   key: z.string().min(10, 'API 키가 너무 짧습니다'),
@@ -134,9 +133,7 @@ export function settingsRouter(): Router {
     // 즉시 process.env 업데이트 (재시작 없이 반영)
     process.env.GOOGLE_CLIENT_ID = client_id;
     process.env.GOOGLE_CLIENT_SECRET = client_secret;
-    // passport Google strategy 즉시 재등록 (저장 후 바로 로그인 가능)
-    reinitGoogleStrategy();
-    res.json({ success: true, message: 'Google OAuth 설정이 저장되었습니다. 이제 Google 로그인을 사용할 수 있습니다.' });
+    res.json({ success: true, message: 'Google OAuth 설정이 저장되었습니다.' });
   });
 
   // GET /api/settings/google-oauth — Google OAuth 설정 상태
