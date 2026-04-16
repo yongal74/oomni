@@ -72,7 +72,7 @@
       "frontend/dist/**/*",
       "node_modules/node-pty/**/*"
     ],
-    "compression": "maximum",
+    "compression": "store",
     "publish": {
       "provider": "github",
       "owner": "yongal74",
