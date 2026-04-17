@@ -507,7 +507,7 @@ export class ClaudeCodeService {
     const wsPath     = ensureWorkspace(this.agentId);
     const model      = ROLE_MODELS[this.role] ?? 'claude-sonnet-4-6';
     const resolved   = resolveTask(this.role, task);
-    // Design 봇: designPencil 프롬프트 우선 사용 (npx 방식으로 pencil MCP 항상 활성화)
+    // Design 봇: designPencil 프롬프트 우선 사용 (로컬 바이너리로 Pencil MCP 연결)
     const rawPrompt  = this.role === 'design'
       ? (ROLE_PROMPTS as any)['designPencil'] ?? ROLE_PROMPTS[this.role] ?? ''
       : ROLE_PROMPTS[this.role] ?? '';

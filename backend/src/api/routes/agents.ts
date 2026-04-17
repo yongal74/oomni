@@ -538,8 +538,36 @@ export function agentsRouter(db: DbClient): Router {
     ).catch(() => {});
 
     try {
-      await routeToExecutor({ agent: agentFull, task, db, send, overrideModel });
-      res.write(JSON.stringify({ event: 'done', data: { success: true } }) + '\n');
+      if (agentFull.role === 'design') {
+        // Design Bot: ClaudeCodeService → Claude Code CLI + Pencil MCP (stdio)
+        // routeToExecutor(designExecutor)는 Anthropic SDK 직접 호출이라 Pencil MCP가 실행되지 않음
+        let designSystemTokens: string | undefined;
+        try {
+          const dsResult = await db.query(
+            'SELECT * FROM design_systems WHERE mission_id = $1',
+            [agentFull.mission_id]
+          );
+          if (dsResult.rows.length > 0) {
+            const ds = dsResult.rows[0] as Record<string, string>;
+            designSystemTokens = [
+              `Primary: ${ds.primary_color}`,
+              `Background: ${ds.bg_color}`,
+              `Surface: ${ds.surface_color}`,
+              `Text: ${ds.text_color}`,
+              `Font: ${ds.font_family}`,
+              `Radius: ${ds.border_radius}`,
+            ].join(', ');
+          }
+        } catch { /* 디자인 시스템 없으면 기본값 사용 */ }
+
+        const ccService = ClaudeCodeService.create(agentFull.id, agentFull.role);
+        // ClaudeCodeService가 'start'/'done'/'output' 등을 직접 send()로 전송
+        await ccService.execute(task, send, { designSystemTokens });
+        // done은 ClaudeCodeService 내부에서 이미 전송됨 — 중복 전송 금지
+      } else {
+        await routeToExecutor({ agent: agentFull, task, db, send, overrideModel });
+        res.write(JSON.stringify({ event: 'done', data: { success: true } }) + '\n');
+      }
       const outputToSave = accumulatedOutput.trim().slice(0, 50000);
       await db.query(
         `UPDATE heartbeat_runs SET status='completed', output=$1, finished_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=$2`,
@@ -607,29 +635,31 @@ export function agentsRouter(db: DbClient): Router {
     res.json({ ok: true });
   });
 
-  // GET /api/agents/:id/pencil-status — Pencil MCP 연동 상태 확인 (npx 독립, Antigravity 완전 무관)
+  // GET /api/agents/:id/pencil-status — Pencil MCP 연동 상태 확인 (로컬 바이너리, Antigravity 완전 무관)
   router.get('/:id/pencil-status', (_req: Request, res: Response) => {
     try {
-      // npx 경로 탐색 — Pencil MCP는 npx @pencilapp/mcp-server로 실행 (Antigravity 비의존)
-      const npxCandidates = process.platform === 'win32' ? [
-        path.join(path.dirname(process.execPath), 'npx.cmd'),
-        path.join(os.homedir(), 'AppData', 'Roaming', 'npm', 'npx.cmd'),
-        'C:\\Program Files\\nodejs\\npx.cmd',
-        'C:\\nvm4w\\nodejs\\npx.cmd',
-        'C:\\nvm\\nodejs\\npx.cmd',
-        path.join(os.homedir(), 'scoop', 'shims', 'npx.cmd'),
-      ] : [
-        path.join(path.dirname(process.execPath), 'npx'),
-        '/usr/local/bin/npx',
-        '/usr/bin/npx',
-        path.join(os.homedir(), '.npm-global', 'bin', 'npx'),
-        path.join(os.homedir(), '.nvm', 'versions', 'node', 'current', 'bin', 'npx'),
-      ];
-      const npxPath = npxCandidates.find(p => fs.existsSync(p)) ?? null;
+      // getRoleMcpConfig('design')와 동일한 탐색 로직 — 로컬 설치 바이너리 우선
+      const winBinary = path.join(
+        os.homedir(),
+        'AppData', 'Local', 'Programs', 'Pencil',
+        'resources', 'app.asar.unpacked', 'out', 'mcp-server-windows-x64.exe',
+      );
+      const macBinary = path.join(
+        '/Applications', 'Pencil.app', 'Contents', 'Resources',
+        'app.asar.unpacked', 'out', 'mcp-server',
+      );
+
+      let binaryPath: string | null = null;
+      if (process.platform === 'win32' && fs.existsSync(winBinary)) {
+        binaryPath = winBinary;
+      } else if (process.platform === 'darwin' && fs.existsSync(macBinary)) {
+        binaryPath = macBinary;
+      }
+
       res.json({
-        connected: !!npxPath,
-        method: 'npx',
-        npxPath: npxPath ?? 'not_found',
+        connected: !!binaryPath,
+        method: 'local_binary',
+        binaryPath: binaryPath ?? 'not_found',
       });
     } catch {
       res.json({ connected: false, reason: 'error' });

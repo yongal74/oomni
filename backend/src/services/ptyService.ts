@@ -53,44 +53,6 @@ function getApiKey(): string {
   return process.env.ANTHROPIC_API_KEY ?? '';
 }
 
-function findNpxPath(): string {
-  if (process.env.NPX_PATH && fs.existsSync(process.env.NPX_PATH)) return process.env.NPX_PATH;
-  if (process.platform === 'win32') {
-    const candidates = [
-      path.join(path.dirname(process.execPath), 'npx.cmd'),
-      path.join(os.homedir(), 'AppData', 'Roaming', 'npm', 'npx.cmd'),
-      'C:\\Program Files\\nodejs\\npx.cmd',
-      'C:\\nvm4w\\nodejs\\npx.cmd',
-      'C:\\nvm\\nodejs\\npx.cmd',
-      path.join(os.homedir(), 'scoop', 'shims', 'npx.cmd'),
-    ];
-    return candidates.find(p => fs.existsSync(p)) ?? 'npx';
-  }
-  const candidates = [
-    path.join(path.dirname(process.execPath), 'npx'),
-    '/usr/local/bin/npx',
-    '/usr/bin/npx',
-    path.join(os.homedir(), '.npm-global', 'bin', 'npx'),
-  ];
-  return candidates.find(p => fs.existsSync(p)) ?? 'npx';
-}
-
-function getMcpConfig(agentId: string): string | null {
-  // Pencil MCP — npx @pencilapp/mcp-server (Antigravity 완전 독립)
-  try {
-    const npx = findNpxPath();
-    const cfgPath = path.join(os.tmpdir(), `pty-mcp-${agentId}.json`);
-    const config = {
-      mcpServers: {
-        pencil: { command: npx, args: ['-y', '@pencilapp/mcp-server'], env: {} },
-      },
-    };
-    fs.writeFileSync(cfgPath, JSON.stringify(config, null, 2));
-    return cfgPath;
-  } catch {
-    return null;
-  }
-}
 
 /** PTY 세션 생성 또는 기존 세션 반환
  * @param shellMode true → PowerShell(Windows)/bash(Linux) 셸 직접 실행
@@ -138,9 +100,6 @@ function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = 
 
     spawnExec = nodeExec;
     spawnArgs = [cliPath, '--dangerously-skip-permissions'];
-
-    const mcpCfg = getMcpConfig(agentId);
-    if (mcpCfg) spawnArgs.push('--mcp-config', mcpCfg);
   }
 
   // node-pty(ConPTY)로 직접 spawn — cmd.exe 래퍼 제거

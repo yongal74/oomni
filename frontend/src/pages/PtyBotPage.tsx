@@ -6,7 +6,7 @@ import { useAppStore } from '../store/app.store'
 import {
   Trash2, Settings, ArrowLeft, RotateCcw,
   Clock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Copy,
-  Code2, Palette, Workflow, Bot, ExternalLink, X,
+  Code2, Palette, Workflow, Bot,
 } from 'lucide-react'
 import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
 import { XTerminal, type XTerminalRef } from '../components/bot/XTerminal'
@@ -83,41 +83,6 @@ function ResizableSplit({
   )
 }
 
-// Pencil 인앱 웹뷰 — URL 감지 후 iframe으로 인앱 표시
-function PencilInAppView({ url, onClose }: { url: string; onClose: () => void }) {
-  return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="shrink-0 flex items-center gap-2 px-3 py-1.5 bg-[#111] border-b border-[#222]">
-        <span className="text-[11px] text-purple-400 font-medium">✦ Pencil — 인앱 미리보기</span>
-        <span className="text-[10px] text-muted/60 font-mono flex-1 truncate">{url}</span>
-        <a
-          href={url}
-          target="_blank"
-          rel="noreferrer"
-          className="p-1 text-muted hover:text-primary transition-colors"
-          title="외부 브라우저에서 열기"
-        >
-          <ExternalLink size={11} />
-        </a>
-        <button
-          onClick={onClose}
-          className="p-1 text-muted hover:text-red-400 transition-colors"
-          title="인앱 뷰 닫기"
-        >
-          <X size={11} />
-        </button>
-      </div>
-      <div className="flex-1 overflow-hidden">
-        <iframe
-          src={url}
-          className="w-full h-full border-0"
-          title="Pencil Preview"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-        />
-      </div>
-    </div>
-  )
-}
 
 export default function PtyBotPage() {
   const { id } = useParams<{ id: string }>()
@@ -140,9 +105,6 @@ export default function PtyBotPage() {
   const [streamOutput, setStreamOutput] = useState('')
   const [lastOutput, setLastOutput] = useState('')  // 다음봇 전달용 최신 결과물
   const [designScreenshot, setDesignScreenshot] = useState<string | null>(null)
-  const [pencilStatus, setPencilStatus] = useState<{ connected: boolean } | null>(null)
-  // Pencil/localhost URL 감지 (터미널 출력에서 파싱 → 인앱 iframe 표시)
-  const [pencilInAppUrl, setPencilInAppUrl] = useState<string | null>(null)
   const terminalRef = useRef<XTerminalRef>(null)       // Build Bot 터미널 주입
   const designTerminalRef = useRef<XTerminalRef>(null)  // Design Bot 터미널 주입
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
@@ -185,27 +147,10 @@ export default function PtyBotPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Design Bot: Pencil MCP 연동 상태 조회
-  useEffect(() => {
-    if (agent?.role === 'design') {
-      fetch(`http://localhost:3001/api/agents/${id}/pencil-status`)
-        .then(r => r.json())
-        .then(setPencilStatus)
-        .catch(() => {})
-    }
-  }, [agent?.role, id])
-
   // Design봇 터미널 출력 캡처
   const handleDesignOutputCapture = useCallback((text: string) => {
     setLastOutput(text)
     setStreamOutput(text)   // PTY 출력 → DesignCenterPanel 실시간 HTML 프리뷰 전달
-    const urlMatch = text.match(/https?:\/\/localhost:(\d{4,5})\b/)
-    if (urlMatch) {
-      const detectedUrl = urlMatch[0].trim()
-      if (!detectedUrl.includes(':3001')) {
-        setPencilInAppUrl(prev => prev ?? detectedUrl)
-      }
-    }
   }, [])
 
   // ?autorun= URL 파라미터 처리 — 대시보드 프리셋 클릭 시 자동 실행
@@ -231,7 +176,6 @@ export default function PtyBotPage() {
     setStreamOutput('')
     setLastOutput('')
     setCurrentStage(null)
-    setPencilInAppUrl(null)
     setDesignScreenshot(null)
     qc.invalidateQueries({ queryKey: ['bot-feed', id] })
   }
@@ -460,35 +404,6 @@ export default function PtyBotPage() {
           minBottomPx={80}
           top={
             <div className="h-full flex flex-col overflow-hidden">
-              {/* Pencil 인앱 뷰 — URL 감지 시 상단 표시 */}
-              {pencilInAppUrl && (
-                <div style={{ height: '45%', minHeight: 80, flexShrink: 0 }} className="overflow-hidden border-b border-border">
-                  <PencilInAppView url={pencilInAppUrl} onClose={() => setPencilInAppUrl(null)} />
-                </div>
-              )}
-              {/* Pencil 툴바 */}
-              <div className="shrink-0 border-b border-[#222] bg-[#111] px-3 py-1.5 flex items-center gap-2">
-                <span className="text-[11px] text-muted">✦ Pencil 디자인 미리보기</span>
-                <div className="flex-1" />
-                {pencilStatus?.connected ? (
-                  <button
-                    onClick={() => designTerminalRef.current?.send('claude --dangerously-skip-permissions')}
-                    className="text-[11px] px-2 py-0.5 rounded bg-purple-500/15 text-purple-400 hover:bg-purple-500/25 transition-colors"
-                  >
-                    ✦ Pencil 강제 시작
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      fetch(`http://localhost:3001/api/agents/${agent.id}/pencil-status`)
-                        .then(r => r.json()).then(setPencilStatus).catch(() => {})
-                    }}
-                    className="text-[11px] px-2 py-0.5 rounded bg-border text-muted hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
-                  >
-                    Pencil 연결 확인
-                  </button>
-                )}
-              </div>
               <div className="flex-1 overflow-hidden">
                 <DesignCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} screenshotUrl={designScreenshot} />
               </div>
@@ -558,25 +473,6 @@ export default function PtyBotPage() {
               )}>
                 {agent.is_active ? '● 활성' : '○ 비활성'}
               </span>
-              {agent.role === 'design' && pencilStatus !== null && (
-                <button
-                  onClick={() => {
-                    if (!pencilStatus.connected) {
-                      fetch(`http://localhost:3001/api/agents/${id}/pencil-status`)
-                        .then(r => r.json()).then(setPencilStatus).catch(() => {})
-                    }
-                  }}
-                  className={cn(
-                    'text-xs px-2 py-1 rounded-full font-medium transition-colors',
-                    pencilStatus.connected
-                      ? 'bg-purple-500/15 text-purple-400'
-                      : 'bg-border text-muted hover:bg-yellow-500/10 hover:text-yellow-400'
-                  )}
-                  title={pencilStatus.connected ? 'Pencil MCP 연결 중' : 'Pencil.dev 앱을 실행하면 자동 연결됩니다'}
-                >
-                  {pencilStatus.connected ? '✦ Pencil MCP 연결됨' : '✦ Pencil MCP 미연결 — 클릭'}
-                </button>
-              )}
             </div>
             <div className="text-sm text-muted mt-0.5">{ROLE_LABEL[agent.role] ?? agent.role} Bot</div>
           </div>

@@ -7,9 +7,6 @@
 import { spawn, type ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
 import type { Agent, AgentRole } from '../db/types';
 import { logger } from '../logger';
 
@@ -52,12 +49,7 @@ interface CostInfo {
 const ROLE_INSTRUCTIONS: Record<AgentRole, string> = {
   research: '조사 결과는 반드시 구조화된 형식(제목, 요약, 출처)으로 정리하고, OOMNI API를 통해 feed_item으로 보고하라.',
   build: '코드 변경 전 반드시 테스트를 작성하고, 완료 후 OOMNI API로 결과를 보고하라.',
-  design: `당신은 UI/UX 디자인 에이전트입니다. Pencil MCP 도구를 사용해 실제 .pen 디자인 파일을 생성하세요.
-다크 테마(배경 #1A1613), 오렌지 액센트(#D4763B) 스타일로 디자인합니다.
-1. mcp__pencil__get_editor_state로 현재 상태 확인
-2. mcp__pencil__open_document으로 새 문서 열기 (없으면 'new')
-3. mcp__pencil__batch_design으로 컴포넌트 생성
-4. 결과를 C:/oomni-data/design/ 에 저장하고 OOMNI API로 파일 경로 보고`,
+  design: '고품질 UI/UX 디자인을 HTML + React 컴포넌트로 생성하고 C:/oomni-data/design/ 에 저장한 후 OOMNI API로 파일 경로를 보고하라.',
   content: '콘텐츠는 SEO 최적화를 고려하고, 완성 후 사람의 승인을 요청하라.',
   growth: '실행 전 가설을 명시하고, 결과 데이터와 함께 OOMNI API로 보고하라.',
   ops: '운영 지표(비용, 에러율, 수익)를 수집하고 이상 감지 시 즉시 알림을 보내라.',
@@ -65,45 +57,6 @@ const ROLE_INSTRUCTIONS: Record<AgentRole, string> = {
   ceo: '너는 CEO 역할의 AI 봇이다. 모든 봇의 활동 결과를 종합하여 일일/주간 보고서를 생성하고, 핵심 지표를 분석하며, 전략적 방향을 제안해라. OOMNI API에서 최근 피드와 비용 데이터를 가져와 종합 보고서를 작성하고 사람의 승인을 요청해라.',
 };
 
-// ── Pencil MCP 설정 빌더 — npx 독립 실행 (Antigravity 완전 제거) ─────────────
-function findNpxPath(): string {
-  if (process.env.NPX_PATH && fs.existsSync(process.env.NPX_PATH)) return process.env.NPX_PATH;
-  if (process.platform === 'win32') {
-    const candidates = [
-      path.join(path.dirname(process.execPath), 'npx.cmd'),
-      path.join(os.homedir(), 'AppData', 'Roaming', 'npm', 'npx.cmd'),
-      'C:\\Program Files\\nodejs\\npx.cmd',
-      'C:\\nvm4w\\nodejs\\npx.cmd',
-      'C:\\nvm\\nodejs\\npx.cmd',
-      path.join(os.homedir(), 'scoop', 'shims', 'npx.cmd'),
-    ];
-    return candidates.find(p => fs.existsSync(p)) ?? 'npx';
-  }
-  const candidates = [
-    path.join(path.dirname(process.execPath), 'npx'),
-    '/usr/local/bin/npx',
-    '/usr/bin/npx',
-    path.join(os.homedir(), '.npm-global', 'bin', 'npx'),
-  ];
-  return candidates.find(p => fs.existsSync(p)) ?? 'npx';
-}
-
-function buildMcpConfig(role: string): string | null {
-  if (role !== 'design') return null;
-  try {
-    const npx = findNpxPath();
-    const config = {
-      mcpServers: {
-        pencil: { command: npx, args: ['-y', '@pencilapp/mcp-server'], env: {} },
-      },
-    };
-    const tmpPath = path.join(os.tmpdir(), `oomni-mcp-${Date.now()}.json`);
-    fs.writeFileSync(tmpPath, JSON.stringify(config));
-    return tmpPath;
-  } catch {
-    return null;
-  }
-}
 
 export class AgentRunner extends EventEmitter {
   private readonly oomniApiUrl: string;
@@ -209,11 +162,9 @@ ${task}
     const prompt = this.buildPrompt(agent, task ?? '정기 하트비트 — 현재 작업 목록 확인 및 처리', {});
     const env = this.buildEnv(agent, this.oomniApiUrl, this.oomniApiKey);
 
-    const mcpConfigPath = buildMcpConfig(agent.role);
     const args = [
       '--print', '-',
       '--output-format', 'stream-json',
-      ...(mcpConfigPath ? ['--mcp-config', mcpConfigPath] : []),
       ...(sessionId ? ['--resume', sessionId] : []),
     ];
 
@@ -255,11 +206,6 @@ ${task}
 
       proc.on('close', (code) => {
         this.activeProcesses.delete(runId);
-
-        // 임시 MCP config 파일 정리
-        if (mcpConfigPath) {
-          try { fs.unlinkSync(mcpConfigPath); } catch { /* 무시 */ }
-        }
 
         if (code === 0) {
           resolve({
