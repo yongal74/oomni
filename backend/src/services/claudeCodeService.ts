@@ -91,36 +91,6 @@ interface McpServer {
   env?: Record<string, string>;
 }
 
-/**
- * npx 실행 경로 탐색 — Pencil MCP 독립 실행용 (Antigravity 비의존)
- * 우선순위: 환경변수 → 플랫폼별 표준 위치 → PATH 폴백
- */
-function findNpxPath(): string {
-  if (process.env.NPX_PATH && fs.existsSync(process.env.NPX_PATH)) {
-    return process.env.NPX_PATH;
-  }
-  if (process.platform === 'win32') {
-    const candidates = [
-      // node 실행 파일과 같은 디렉토리 (nvm4w / nvm / 표준 설치 공통 패턴)
-      path.join(path.dirname(process.execPath), 'npx.cmd'),
-      path.join(os.homedir(), 'AppData', 'Roaming', 'npm', 'npx.cmd'),
-      'C:\\Program Files\\nodejs\\npx.cmd',
-      'C:\\nvm4w\\nodejs\\npx.cmd',
-      'C:\\nvm\\nodejs\\npx.cmd',
-      path.join(os.homedir(), 'scoop', 'shims', 'npx.cmd'),
-    ];
-    return candidates.find(p => fs.existsSync(p)) ?? 'npx';
-  }
-  const candidates = [
-    // node 실행 파일과 같은 디렉토리
-    path.join(path.dirname(process.execPath), 'npx'),
-    '/usr/local/bin/npx',
-    '/usr/bin/npx',
-    path.join(os.homedir(), '.npm-global', 'bin', 'npx'),
-    path.join(os.homedir(), '.nvm', 'versions', 'node', 'current', 'bin', 'npx'),
-  ];
-  return candidates.find(p => fs.existsSync(p)) ?? 'npx';
-}
 
 /**
  * n8n-mcp 스크립트 경로 탐색
@@ -144,16 +114,38 @@ function getRoleMcpConfig(role: string): Record<string, McpServer> | null {
   const { execPath: nodeExec, extraEnv: nodeEnv } = getNodeExecutable();
 
   if (role === 'design') {
-    // npx @pencilapp/mcp-server — Antigravity 완전 독립 실행
-    // pencil.dev 데스크탑 앱과 직접 연동 (Antigravity 패널 우회)
-    const npx = findNpxPath();
-    return {
-      pencil: {
-        command: npx,
-        args: ['-y', '@pencilapp/mcp-server'],
-        env: {},
-      },
-    };
+    // Pencil MCP 서버: 로컬 설치 바이너리 우선 사용
+    // npm @pencilapp/mcp-server는 존재하지 않음 — Pencil 앱 설치 시 동봉된 실행파일 직접 실행
+    const localBinary = path.join(
+      os.homedir(),
+      'AppData', 'Local', 'Programs', 'Pencil',
+      'resources', 'app.asar.unpacked', 'out', 'mcp-server-windows-x64.exe',
+    );
+    if (process.platform === 'win32' && fs.existsSync(localBinary)) {
+      return {
+        pencil: {
+          command: localBinary,
+          args: [],
+          env: {},
+        },
+      };
+    }
+    // macOS/Linux: Pencil 앱이 설치된 경우
+    const macBinary = path.join(
+      '/Applications', 'Pencil.app', 'Contents', 'Resources',
+      'app.asar.unpacked', 'out', 'mcp-server',
+    );
+    if (process.platform === 'darwin' && fs.existsSync(macBinary)) {
+      return {
+        pencil: {
+          command: macBinary,
+          args: [],
+          env: {},
+        },
+      };
+    }
+    // Pencil 미설치: MCP 없이 HTML 모드로 폴백
+    return null;
   }
 
   if (role === 'ops') {

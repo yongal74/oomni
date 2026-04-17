@@ -6,7 +6,7 @@ import { useAppStore } from '../store/app.store'
 import {
   Trash2, Settings, ArrowLeft, Send, Square, RotateCcw,
   Clock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Copy,
-  ExternalLink, X, Telescope, BookOpen, TrendingUp, Workflow, Crown, Bot, Palette,
+  Telescope, BookOpen, TrendingUp, Workflow, Crown, Bot, Palette,
 } from 'lucide-react'
 import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
 import { ModelSwitcher, type ModelId, type ModeId } from '../components/bot/ModelSwitcher'
@@ -151,41 +151,6 @@ function ResizableHSplit({
   )
 }
 
-// Pencil 인앱 웹뷰 — URL 감지 후 iframe으로 인앱 표시
-function PencilInAppView({ url, onClose }: { url: string; onClose: () => void }) {
-  return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="shrink-0 flex items-center gap-2 px-3 py-1.5 bg-[#111] border-b border-[#222]">
-        <span className="text-[11px] text-purple-400 font-medium">✦ Pencil — 인앱 미리보기</span>
-        <span className="text-[10px] text-muted/60 font-mono flex-1 truncate">{url}</span>
-        <a
-          href={url}
-          target="_blank"
-          rel="noreferrer"
-          className="p-1 text-muted hover:text-primary transition-colors"
-          title="외부 브라우저에서 열기"
-        >
-          <ExternalLink size={11} />
-        </a>
-        <button
-          onClick={onClose}
-          className="p-1 text-muted hover:text-red-400 transition-colors"
-          title="인앱 뷰 닫기"
-        >
-          <X size={11} />
-        </button>
-      </div>
-      <div className="flex-1 overflow-hidden">
-        <iframe
-          src={url}
-          className="w-full h-full border-0"
-          title="Pencil Preview"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-        />
-      </div>
-    </div>
-  )
-}
 
 // ── 채팅 패널 — 자기완결형 (task 입력/스트리밍/히스토리 내부 관리) ───────────
 interface ChatPair { userMsg: string; assistantMsg: string; ts: string; isError?: boolean }
@@ -522,8 +487,9 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
 // 좌측(2/3): 상단 센터콘텐츠 + 하단 XTerminal
 // 우측(1/3): AntigravityRightPanel (자기완결형, 내부에서 task/stream 관리)
 function UnifiedTerminalLayout({
-  agentId, placeholder, termRef, onTerminalExit, onOutputCapture,
-  centerContent, rightChildren, pencilUrl, onPencilClose,
+  agentId, placeholder, termRef, onTerminalExit,
+  onChatOutputCapture,
+  centerContent, rightChildren,
   selectedModel, selectedMode, botRole, onModelChange, onModeChange,
   rightPanelRef, onChatStart, onChatDone, onStageChange,
 }: {
@@ -531,11 +497,9 @@ function UnifiedTerminalLayout({
   placeholder: string
   termRef: React.RefObject<XTerminalRef>
   onTerminalExit: () => void
-  onOutputCapture: (text: string) => void
+  onChatOutputCapture: (text: string) => void
   centerContent: React.ReactNode
   rightChildren?: React.ReactNode
-  pencilUrl?: string | null
-  onPencilClose?: () => void
   selectedModel: ModelId
   selectedMode: ModeId
   botRole: string
@@ -552,15 +516,8 @@ function UnifiedTerminalLayout({
       minTopPx={100}
       minBottomPx={80}
       top={
-        <div className="h-full flex flex-col overflow-hidden">
-          {pencilUrl && (
-            <div style={{ height: '45%', minHeight: 80, flexShrink: 0 }} className="overflow-hidden border-b border-border">
-              <PencilInAppView url={pencilUrl} onClose={onPencilClose ?? (() => {})} />
-            </div>
-          )}
-          <div className={pencilUrl ? 'flex-1 overflow-hidden' : 'h-full overflow-hidden'}>
-            {centerContent}
-          </div>
+        <div className="h-full overflow-hidden">
+          {centerContent}
         </div>
       }
       bottom={
@@ -571,7 +528,6 @@ function UnifiedTerminalLayout({
           alwaysOn
           shellMode
           onExit={onTerminalExit}
-          onOutputCapture={onOutputCapture}
           className="h-full"
         />
       }
@@ -594,7 +550,7 @@ function UnifiedTerminalLayout({
           botRole={botRole}
           onModelChange={onModelChange}
           onModeChange={onModeChange}
-          onOutputCapture={onOutputCapture}
+          onOutputCapture={onChatOutputCapture}
           onChatStart={onChatStart}
           onChatDone={onChatDone}
           onStageChange={onStageChange}
@@ -631,7 +587,6 @@ export default function UnifiedBotPage() {
   const [contentType, setContentType] = useState('blog')
   const [streamOutput, setStreamOutput] = useState('')
   const [lastOutput, setLastOutput] = useState('')  // 다음봇 전달용 최신 결과물
-  const [pencilInAppUrl, setPencilInAppUrl] = useState<string | null>(null)
   const esRef = useRef<EventSource | null>(null)
   const unifiedTerminalRef = useRef<XTerminalRef>(null)
   const unifiedRightPanelRef = useRef<AntigravityRightPanelRef>(null)
@@ -675,19 +630,10 @@ export default function UnifiedBotPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 터미널 출력에서 localhost URL 감지 → Pencil 인앱 뷰 자동 표시
-  const handleUnifiedOutputCapture = useCallback((text: string) => {
+  // 채팅(AntigravityRightPanel) 출력 캡처 — streamOutput + lastOutput 업데이트
+  const handleChatOutputCapture = useCallback((text: string) => {
     setLastOutput(text)
-    setStreamOutput(text)   // 우측 채팅 스트리밍 → 중앙 패널에 전달
-    // localhost:포트 URL 패턴 감지 (Pencil이 서빙하는 포트)
-    const urlMatch = text.match(/https?:\/\/localhost:(\d{4,5})\b/)
-    if (urlMatch) {
-      const detectedUrl = urlMatch[0].trim()
-      // 백엔드 API 포트 3001은 제외
-      if (!detectedUrl.includes(':3001')) {
-        setPencilInAppUrl(prev => prev ?? detectedUrl)
-      }
-    }
+    setStreamOutput(text)
   }, [])
 
   // ?autorun= URL 파라미터 처리 — 대시보드 프리셋 클릭 시 자동 실행
@@ -725,7 +671,6 @@ export default function UnifiedBotPage() {
     setStreamOutput('')
     setLastOutput('')
     setCurrentStage(null)
-    setPencilInAppUrl(null)
     qc.invalidateQueries({ queryKey: ['bot-feed', id] })
   }
 
@@ -966,7 +911,6 @@ export default function UnifiedBotPage() {
       if (role === 'design') return <div className="p-3"><DesignRightPanel
         agentId={agent.id}
         onSkillSelect={handleSkillRun}
-        onPencilLaunch={() => unifiedTerminalRef.current?.send('npx -y @pencilapp/mcp-server')}
         currentRole="design"
         content={lastOutput}
       /></div>
@@ -981,11 +925,9 @@ export default function UnifiedBotPage() {
         placeholder={placeholder}
         termRef={unifiedTerminalRef}
         onTerminalExit={() => { setIsRunning(false); setCurrentStage('done') }}
-        onOutputCapture={handleUnifiedOutputCapture}
+        onChatOutputCapture={handleChatOutputCapture}
         centerContent={centerContent}
         rightChildren={rightChildren}
-        pencilUrl={pencilInAppUrl}
-        onPencilClose={() => setPencilInAppUrl(null)}
         selectedModel={selectedModel}
         selectedMode={selectedMode}
         botRole={agent.role}

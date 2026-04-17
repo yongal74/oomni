@@ -90,8 +90,14 @@ export function templatesRouter(db: DbClient): Router {
     let agentsCreated = 0;
 
     for (const agentDef of template.agents) {
+      // 같은 미션에 동일 role이 이미 있으면 스킵 (CEO 중복 방지)
+      const existing = await db.query(
+        `SELECT id FROM agents WHERE mission_id = $1 AND role = $2 LIMIT 1`,
+        [mission_id, agentDef.role],
+      );
+      if ((existing.rows as unknown[]).length > 0) continue;
+
       const id = uuidv4();
-      const isCeo = agentDef.role === 'ceo';
       await db.query(
         `INSERT INTO agents (id, mission_id, name, role, schedule, system_prompt, budget_cents, reports_to, is_active)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
@@ -103,7 +109,7 @@ export function templatesRouter(db: DbClient): Router {
           'manual',
           agentDef.system_prompt,
           agentDef.budget_cents,
-          isCeo ? null : null, // reports_to — will be linked after creation
+          null,
           true,
         ],
       );
