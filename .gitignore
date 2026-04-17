@@ -1,6 +1,7 @@
 node_modules/
 dist/
 dist-app/
+dist-build-*/
 frontend/dist/
 backend/dist/
 *.env

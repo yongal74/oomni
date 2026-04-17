@@ -1,4 +1,5 @@
 export type AgentRole =
+  // Phase 1
   | 'research'
   | 'build'
   | 'design'
@@ -6,7 +7,14 @@ export type AgentRole =
   | 'growth'
   | 'ops'
   | 'integration'
-  | 'ceo';
+  | 'ceo'
+  // Phase 2 (BOT-08~11)
+  | 'project_setup'   // BOT-08: 프로젝트 초기화 자동화
+  | 'env'             // BOT-09: 환경변수 통합 관리
+  | 'security_audit'  // BOT-10: 보안 감사 자동화
+  | 'frontend'        // BOT-11-A: UI/React 전문 빌드
+  | 'backend'         // BOT-11-B: API/DB 전문 빌드
+  | 'infra';          // BOT-11-C: CI/CD/배포 전문
 
 export type AgentSchedule = 'manual' | 'hourly' | 'daily' | 'weekly';
 

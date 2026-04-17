@@ -37,6 +37,12 @@ const BOT_TEMPLATES = [
   { role: 'ops', name: 'Ops Bot', emoji: '⚙️', desc: '운영 모니터링, 세무/재무, 리포트 및 자동화 워크플로우 생성' },
   { role: 'integration', name: 'Integration Bot', emoji: '🔗', desc: '외부 서비스 연동, 데이터 동기화' },
   { role: 'ceo', name: 'CEO Bot', emoji: '👔', desc: '전체 봇 결과 종합, 일일/주간 보고서 자동 생성' },
+  { role: 'project_setup', name: 'ProjectSetup Bot', emoji: '🚀', desc: '5가지 질문으로 프로젝트 완전 초기화' },
+  { role: 'env', name: 'Env Bot', emoji: '🔑', desc: '환경변수 통합 관리 · NEXT_PUBLIC_ 오용 탐지' },
+  { role: 'security_audit', name: 'SecurityAudit Bot', emoji: '🔒', desc: 'OWASP · RLS · 의존성 취약점 자동 점검' },
+  { role: 'frontend', name: 'Frontend Bot', emoji: '⚛️', desc: 'React · Tailwind · shadcn/ui 전문 빌드' },
+  { role: 'backend', name: 'Backend Bot', emoji: '🔧', desc: 'API · Supabase · RLS 전문 백엔드' },
+  { role: 'infra', name: 'Infra Bot', emoji: '🏗️', desc: 'GitHub Actions · Vercel · Docker CI/CD' },
 ] as const
 
 const ROLE_SYSTEM_PROMPTS: Record<string, string> = {

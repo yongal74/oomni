@@ -24,6 +24,8 @@ import type { ResearchItem } from '../lib/api'
 const BOT_ICONS_MAP: Record<string, React.ElementType> = {
   research: Telescope, content: BookOpen,
   growth: TrendingUp, ops: Workflow, ceo: Crown, design: Palette,
+  project_setup: Bot, env: Bot, security_audit: Bot,
+  frontend: Bot, backend: Workflow, infra: Bot,
 }
 function BotIcon({ role, size = 20 }: { role: string; size?: number }) {
   const Icon = BOT_ICONS_MAP[role] || Bot
@@ -33,6 +35,8 @@ function BotIcon({ role, size = 20 }: { role: string; size?: number }) {
 const ROLE_LABEL: Record<string, string> = {
   research: 'Research', content: 'Content',
   growth: 'Growth', ops: 'Ops', ceo: 'CEO', design: 'Design',
+  project_setup: 'ProjectSetup', env: 'Env', security_audit: 'SecurityAudit',
+  frontend: 'Frontend', backend: 'Backend', infra: 'Infra',
 }
 
 const PLACEHOLDER: Record<string, string> = {

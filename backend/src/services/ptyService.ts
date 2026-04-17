@@ -1,10 +1,10 @@
 /**
  * ptyService.ts — node-pty 기반 진짜 터미널 서비스
  *
- * Build Bot이 Claude Code CLI를 진짜 인터랙티브 터미널처럼 실행:
- * - node-pty: OS 레벨 가상 터미널 (PTY) — 색상, 스피너, Tab 완성 모두 동작
- * - WebSocket: 양방향 실시간 통신 (클라이언트 키 입력 → PTY → 결과 스트리밍)
- * - 세션 격리: agentId별 독립 PTY 세션 관리
+ * 역할별 PTY 실행 방식:
+ * - design  → Claude Code CLI + Pencil MCP (--mcp-config, stdio binary)
+ * - build/ops/기타 → Claude Code CLI 인터랙티브 모드
+ * - shell 모드 → PowerShell(Windows)/bash(Linux) 직접 실행
  */
 
 import * as pty from 'node-pty';
@@ -38,6 +38,32 @@ const DATA_ROOT = process.platform === 'win32'
   : path.join(os.homedir(), 'oomni-data');
 const WORKSPACE_ROOT = path.join(DATA_ROOT, 'workspaces');
 
+// ── Pencil MCP 바이너리 경로 탐색 ────────────────────────────
+function findPencilBinary(): string | null {
+  const winBinary = path.join(
+    os.homedir(),
+    'AppData', 'Local', 'Programs', 'Pencil',
+    'resources', 'app.asar.unpacked', 'out', 'mcp-server-windows-x64.exe',
+  );
+  const macBinary = path.join(
+    '/Applications', 'Pencil.app', 'Contents', 'Resources',
+    'app.asar.unpacked', 'out', 'mcp-server',
+  );
+  if (process.platform === 'win32' && fs.existsSync(winBinary)) return winBinary;
+  if (process.platform === 'darwin' && fs.existsSync(macBinary)) return macBinary;
+  return null;
+}
+
+/** Pencil MCP 설정 JSON 파일 생성 → 경로 반환 (없으면 null) */
+function writePencilMcpConfig(): string | null {
+  const binary = findPencilBinary();
+  if (!binary) return null;
+  const cfg = { mcpServers: { pencil: { command: binary, args: [], env: {} } } };
+  const cfgPath = path.join(os.tmpdir(), 'mcp-design-pty.json');
+  fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
+  return cfgPath;
+}
+
 // ── PTY 세션 ──────────────────────────────────────────────
 interface PtySession {
   pty: pty.IPty;
@@ -53,12 +79,12 @@ function getApiKey(): string {
   return process.env.ANTHROPIC_API_KEY ?? '';
 }
 
-
-/** PTY 세션 생성 또는 기존 세션 반환
- * @param shellMode true → PowerShell(Windows)/bash(Linux) 셸 직접 실행
- *                  false(기본) → Claude Code CLI 인터랙티브 모드
+/**
+ * PTY 세션 생성 또는 기존 세션 반환
+ * @param role  에이전트 역할 — 'design'이면 Pencil MCP 자동 연결
+ * @param shellMode true → PowerShell/bash 셸 직접 실행
  */
-function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = false): PtySession {
+function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = false, role = ''): PtySession {
   const existing = sessions.get(agentId);
   if (existing) return existing;
 
@@ -66,6 +92,7 @@ function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = 
   fs.mkdirSync(wsPath, { recursive: true });
 
   const apiKey = getApiKey();
+  const isElectron = !!(process.versions && 'electron' in process.versions);
 
   const env: Record<string, string> = {
     ...Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== undefined)) as Record<string, string>,
@@ -73,6 +100,7 @@ function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = 
     TERM: 'xterm-256color',
     COLORTERM: 'truecolor',
     FORCE_COLOR: '3',
+    ...(isElectron ? { ELECTRON_RUN_AS_NODE: '1' } : {}),
   };
 
   let spawnExec: string;
@@ -80,7 +108,6 @@ function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = 
 
   if (shellMode) {
     // ── 셸 모드: PowerShell(Windows) / bash(Linux/Mac) ──────────────────
-    // Antigravity IDE 스타일 — 사용자가 직접 명령 실행
     if (process.platform === 'win32') {
       spawnExec = 'powershell.exe';
       spawnArgs = ['-NoLogo'];
@@ -88,21 +115,27 @@ function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = 
       spawnExec = process.env.SHELL ?? '/bin/bash';
       spawnArgs = [];
     }
-  } else {
-    // ── Claude Code CLI 모드 (기존) ───────────────────────────────────────
+  } else if (role === 'design') {
+    // ── Design Bot: Claude Code CLI + Pencil MCP (stdio) ────────────────
     const cliPath = getCliPath();
     const nodeExec = getNodeExecutable();
-    const isElectron = process.versions && 'electron' in process.versions;
+    spawnExec = nodeExec;
+    spawnArgs = [cliPath, '--dangerously-skip-permissions'];
 
-    if (isElectron) {
-      env.ELECTRON_RUN_AS_NODE = '1';
+    // Pencil MCP config 주입
+    const mcpCfgPath = writePencilMcpConfig();
+    if (mcpCfgPath) {
+      spawnArgs.push('--mcp-config', mcpCfgPath);
     }
-
+  } else {
+    // ── Claude Code CLI 모드 (build/ops/기타) ────────────────────────────
+    const cliPath = getCliPath();
+    const nodeExec = getNodeExecutable();
     spawnExec = nodeExec;
     spawnArgs = [cliPath, '--dangerously-skip-permissions'];
   }
 
-  // node-pty(ConPTY)로 직접 spawn — cmd.exe 래퍼 제거
+  // node-pty(ConPTY)로 직접 spawn
   const ptyProcess = pty.spawn(spawnExec, spawnArgs, {
     name: 'xterm-256color',
     cols,
@@ -175,22 +208,23 @@ export function attachPtyWebSocket(server: import('http').Server): void {
     const url = req.url ?? '';
     // /api/agents/:id/terminal 패턴 매칭
     const match = url.match(/^\/api\/agents\/([^/?]+)\/terminal/);
-    if (!match) return; // 다른 WebSocket 업그레이드는 무시
+    if (!match) return;
 
     wss.handleUpgrade(req, socket, head, (ws) => {
       const agentId = match[1];
 
-      // 쿼리 파라미터에서 cols/rows/mode 파싱
+      // 쿼리 파라미터에서 cols/rows/mode/role 파싱
       const qs = new URLSearchParams(url.split('?')[1] ?? '');
       const cols = parseInt(qs.get('cols') ?? '120', 10);
       const rows = parseInt(qs.get('rows') ?? '35', 10);
       const shellMode = qs.get('mode') === 'shell';
+      const role = qs.get('role') ?? '';
 
-      const session = getOrCreateSession(agentId, cols, rows, shellMode);
+      const session = getOrCreateSession(agentId, cols, rows, shellMode, role);
       session.clients.add(ws);
 
-      // 접속 확인 메시지
-      ws.send(JSON.stringify({ type: 'connected', agentId }));
+      // 접속 확인 메시지 (role 포함)
+      ws.send(JSON.stringify({ type: 'connected', agentId, role }));
 
       ws.on('message', (data) => {
         handleWsMessage(session, data.toString());

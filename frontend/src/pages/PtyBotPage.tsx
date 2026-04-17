@@ -19,6 +19,8 @@ import { cn } from '../lib/utils'
 
 const BOT_ICONS_MAP: Record<string, React.ElementType> = {
   build: Code2, design: Palette, ops: Workflow,
+  project_setup: Bot, env: Bot, security_audit: Bot,
+  frontend: Code2, backend: Workflow, infra: Bot,
 }
 function BotIcon({ role, size = 20 }: { role: string; size?: number }) {
   const Icon = BOT_ICONS_MAP[role] || Bot
@@ -27,6 +29,8 @@ function BotIcon({ role, size = 20 }: { role: string; size?: number }) {
 
 const ROLE_LABEL: Record<string, string> = {
   build: 'Build', design: 'Design', ops: 'Ops',
+  project_setup: 'ProjectSetup', env: 'Env', security_audit: 'SecurityAudit',
+  frontend: 'Frontend', backend: 'Backend', infra: 'Infra',
 }
 
 
@@ -376,7 +380,6 @@ export default function PtyBotPage() {
             agentId={agent.id}
             isRunning={isRunning}
             alwaysOn
-            shellMode
             taskHint={task}
             onExit={() => { setIsRunning(false); setCurrentStage('done') }}
             onOutputCapture={(text) => setLastOutput(text)}
@@ -414,7 +417,7 @@ export default function PtyBotPage() {
             agentId={agent.id}
             isRunning={isRunning}
             alwaysOn
-            shellMode
+            role={agent.role}
             taskHint={task}
             onExit={() => { setIsRunning(false); setCurrentStage('done') }}
             onOutputCapture={handleDesignOutputCapture}
@@ -434,7 +437,6 @@ export default function PtyBotPage() {
           agentId={agent.id}
           isRunning={isRunning}
           alwaysOn
-          shellMode
           taskHint={task}
           onExit={() => { setIsRunning(false); setCurrentStage('done') }}
           onOutputCapture={(text) => setLastOutput(text)}

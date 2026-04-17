@@ -13,7 +13,10 @@ export const SCHEMA_SQL = `
     id TEXT PRIMARY KEY,
     mission_id TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    role TEXT NOT NULL CHECK(role IN ('research','build','design','content','growth','ops','ceo')),
+    role TEXT NOT NULL CHECK(role IN (
+      'research','build','design','content','growth','ops','integration','ceo',
+      'project_setup','env','security_audit','frontend','backend','infra'
+    )),
     schedule TEXT,
     system_prompt TEXT,
     budget_cents INTEGER DEFAULT 0,
@@ -144,6 +147,20 @@ export const SCHEMA_SQL = `
     credentials TEXT,
     is_active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS setup_wizard_sessions (
+    id          TEXT PRIMARY KEY,
+    agent_id    TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    app_name    TEXT NOT NULL,
+    app_type    TEXT NOT NULL CHECK(app_type IN ('web','mobile','desktop')),
+    needs_ai    INTEGER NOT NULL DEFAULT 0,
+    needs_payment INTEGER NOT NULL DEFAULT 0,
+    market      TEXT NOT NULL CHECK(market IN ('domestic','global')),
+    stack_json  TEXT,
+    status      TEXT NOT NULL DEFAULT 'pending'
+                CHECK(status IN ('pending','running','completed','failed')),
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
   CREATE INDEX IF NOT EXISTS idx_heartbeat_runs_agent_id ON heartbeat_runs(agent_id);

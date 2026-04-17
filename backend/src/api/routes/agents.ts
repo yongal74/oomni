@@ -538,31 +538,34 @@ export function agentsRouter(db: DbClient): Router {
     ).catch(() => {});
 
     try {
-      if (agentFull.role === 'design') {
+      const claudeCodeRoles = ['design', 'build', 'project_setup', 'env', 'security_audit', 'frontend', 'backend', 'infra'];
+      if (claudeCodeRoles.includes(agentFull.role)) {
         // Design Bot: ClaudeCodeService → Claude Code CLI + Pencil MCP (stdio)
         // routeToExecutor(designExecutor)는 Anthropic SDK 직접 호출이라 Pencil MCP가 실행되지 않음
         let designSystemTokens: string | undefined;
-        try {
-          const dsResult = await db.query(
-            'SELECT * FROM design_systems WHERE mission_id = $1',
-            [agentFull.mission_id]
-          );
-          if (dsResult.rows.length > 0) {
-            const ds = dsResult.rows[0] as Record<string, string>;
-            designSystemTokens = [
-              `Primary: ${ds.primary_color}`,
-              `Background: ${ds.bg_color}`,
-              `Surface: ${ds.surface_color}`,
-              `Text: ${ds.text_color}`,
-              `Font: ${ds.font_family}`,
-              `Radius: ${ds.border_radius}`,
-            ].join(', ');
-          }
-        } catch { /* 디자인 시스템 없으면 기본값 사용 */ }
+        if (agentFull.role === 'design') {
+          try {
+            const dsResult = await db.query(
+              'SELECT * FROM design_systems WHERE mission_id = $1',
+              [agentFull.mission_id]
+            );
+            if (dsResult.rows.length > 0) {
+              const ds = dsResult.rows[0] as Record<string, string>;
+              designSystemTokens = [
+                `Primary: ${ds.primary_color}`,
+                `Background: ${ds.bg_color}`,
+                `Surface: ${ds.surface_color}`,
+                `Text: ${ds.text_color}`,
+                `Font: ${ds.font_family}`,
+                `Radius: ${ds.border_radius}`,
+              ].join(', ');
+            }
+          } catch { /* 디자인 시스템 없으면 기본값 사용 */ }
+        }
 
         const ccService = ClaudeCodeService.create(agentFull.id, agentFull.role);
         // ClaudeCodeService가 'start'/'done'/'output' 등을 직접 send()로 전송
-        await ccService.execute(task, send, { designSystemTokens });
+        await ccService.execute(task, send, agentFull.role === 'design' ? { designSystemTokens } : undefined);
         // done은 ClaudeCodeService 내부에서 이미 전송됨 — 중복 전송 금지
       } else {
         await routeToExecutor({ agent: agentFull, task, db, send, overrideModel });
@@ -584,6 +587,34 @@ export function agentsRouter(db: DbClient): Router {
     }
 
     res.end();
+  });
+
+  // POST /api/agents/:id/setup-wizard — ProjectSetup Bot 세션 초기화
+  router.post('/:id/setup-wizard', async (req: Request, res: Response) => {
+    const agentResult = await db.query('SELECT * FROM agents WHERE id = $1', [req.params.id]);
+    const agentRows = agentResult.rows as Array<{ id: string; role: string; mission_id: string }>;
+    if (agentRows.length === 0) { res.status(404).json({ error: '봇을 찾을 수 없습니다' }); return; }
+
+    const { appName, appType, needsAI, needsPayment, market } = req.body as {
+      appName: string; appType: string; needsAI: boolean; needsPayment: boolean; market: string;
+    };
+
+    if (!appName || !appType || !market) {
+      res.status(400).json({ error: '필수 항목 누락: appName, appType, market' });
+      return;
+    }
+
+    const agent = agentRows[0];
+    const sessionId = uuidv4();
+
+    await db.query(
+      `INSERT INTO setup_wizard_sessions (id, agent_id, app_name, app_type, needs_ai, needs_payment, market, status) VALUES ($1,$2,$3,$4,$5,$6,$7,'pending')`,
+      [sessionId, agent.id, appName, appType, needsAI ? 1 : 0, needsPayment ? 1 : 0, market]
+    ).catch(() => {});
+
+    const task = JSON.stringify({ appName, appType, needsAI, needsPayment, market });
+
+    res.json({ success: true, sessionId, message: 'ProjectSetup Bot 실행 준비 완료. /chat 엔드포인트로 실행하세요.', task });
   });
 
   // GET /api/agents/:id/heartbeat-runs — heartbeat_runs 테이블 실행 기록 조회

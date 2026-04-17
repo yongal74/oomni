@@ -1,9 +1,10 @@
 /**
  * XTerminal.tsx — xterm.js + WebSocket 기반 진짜 터미널 컴포넌트
  *
- * Build Bot이 Claude Code CLI를 진짜 인터랙티브 터미널처럼 실행:
- * - xterm.js: 색상, 스피너, Tab 완성, Ctrl+C 모두 동작
- * - WebSocket: 키보드 입력 → 백엔드 PTY → 결과 스트리밍
+ * 역할별 실행 방식 (role prop → 백엔드 ptyService로 전달):
+ * - design  → Claude Code CLI + Pencil MCP 자동 연결
+ * - build/ops/기타 → Claude Code CLI 인터랙티브 모드
+ * - shellMode={true} → PowerShell/bash 직접 실행
  */
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { Terminal } from 'xterm'
@@ -25,7 +26,9 @@ interface Props {
   isRunning: boolean
   /** true: 마운트 즉시 연결 (isRunning 무관) — Antigravity IDE 스타일 항상-켜진 터미널 */
   alwaysOn?: boolean
-  /** true: PowerShell/bash 셸 모드 / false(기본): Claude Code CLI 모드 */
+  /** 에이전트 역할 — 백엔드가 역할에 맞는 실행 방식 선택 (design → Pencil MCP 자동 연결) */
+  role?: string
+  /** true: PowerShell/bash 셸 모드 — 일반 사용자 셸 직접 실행 */
   shellMode?: boolean
   /** @deprecated 자동전송 제거됨 — Claude Code 초기화 전 입력이 exit code 1 유발 */
   initialInput?: string
@@ -40,14 +43,14 @@ interface Props {
 const WS_URL = 'ws://localhost:3001'
 
 export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
-  { agentId, isRunning, alwaysOn, shellMode, taskHint, onExit, onOutputCapture, className }: Props,
+  { agentId, isRunning, alwaysOn, role, shellMode, taskHint, onExit, onOutputCapture, className }: Props,
   ref
 ) {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
-  const outputBufRef = useRef<string>('')  // PTY 출력 누적 (ANSI 제거 후)
+  const outputBufRef = useRef<string>('')
   const [connected, setConnected] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [resetting, setResetting] = useState(false)
@@ -117,7 +120,6 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
       term.writeln('\x1b[90m봇을 실행하면 연결됩니다...\x1b[0m\r\n')
     }
 
-    // 리사이즈 감지
     const observer = new ResizeObserver(() => {
       try { fitAddon.fit() } catch { /* ignore */ }
     })
@@ -132,29 +134,34 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
 
   // isRunning 또는 alwaysOn 변경 시 WebSocket 연결/해제
   useEffect(() => {
-    // alwaysOn: 마운트 즉시 연결 / 일반: isRunning=true 시 연결
-    if (!alwaysOn && !isRunning) {
-      // 실행 중지 시 연결 유지 (터미널 내용 보존)
-      return
-    }
+    if (!alwaysOn && !isRunning) return
 
     const term = termRef.current
     const fitAddon = fitAddonRef.current
     if (!term || !fitAddon) return
 
-    // 이전 연결 정리
     wsRef.current?.close()
 
     const cols = term.cols
     const rows = term.rows
+
+    // role 또는 shellMode를 쿼리 파라미터로 전달
+    // design role: 백엔드가 Claude Code CLI + Pencil MCP로 실행
+    // shellMode: 백엔드가 PowerShell/bash로 실행
     const modeParam = shellMode ? '&mode=shell' : ''
-    const url = `${WS_URL}/api/agents/${agentId}/terminal?cols=${cols}&rows=${rows}${modeParam}`
+    const roleParam = role && !shellMode ? `&role=${role}` : ''
+    const url = `${WS_URL}/api/agents/${agentId}/terminal?cols=${cols}&rows=${rows}${modeParam}${roleParam}`
+
     const ws = new WebSocket(url)
     wsRef.current = ws
 
     ws.onopen = () => {
       setConnected(true)
-      term.writeln('\r\n\x1b[1;33m▶ Claude Code 연결 중...\x1b[0m')
+      if (role === 'design') {
+        term.writeln('\r\n\x1b[1;33m▶ Design Bot — Claude Code + Pencil MCP 연결 중...\x1b[0m')
+      } else {
+        term.writeln('\r\n\x1b[1;33m▶ Claude Code 연결 중...\x1b[0m')
+      }
     }
 
     ws.onmessage = (e) => {
@@ -162,7 +169,6 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
         const msg = JSON.parse(e.data as string) as { type: string; data?: string; exitCode?: number }
         if (msg.type === 'output' && msg.data) {
           term.write(msg.data)
-          // ANSI 이스케이프 제거 후 텍스트 누적 (산출물 전달용)
           const plain = msg.data.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/\x1b\][^\x07]*\x07/g, '')
           outputBufRef.current += plain
           onOutputCapture?.(outputBufRef.current)
@@ -171,6 +177,12 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
           if (shellMode) {
             term.writeln('\x1b[1;32m✓ 터미널 연결됨\x1b[0m — 워크스페이스 셸\r\n')
             term.writeln('\x1b[90m💡 claude --dangerously-skip-permissions 로 Claude Code 실행\x1b[0m\r\n')
+          } else if (role === 'design') {
+            term.writeln('\x1b[1;32m✓ Design Bot 연결됨\x1b[0m — Claude Code + Pencil MCP\r\n')
+            if (taskHint?.trim()) {
+              term.writeln(`\x1b[90m💡 태스크 힌트: ${taskHint.trim()}\x1b[0m`)
+              term.writeln('\x1b[90m(위 내용을 참고해 아래에 직접 입력하세요)\x1b[0m\r\n')
+            }
           } else {
             term.writeln('\x1b[1;32m✓ Claude Code 연결됨\x1b[0m\r\n')
             if (taskHint?.trim()) {
@@ -187,23 +199,19 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
       } catch { /* ignore */ }
     }
 
-    ws.onclose = () => {
-      setConnected(false)
-    }
+    ws.onclose = () => { setConnected(false) }
 
     ws.onerror = () => {
       term.writeln('\r\n\x1b[31m✗ WebSocket 연결 오류\x1b[0m — 백엔드 서버를 확인하세요')
       setConnected(false)
     }
 
-    // 키보드 입력 → WebSocket 송신
     const disposeInput = term.onData((data) => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'input', data }))
       }
     })
 
-    // 터미널 리사이즈 → PTY 리사이즈
     const disposeResize = term.onResize(({ cols, rows }) => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'resize', cols, rows }))
@@ -217,8 +225,7 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
       wsRef.current = null
       setConnected(false)
     }
-  }, [alwaysOn, agentId, shellMode]) // eslint-disable-line react-hooks/exhaustive-deps
-  // isRunning 제거: alwaysOn 모드에서 isRunning 변경 시 터미널 재연결 방지
+  }, [alwaysOn, agentId, shellMode, role]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleKill = () => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -227,7 +234,6 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
     wsRef.current?.close()
   }
 
-  // 세션 초기화: PTY 세션 강제 종료 후 터미널 클리어
   const handleResetSession = async () => {
     setResetting(true)
     try {
@@ -242,6 +248,13 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
     }
   }
 
+  // 툴바 레이블: role/shellMode에 따라 표시
+  const termLabel = connected
+    ? shellMode ? 'Terminal — 워크스페이스 셸'
+    : role === 'design' ? 'Claude Code — Pencil MCP 연결됨'
+    : 'Claude Code — 인터랙티브'
+    : '터미널'
+
   return (
     <div className={cn(
       'flex flex-col border-t border-border bg-[#0d0d0d] transition-all duration-200',
@@ -255,9 +268,7 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
             'w-2 h-2 rounded-full transition-colors',
             connected ? 'bg-green-500 animate-pulse' : 'bg-[#444]',
           )} />
-          <span className="text-xs font-mono text-[#888]">
-            {connected ? (shellMode ? 'Terminal — 워크스페이스 셸' : 'Claude Code — 인터랙티브') : '터미널'}
-          </span>
+          <span className="text-xs font-mono text-[#888]">{termLabel}</span>
           {connected && (
             <span className="text-[10px] text-[#555] font-mono">ws://localhost:3001</span>
           )}
