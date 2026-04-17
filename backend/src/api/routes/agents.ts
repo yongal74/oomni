@@ -111,7 +111,10 @@ async function verifyStreamToken(
   }
 }
 
-const VALID_ROLES = ['research','build','design','content','growth','ops','integration','ceo'] as const;
+const VALID_ROLES = [
+  'research','build','design','content','growth','ops','integration','ceo',
+  'project_setup','env','security_audit','frontend','backend','infra',
+] as const;
 const VALID_SCHEDULES = ['manual','hourly','daily','weekly'] as const;
 
 const CreateAgentSchema = z.object({

@@ -158,7 +158,7 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
     ws.onopen = () => {
       setConnected(true)
       if (role === 'design') {
-        term.writeln('\r\n\x1b[1;33m▶ Design Bot — Claude Code + Pencil MCP 연결 중...\x1b[0m')
+        term.writeln('\r\n\x1b[1;33m▶ Design Bot — Claude Code 연결 중...\x1b[0m')
       } else {
         term.writeln('\r\n\x1b[1;33m▶ Claude Code 연결 중...\x1b[0m')
       }
@@ -178,9 +178,10 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
             term.writeln('\x1b[1;32m✓ 터미널 연결됨\x1b[0m — 워크스페이스 셸\r\n')
             term.writeln('\x1b[90m💡 claude --dangerously-skip-permissions 로 Claude Code 실행\x1b[0m\r\n')
           } else if (role === 'design') {
-            term.writeln('\x1b[1;32m✓ Design Bot 연결됨\x1b[0m — Claude Code + Pencil MCP\r\n')
+            term.writeln('\x1b[1;32m✓ Design Bot 연결됨\x1b[0m — Claude Code 인터랙티브 모드\r\n')
+            term.writeln('\x1b[90m💡 Pencil MCP: Pencil 앱을 먼저 열고 /mcp 명령으로 연결하세요\x1b[0m\r\n')
             if (taskHint?.trim()) {
-              term.writeln(`\x1b[90m💡 태스크 힌트: ${taskHint.trim()}\x1b[0m`)
+              term.writeln(`\x1b[90m📋 태스크 힌트: ${taskHint.trim()}\x1b[0m`)
               term.writeln('\x1b[90m(위 내용을 참고해 아래에 직접 입력하세요)\x1b[0m\r\n')
             }
           } else {
@@ -251,7 +252,7 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
   // 툴바 레이블: role/shellMode에 따라 표시
   const termLabel = connected
     ? shellMode ? 'Terminal — 워크스페이스 셸'
-    : role === 'design' ? 'Claude Code — Pencil MCP 연결됨'
+    : role === 'design' ? 'Claude Code — Design Bot'
     : 'Claude Code — 인터랙티브'
     : '터미널'
 

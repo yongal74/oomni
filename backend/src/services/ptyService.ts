@@ -38,31 +38,6 @@ const DATA_ROOT = process.platform === 'win32'
   : path.join(os.homedir(), 'oomni-data');
 const WORKSPACE_ROOT = path.join(DATA_ROOT, 'workspaces');
 
-// ── Pencil MCP 바이너리 경로 탐색 ────────────────────────────
-function findPencilBinary(): string | null {
-  const winBinary = path.join(
-    os.homedir(),
-    'AppData', 'Local', 'Programs', 'Pencil',
-    'resources', 'app.asar.unpacked', 'out', 'mcp-server-windows-x64.exe',
-  );
-  const macBinary = path.join(
-    '/Applications', 'Pencil.app', 'Contents', 'Resources',
-    'app.asar.unpacked', 'out', 'mcp-server',
-  );
-  if (process.platform === 'win32' && fs.existsSync(winBinary)) return winBinary;
-  if (process.platform === 'darwin' && fs.existsSync(macBinary)) return macBinary;
-  return null;
-}
-
-/** Pencil MCP 설정 JSON 파일 생성 → 경로 반환 (없으면 null) */
-function writePencilMcpConfig(): string | null {
-  const binary = findPencilBinary();
-  if (!binary) return null;
-  const cfg = { mcpServers: { pencil: { command: binary, args: [], env: {} } } };
-  const cfgPath = path.join(os.tmpdir(), 'mcp-design-pty.json');
-  fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
-  return cfgPath;
-}
 
 // ── PTY 세션 ──────────────────────────────────────────────
 interface PtySession {
@@ -116,17 +91,13 @@ function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = 
       spawnArgs = [];
     }
   } else if (role === 'design') {
-    // ── Design Bot: Claude Code CLI + Pencil MCP (stdio) ────────────────
+    // ── Design Bot: Claude Code CLI 인터랙티브 모드 ──────────────────────
+    // Pencil MCP는 Claude Code 실행 후 '/mcp' 명령으로 수동 연결
+    // (--mcp-config 자동 주입 시 Pencil 앱 미실행이면 code 1 종료 발생)
     const cliPath = getCliPath();
     const nodeExec = getNodeExecutable();
     spawnExec = nodeExec;
     spawnArgs = [cliPath, '--dangerously-skip-permissions'];
-
-    // Pencil MCP config 주입
-    const mcpCfgPath = writePencilMcpConfig();
-    if (mcpCfgPath) {
-      spawnArgs.push('--mcp-config', mcpCfgPath);
-    }
   } else {
     // ── Claude Code CLI 모드 (build/ops/기타) ────────────────────────────
     const cliPath = getCliPath();
