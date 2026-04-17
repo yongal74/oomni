@@ -84,12 +84,16 @@ export const SCHEMA_SQL = `
     id TEXT PRIMARY KEY,
     mission_id TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
     source_type TEXT,
+    source_url TEXT,
     title TEXT NOT NULL,
     summary TEXT,
     content TEXT,
-    filter_decision TEXT CHECK(filter_decision IN ('keep','maybe','skip')),
+    tags TEXT,
+    filter_decision TEXT DEFAULT 'pending',
     signal_score REAL,
     outputs_json TEXT,
+    converted_output TEXT,
+    next_action TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 

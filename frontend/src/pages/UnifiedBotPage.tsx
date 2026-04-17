@@ -966,7 +966,7 @@ export default function UnifiedBotPage() {
       if (role === 'design') return <div className="p-3"><DesignRightPanel
         agentId={agent.id}
         onSkillSelect={handleSkillRun}
-        onPencilLaunch={() => unifiedTerminalRef.current?.send('npx @pencilapp/mcp-server')}
+        onPencilLaunch={() => unifiedTerminalRef.current?.send('npx -y @pencilapp/mcp-server')}
         currentRole="design"
         content={lastOutput}
       /></div>

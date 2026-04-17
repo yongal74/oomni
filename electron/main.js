@@ -186,7 +186,7 @@ function createWindow() {
   })
 
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173')
+    mainWindow.loadURL('http://localhost:5174')
   } else {
     // http://localhost:5174 서빙 → Firebase authorized domain(localhost) 통과
     mainWindow.loadURL(`http://localhost:${FRONTEND_PORT}`)

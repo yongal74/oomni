@@ -321,6 +321,8 @@ export function ResearchCenterPanel({
     if (!activeTrack) return true
     const tags: string[] = Array.isArray(item.tags) ? item.tags : []
     const srcType = item.source_type as string
+    // source_type='keyword'/'manual'/기타 (트랙 미지정 직접 입력) → 현재 탭에서 항상 표시
+    if (srcType !== 'business' && srcType !== 'informational') return true
     if (activeTrack === 'business') return tags.some(t => t.includes('사업성')) || srcType === 'business'
     if (activeTrack === 'informational') return tags.some(t => t.includes('정보성')) || srcType === 'informational'
     return true

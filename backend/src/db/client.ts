@@ -101,6 +101,11 @@ export function initDb(): DbClient {
     { sql: "ALTER TABLE users ADD COLUMN license_valid_until TEXT",      label: 'users.license_valid_until' },
     { sql: "ALTER TABLE sessions ADD COLUMN created_at TEXT",            label: 'sessions.created_at' },
     { sql: "ALTER TABLE sessions ADD COLUMN last_used_at TEXT",          label: 'sessions.last_used_at' },
+    // research_items 누락 컬럼
+    { sql: "ALTER TABLE research_items ADD COLUMN tags TEXT",             label: 'research_items.tags' },
+    { sql: "ALTER TABLE research_items ADD COLUMN source_url TEXT",       label: 'research_items.source_url' },
+    { sql: "ALTER TABLE research_items ADD COLUMN next_action TEXT",      label: 'research_items.next_action' },
+    { sql: "ALTER TABLE research_items ADD COLUMN converted_output TEXT", label: 'research_items.converted_output' },
   ];
   for (const patch of columnPatches) {
     try {
@@ -109,6 +114,63 @@ export function initDb(): DbClient {
     } catch {
       // 이미 존재하면 무시
     }
+  }
+
+  // research_items filter_decision CHECK 제약 수정
+  // 구버전 스키마: CHECK(filter_decision IN ('keep','maybe','skip')) → 'pending','drop','watch' INSERT 실패
+  try {
+    const schemaRow = db.prepare(
+      "SELECT sql FROM sqlite_master WHERE type='table' AND name='research_items'"
+    ).get() as { sql: string } | undefined;
+    if (schemaRow?.sql?.includes("'keep','maybe','skip'")) {
+      logger.info('[DB] research_items 구버전 CHECK 제약 감지 → 테이블 재생성');
+      const _db = db;
+      _db.pragma('foreign_keys = OFF');
+      _db.transaction(() => {
+        _db.exec(`ALTER TABLE research_items RENAME TO research_items_old`);
+        _db.exec(`CREATE TABLE research_items (
+          id TEXT PRIMARY KEY,
+          mission_id TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+          source_type TEXT,
+          source_url TEXT,
+          title TEXT NOT NULL,
+          summary TEXT,
+          content TEXT,
+          tags TEXT,
+          filter_decision TEXT DEFAULT 'pending',
+          signal_score REAL,
+          outputs_json TEXT,
+          converted_output TEXT,
+          next_action TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )`);
+        _db.exec(`INSERT INTO research_items
+          (id, mission_id, source_type, title, summary, content, filter_decision, signal_score, outputs_json, created_at)
+          SELECT id, mission_id, source_type, title, summary, content,
+            CASE WHEN filter_decision IN ('keep') THEN 'keep' ELSE 'pending' END,
+            signal_score, outputs_json, created_at
+          FROM research_items_old`);
+        _db.exec(`DROP TABLE research_items_old`);
+      })();
+      _db.pragma('foreign_keys = ON');
+      logger.info('[DB] research_items 재생성 완료');
+    }
+  } catch (e) {
+    logger.warn('[DB] research_items 스키마 수정 건너뜀:', e);
+    try { db.pragma('foreign_keys = ON'); } catch { /* ignore */ }
+  }
+
+  // CEO 봇 중복 제거 (같은 미션에 CEO가 여러 개인 경우 rowid 기준 첫 번째만 유지)
+  try {
+    db.exec(`
+      DELETE FROM agents
+      WHERE role = 'ceo'
+      AND rowid NOT IN (
+        SELECT MIN(rowid) FROM agents WHERE role = 'ceo' GROUP BY mission_id
+      )
+    `);
+  } catch {
+    // CEO가 없거나 중복 없으면 무시
   }
 
   logger.info('[DB] 초기화 완료');
