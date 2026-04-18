@@ -303,8 +303,8 @@ function extractHtml(text: string, allowPartial = false): string | null {
   return null
 }
 
-// ── CENTER: 생성된 디자인 미리보기 (Pencil PNG / 실시간 스트리밍 HTML 프리뷰) ─
-type PreviewTab = 'pencil' | 'html' | 'code'
+// ── CENTER: 생성된 디자인 미리보기 (실시간 스트리밍 HTML 프리뷰) ─
+type PreviewTab = 'html' | 'code'
 
 export function DesignCenterPanel({
   agentId,
@@ -324,9 +324,7 @@ export function DesignCenterPanel({
   })
 
   const latest = feed[0]
-  const [previewTab, setPreviewTab] = useState<PreviewTab>('pencil')
-  const [imageTs, setImageTs] = useState(Date.now())
-  const [imageError, setImageError] = useState(false)
+  const [previewTab, setPreviewTab] = useState<PreviewTab>('html')
 
   // 실행 완료 시 feed 즉시 갱신
   useEffect(() => {
@@ -334,16 +332,6 @@ export function DesignCenterPanel({
       setTimeout(() => refetch(), 500)
     }
   }, [isRunning]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Pencil 탭 활성 시 3초마다 이미지 갱신
-  useEffect(() => {
-    if (previewTab !== 'pencil') return
-    const interval = setInterval(() => {
-      setImageTs(Date.now())
-      setImageError(false)
-    }, 3000)
-    return () => clearInterval(interval)
-  }, [previewTab])
 
   // 스트리밍 중: 실시간 HTML 추출 (부분 허용)
   const liveHtml = isRunning ? extractHtml(streamOutput ?? '', true) : null
@@ -362,12 +350,6 @@ export function DesignCenterPanel({
           </div>
         )}
         <button
-          onClick={() => setPreviewTab('pencil')}
-          className={cn('px-3 py-1.5 rounded text-[12px] transition-colors', previewTab === 'pencil' ? 'bg-primary/10 text-primary' : 'text-muted hover:text-text')}
-        >
-          Pencil 미리보기
-        </button>
-        <button
           onClick={() => setPreviewTab('html')}
           className={cn('px-3 py-1.5 rounded text-[12px] transition-colors', previewTab === 'html' ? 'bg-primary/10 text-primary' : 'text-muted hover:text-text')}
         >
@@ -382,30 +364,6 @@ export function DesignCenterPanel({
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {/* Pencil PNG 미리보기 탭 */}
-        {previewTab === 'pencil' && (
-          <div className="h-full flex flex-col items-center justify-center bg-bg p-4">
-            {!imageError ? (
-              <>
-                <img
-                  src={`/api/agents/${agentId}/preview-image?t=${imageTs}`}
-                  alt="Pencil Design Preview"
-                  className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
-                  onError={() => setImageError(true)}
-                />
-                <p className="text-[10px] text-muted mt-2">⟳ 3초마다 자동 갱신</p>
-              </>
-            ) : (
-              <div className="flex flex-col items-center gap-3 text-center">
-                <Palette size={40} className="text-muted/20" />
-                <p className="text-sm text-muted">Pencil 디자인 대기 중...</p>
-                <p className="text-xs text-muted/60">Claude Code가 Pencil MCP로 디자인을 생성하면 여기에 표시됩니다</p>
-                <a href="pencil://" className="text-xs text-primary hover:underline">Pencil 앱 열기</a>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* HTML 미리보기 탭 */}
         {previewTab === 'html' && (
           <>

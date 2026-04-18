@@ -106,6 +106,7 @@ export default function PtyBotPage() {
   const [currentStage, setCurrentStage] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [selectedBuildFile, setSelectedBuildFile] = useState<FileNode | null>(null)
+  const [buildCategory, setBuildCategory] = useState<string>('all')
   const [streamOutput, setStreamOutput] = useState('')
   const [lastOutput, setLastOutput] = useState('')  // 다음봇 전달용 최신 결과물
   const [designScreenshot, setDesignScreenshot] = useState<string | null>(null)
@@ -364,6 +365,8 @@ export default function PtyBotPage() {
           agentId={agent.id}
           selectedFilePath={selectedBuildFile?.path ?? null}
           onFileSelect={setSelectedBuildFile}
+          onSkillSelect={(skill: string) => terminalRef.current?.send(skill)}
+          onCategoryChange={setBuildCategory}
         />,
         center: <ResizableSplit
           initialTopPercent={45}
@@ -393,6 +396,7 @@ export default function PtyBotPage() {
           onSkillSelect={(skill: string) => terminalRef.current?.send(skill)}
           currentRole="build"
           content={lastOutput}
+          currentCategory={buildCategory}
         />,
       }
     }

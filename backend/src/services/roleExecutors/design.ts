@@ -97,8 +97,8 @@ export async function designExecutor(ctx: ExecutorContext): Promise<void> {
   await saveFeedItem(db, agent.id, 'info', `🎨 Design Bot 시작: ${task}`)
 
   send('stage', { stage: 'designing', label: '고품질 UI 생성 중... (30-60초)' })
-  // 항상 HTML 생성 프롬프트 사용 (구버전 agent.system_prompt 무시), HTML 생성은 토큰 많이 필요
-  const result = await streamClaude(ctx, SYSTEM_PROMPT, task, undefined, 16000)
+  // claude-opus-4-7: Claude Design 수준의 HTML/CSS 비주얼 출력, 토큰 많이 필요
+  const result = await streamClaude(ctx, SYSTEM_PROMPT, task, 'claude-opus-4-7', 16000)
 
   // HTML 추출 후 파일 저장
   const html = extractHtml(result)

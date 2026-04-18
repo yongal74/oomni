@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { missionsApi, settingsApi, type Mission } from '../lib/api'
 import { useAppStore } from '../store/app.store'
@@ -270,7 +270,7 @@ export default function OnboardingPage() {
               <h2 className="text-lg font-semibold text-text mb-1">AI 팀을 구성하세요</h2>
               <p className="text-muted text-sm mb-5">시작 방법을 선택하세요</p>
               <div className="space-y-3 mb-5">
-                {/* Solo Factory OS */}
+                {/* OOMNI 팀 구성 */}
                 <button
                   type="button"
                   onClick={() => handleSelectTemplate('solo-factory-os')}
@@ -283,7 +283,7 @@ export default function OnboardingPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[14px] font-semibold text-text">Solo Factory OS</span>
+                        <span className="text-[14px] font-semibold text-text">OOMNI 팀 구성</span>
                         <span className="text-[10px] bg-primary text-white px-1.5 py-0.5 rounded font-medium">
                           추천
                         </span>
@@ -353,7 +353,7 @@ export default function OnboardingPage() {
                 {selectedTemplate === 'solo-factory-os' && (
                   <div className="flex items-center gap-2 text-[13px]">
                     <CheckCircle size={14} className="text-primary" />
-                    <span className="text-text">Solo Factory OS 팀 구성{templateApplied ? ' 완료' : ''}</span>
+                    <span className="text-text">OOMNI 팀 구성{templateApplied ? ' 완료' : ''}</span>
                   </div>
                 )}
                 {selectedTemplate === 'manual' && (
@@ -380,3 +380,4 @@ export default function OnboardingPage() {
     </div>
   )
 }
+
