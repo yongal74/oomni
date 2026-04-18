@@ -7,6 +7,8 @@ import { cn } from '../../../lib/utils'
 const BOT_EMOJI: Record<string, string> = {
   research: '🔬', build: '🔨', design: '🎨', content: '✍️',
   growth: '📈', ops: '⚙️', integration: '🔗', ceo: '👔',
+  frontend: '⚛️', backend: '🖥️', project_setup: '📐',
+  infra: '☁️', env: '🔑', security_audit: '🛡️',
 }
 
 // 봇 조합별 이어서 프롬프트 생성
@@ -15,12 +17,18 @@ function buildHandoffPrompt(fromRole: string, toRole: string, content: string): 
 
   const templates: Record<string, Record<string, string>> = {
     research: {
-      content: `다음 리서치 결과를 바탕으로 콘텐츠 초안을 작성해줘:\n\n${preview}`,
+      content: `다음 리서치 결과를 바탕으로 2000자 이상의 내러티브 블로그 포스트를 작성해줘. 짧은 문장, 구체적 사례, 스토리텔링 방식으로:\n\n${preview}`,
       build: `다음 리서치 인사이트를 참고해서 기술 구현 계획을 세워줘:\n\n${preview}`,
       growth: `다음 리서치 결과로 성장 전략과 마케팅 캠페인을 제안해줘:\n\n${preview}`,
       ops: `다음 리서치 결과를 바탕으로 운영 자동화 워크플로우를 설계해줘:\n\n${preview}`,
       ceo: `다음 리서치 결과를 경영진 관점에서 요약하고 액션 아이템을 도출해줘:\n\n${preview}`,
       design: `다음 리서치 인사이트를 반영해서 디자인 방향을 제안해줘:\n\n${preview}`,
+    },
+    design: {
+      build: `다음 Pencil 디자인 스펙을 React/TypeScript/Tailwind CSS로 구현해줘.\n디자인 시스템(색상, 폰트, 간격)을 유지하고 반응형으로 만들어줘:\n\n${preview}`,
+      frontend: `다음 디자인을 React 컴포넌트로 구현해줘. shadcn/ui와 Tailwind CSS 사용:\n\n${preview}`,
+      content: `다음 디자인 작업을 바탕으로 제품 소개 콘텐츠를 작성해줘:\n\n${preview}`,
+      ceo: `다음 디자인 결과물을 경영진 보고서 형식으로 요약해줘:\n\n${preview}`,
     },
     content: {
       growth: `다음 콘텐츠를 배포하기 위한 성장 전략과 채널별 최적화 방안을 제안해줘:\n\n${preview}`,

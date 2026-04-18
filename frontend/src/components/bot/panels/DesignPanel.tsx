@@ -303,7 +303,9 @@ function extractHtml(text: string, allowPartial = false): string | null {
   return null
 }
 
-// ── CENTER: 생성된 디자인 미리보기 (실시간 스트리밍 HTML 프리뷰) ─
+// ── CENTER: 생성된 디자인 미리보기 (Pencil PNG / 실시간 스트리밍 HTML 프리뷰) ─
+type PreviewTab = 'pencil' | 'html' | 'code'
+
 export function DesignCenterPanel({
   agentId,
   streamOutput,
@@ -322,7 +324,9 @@ export function DesignCenterPanel({
   })
 
   const latest = feed[0]
-  const [showPreview, setShowPreview] = useState(true)
+  const [previewTab, setPreviewTab] = useState<PreviewTab>('pencil')
+  const [imageTs, setImageTs] = useState(Date.now())
+  const [imageError, setImageError] = useState(false)
 
   // 실행 완료 시 feed 즉시 갱신
   useEffect(() => {
@@ -331,32 +335,21 @@ export function DesignCenterPanel({
     }
   }, [isRunning]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Pencil 탭 활성 시 3초마다 이미지 갱신
+  useEffect(() => {
+    if (previewTab !== 'pencil') return
+    const interval = setInterval(() => {
+      setImageTs(Date.now())
+      setImageError(false)
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [previewTab])
+
   // 스트리밍 중: 실시간 HTML 추출 (부분 허용)
   const liveHtml = isRunning ? extractHtml(streamOutput ?? '', true) : null
   // 완료 후: feed에서 HTML 추출 (부분 HTML도 허용)
   const finalHtml = latest?.content ? extractHtml(latest.content, true) : null
   const displayHtml = liveHtml ?? finalHtml
-
-  // 빈 상태
-  if (!isRunning && !displayHtml && !streamOutput) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-8">
-        <Palette size={40} className="text-muted/20" />
-        <div>
-          <p className="text-[14px] text-text font-medium mb-1">디자인 시스템을 설정하고 생성하세요</p>
-          <p className="text-[12px] text-muted">왼쪽에서 프리셋 선택 → 색상/폰트 커스터마이징 → 템플릿 클릭</p>
-          <p className="text-[12px] text-muted mt-1">또는 하단 입력창에 직접 입력</p>
-        </div>
-        <div className="grid grid-cols-3 gap-2 w-full max-w-sm mt-2">
-          {['다크 랜딩 페이지', 'SaaS 대시보드', '앱 로그인 화면'].map(s => (
-            <div key={s} className="bg-surface border border-border rounded-lg p-3 text-center">
-              <p className="text-[11px] text-muted">{s}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -369,29 +362,87 @@ export function DesignCenterPanel({
           </div>
         )}
         <button
-          onClick={() => setShowPreview(true)}
-          className={cn('px-3 py-1.5 rounded text-[12px] transition-colors', showPreview ? 'bg-primary/10 text-primary' : 'text-muted hover:text-text')}
+          onClick={() => setPreviewTab('pencil')}
+          className={cn('px-3 py-1.5 rounded text-[12px] transition-colors', previewTab === 'pencil' ? 'bg-primary/10 text-primary' : 'text-muted hover:text-text')}
         >
-          미리보기
+          Pencil 미리보기
         </button>
         <button
-          onClick={() => setShowPreview(false)}
-          className={cn('px-3 py-1.5 rounded text-[12px] transition-colors', !showPreview ? 'bg-primary/10 text-primary' : 'text-muted hover:text-text')}
+          onClick={() => setPreviewTab('html')}
+          className={cn('px-3 py-1.5 rounded text-[12px] transition-colors', previewTab === 'html' ? 'bg-primary/10 text-primary' : 'text-muted hover:text-text')}
+        >
+          HTML 미리보기
+        </button>
+        <button
+          onClick={() => setPreviewTab('code')}
+          className={cn('px-3 py-1.5 rounded text-[12px] transition-colors', previewTab === 'code' ? 'bg-primary/10 text-primary' : 'text-muted hover:text-text')}
         >
           코드
         </button>
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {showPreview && displayHtml ? (
-          // 실시간 HTML 프리뷰 — 스트리밍 중에도 업데이트됨
-          <iframe
-            srcDoc={displayHtml}
-            className="w-full h-full border-0"
-            title="Design Preview"
-            sandbox="allow-scripts allow-same-origin"
-          />
-        ) : (
+        {/* Pencil PNG 미리보기 탭 */}
+        {previewTab === 'pencil' && (
+          <div className="h-full flex flex-col items-center justify-center bg-bg p-4">
+            {!imageError ? (
+              <>
+                <img
+                  src={`/api/agents/${agentId}/preview-image?t=${imageTs}`}
+                  alt="Pencil Design Preview"
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                  onError={() => setImageError(true)}
+                />
+                <p className="text-[10px] text-muted mt-2">⟳ 3초마다 자동 갱신</p>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-3 text-center">
+                <Palette size={40} className="text-muted/20" />
+                <p className="text-sm text-muted">Pencil 디자인 대기 중...</p>
+                <p className="text-xs text-muted/60">Claude Code가 Pencil MCP로 디자인을 생성하면 여기에 표시됩니다</p>
+                <a href="pencil://" className="text-xs text-primary hover:underline">Pencil 앱 열기</a>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* HTML 미리보기 탭 */}
+        {previewTab === 'html' && (
+          <>
+            {!isRunning && !displayHtml && !streamOutput ? (
+              <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-8">
+                <Palette size={40} className="text-muted/20" />
+                <div>
+                  <p className="text-[14px] text-text font-medium mb-1">디자인 시스템을 설정하고 생성하세요</p>
+                  <p className="text-[12px] text-muted">왼쪽에서 프리셋 선택 → 색상/폰트 커스터마이징 → 템플릿 클릭</p>
+                  <p className="text-[12px] text-muted mt-1">또는 하단 입력창에 직접 입력</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 w-full max-w-sm mt-2">
+                  {['다크 랜딩 페이지', 'SaaS 대시보드', '앱 로그인 화면'].map(s => (
+                    <div key={s} className="bg-surface border border-border rounded-lg p-3 text-center">
+                      <p className="text-[11px] text-muted">{s}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : displayHtml ? (
+              <iframe
+                srcDoc={displayHtml}
+                className="w-full h-full border-0"
+                title="Design Preview"
+                sandbox="allow-scripts allow-same-origin"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
+                <Palette size={32} className="text-muted/20" />
+                <p className="text-[12px] text-muted">HTML 출력 대기 중...</p>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* 코드 탭 */}
+        {previewTab === 'code' && (
           <div className="h-full overflow-y-auto p-5">
             {latest?.created_at && !isRunning && (
               <p className="text-[11px] text-muted mb-2">

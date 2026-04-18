@@ -2,8 +2,8 @@
  * ptyService.ts — node-pty 기반 진짜 터미널 서비스
  *
  * 역할별 PTY 실행 방식:
- * - design  → Claude Code CLI + Pencil MCP (--mcp-config, stdio binary)
- * - build/ops/기타 → Claude Code CLI 인터랙티브 모드
+ * - design  → PowerShell wrapper → Pencil 자동 기동 → Claude Code CLI
+ * - build/ops/기타 → PowerShell wrapper → Claude Code CLI
  * - shell 모드 → PowerShell(Windows)/bash(Linux) 직접 실행
  */
 
@@ -28,10 +28,6 @@ function getCliPath(): string {
   return candidates.find(p => fs.existsSync(p)) ?? candidates[candidates.length - 1];
 }
 
-function getNodeExecutable(): string {
-  const isElectron = process.versions && 'electron' in process.versions;
-  return isElectron ? process.execPath : process.execPath;
-}
 
 const DATA_ROOT = process.platform === 'win32'
   ? 'C:/oomni-data'
@@ -67,7 +63,6 @@ function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = 
   fs.mkdirSync(wsPath, { recursive: true });
 
   const apiKey = getApiKey();
-  const isElectron = !!(process.versions && 'electron' in process.versions);
 
   const env: Record<string, string> = {
     ...Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== undefined)) as Record<string, string>,
@@ -75,7 +70,6 @@ function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = 
     TERM: 'xterm-256color',
     COLORTERM: 'truecolor',
     FORCE_COLOR: '3',
-    ...(isElectron ? { ELECTRON_RUN_AS_NODE: '1' } : {}),
   };
 
   let spawnExec: string;
@@ -90,20 +84,13 @@ function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = 
       spawnExec = process.env.SHELL ?? '/bin/bash';
       spawnArgs = [];
     }
-  } else if (role === 'design') {
-    // ── Design Bot: Claude Code CLI 인터랙티브 모드 ──────────────────────
-    // Pencil MCP는 Claude Code 실행 후 '/mcp' 명령으로 수동 연결
-    // (--mcp-config 자동 주입 시 Pencil 앱 미실행이면 code 1 종료 발생)
-    const cliPath = getCliPath();
-    const nodeExec = getNodeExecutable();
-    spawnExec = nodeExec;
-    spawnArgs = [cliPath, '--dangerously-skip-permissions'];
   } else {
-    // ── Claude Code CLI 모드 (build/ops/기타) ────────────────────────────
-    const cliPath = getCliPath();
-    const nodeExec = getNodeExecutable();
-    spawnExec = nodeExec;
-    spawnArgs = [cliPath, '--dangerously-skip-permissions'];
+    // ── Claude Code 모드 (design/build/ops/기타): PowerShell wrapper ─────
+    // ConPTY 루트 프로세스로 Electron 바이너리를 직접 spawn 하면 TUI 초기화
+    // 실패(exit code 1)가 발생. PowerShell을 PTY 루트로 사용한 뒤 claude 명령을
+    // 자동 입력함으로써 문제를 우회한다.
+    spawnExec = 'powershell.exe';
+    spawnArgs = ['-NoLogo', '-NoExit'];
   }
 
   // node-pty(ConPTY)로 직접 spawn
@@ -114,6 +101,28 @@ function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = 
     cwd: wsPath,
     env,
   });
+
+  // shellMode가 아닌 경우 PowerShell 준비 후 claude 명령 자동 입력
+  if (!shellMode) {
+    const cliPath = getCliPath().replace(/\\/g, '/');
+
+    if (role === 'design') {
+      // Design Bot: Pencil 앱 실행 여부 확인 후 기동, 그 다음 Claude Code 실행
+      setTimeout(() => {
+        ptyProcess.write(
+          `$p = Get-Process "Pencil" -ErrorAction SilentlyContinue; ` +
+          `if (-not $p) { Write-Host "Pencil 앱 시작 중..."; Start-Process "$env:LOCALAPPDATA\\Programs\\Pencil\\Pencil.exe"; Start-Sleep -Seconds 4 }; ` +
+          `Write-Host "Claude Code 시작 중..."; ` +
+          `node "${cliPath}" --dangerously-skip-permissions\r`
+        );
+      }, 500);
+    } else {
+      // Build Bot 및 기타 역할: Claude Code 바로 실행
+      setTimeout(() => {
+        ptyProcess.write(`node "${cliPath}" --dangerously-skip-permissions\r`);
+      }, 500);
+    }
+  }
 
   const session: PtySession = {
     pty: ptyProcess,

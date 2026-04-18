@@ -669,6 +669,39 @@ export function agentsRouter(db: DbClient): Router {
     res.json({ ok: true });
   });
 
+  // GET /api/agents/:id/preview-image — 워크스페이스 PNG 미리보기 (Pencil 내보내기 이미지)
+  router.get('/:id/preview-image', (req: Request, res: Response) => {
+    const id = String(req.params.id);
+    const DATA_ROOT = process.platform === 'win32' ? 'C:/oomni-data' : path.join(os.homedir(), 'oomni-data');
+    const wsPath = path.join(DATA_ROOT, 'workspaces', id);
+
+    // 우선순위 후보 파일
+    const candidates = ['pencil-preview.png', 'design-preview.png', 'preview.png'];
+    for (const name of candidates) {
+      const filePath = path.join(wsPath, name);
+      if (fs.existsSync(filePath)) {
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Cache-Control', 'no-cache');
+        return res.sendFile(filePath);
+      }
+    }
+
+    // 워크스페이스 루트의 임의 PNG 중 가장 최신 파일
+    try {
+      const files = fs.readdirSync(wsPath).filter(f => f.endsWith('.png'));
+      if (files.length > 0) {
+        const latest = files
+          .map(f => ({ f, mtime: fs.statSync(path.join(wsPath, f)).mtime }))
+          .sort((a, b) => b.mtime.getTime() - a.mtime.getTime())[0];
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Cache-Control', 'no-cache');
+        return res.sendFile(path.join(wsPath, latest.f));
+      }
+    } catch { /* 워크스페이스 없으면 404 반환 */ }
+
+    res.status(404).json({ error: 'No preview image found' });
+  });
+
   // GET /api/agents/:id/pencil-status — Pencil MCP 연동 상태 확인 (로컬 바이너리, Antigravity 완전 무관)
   router.get('/:id/pencil-status', (_req: Request, res: Response) => {
     try {

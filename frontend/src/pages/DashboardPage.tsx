@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import {
@@ -221,7 +221,7 @@ export default function DashboardPage() {
     return () => { off() }
   }, [qc])
 
-  // Solo Factory OS 템플릿 적용
+  // OOMNI 팀 구성 템플릿
   const applyTemplate = useMutation({
     mutationFn: async (templateId: string) => {
       const res = await api.post(`/api/templates/${templateId}/apply`, { mission_id: missionId })
@@ -373,7 +373,7 @@ export default function DashboardPage() {
             onClick={() => applyTemplate.mutate('solo-factory-os')}
             disabled={applyTemplate.isPending}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[13px] hover:bg-primary-hover transition-colors disabled:opacity-60"
-            title="Solo Factory OS 템플릿 적용"
+            title="OOMNI 팀 구성 템플릿"
           >
             {applyTemplate.isPending ? <Loader2 size={14} className="animate-spin" /> : <Layers size={14} />}
             템플릿
@@ -403,11 +403,11 @@ export default function DashboardPage() {
               </div>
             ) : agents.length === 0 ? (
               <div className="space-y-3">
-                {/* Solo Factory OS 배너 */}
+                {/* OOMNI 팀 구성 배너 */}
                 <div className="rounded-lg border border-[#D4763B]/50 bg-primary/10 p-3">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-base">🚀</span>
-                    <span className="text-[13px] font-semibold text-primary">Solo Factory OS</span>
+                    <span className="text-[13px] font-semibold text-primary">OOMNI 팀 구성</span>
                   </div>
                   <p className="text-[11px] text-primary/80 mb-2 leading-relaxed">
                     6개 AI 봇으로 혼자서 팀처럼 일하기
@@ -779,7 +779,7 @@ export default function DashboardPage() {
               </div>
             )}
             <div className="p-4 grid grid-cols-2 gap-3">
-              {BOT_TEMPLATES.map(tmpl => {
+              {BOT_TEMPLATES.filter(tmpl => ['research', 'design', 'build', 'ops', 'content', 'ceo'].includes(tmpl.role)).map(tmpl => {
                 const existingAgent = agents.find(a => a.role === tmpl.role)
                 return (
                   <button
@@ -897,3 +897,4 @@ function FeedCard({
     </div>
   )
 }
+
