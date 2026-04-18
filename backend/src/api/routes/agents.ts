@@ -540,11 +540,16 @@ export function agentsRouter(db: DbClient): Router {
     ).catch(() => {});
 
     try {
-      const claudeCodeRoles = ['design', 'build', 'project_setup', 'env', 'security_audit', 'frontend', 'backend', 'infra'];
+      const claudeCodeRoles = ['build', 'project_setup', 'env', 'security_audit', 'frontend', 'backend', 'infra'];
       if (claudeCodeRoles.includes(agentFull.role)) {
-        // Design Bot: ClaudeCodeService → Claude Code CLI + Pencil MCP (stdio)
-        // routeToExecutor(designExecutor)는 Anthropic SDK 직접 호출이라 Pencil MCP가 실행되지 않음
-        let designSystemTokens: string | undefined;
+        // Build/Ops 계열: ClaudeCodeService → Claude Code CLI
+        const ccService = ClaudeCodeService.create(agentFull.id, agentFull.role);
+        await ccService.execute(task, send);
+        // done은 ClaudeCodeService 내부에서 이미 전송됨 — 중복 전송 금지
+      } else {
+        // Design Bot 포함 나머지: Anthropic SDK 직접 (routeToExecutor)
+        // Design Bot은 designExecutor → claude-opus-4-7 HTML 스트리밍
+        let enrichedTask = task;
         if (agentFull.role === 'design') {
           try {
             const dsResult = await db.query(
@@ -553,24 +558,19 @@ export function agentsRouter(db: DbClient): Router {
             );
             if (dsResult.rows.length > 0) {
               const ds = dsResult.rows[0] as Record<string, string>;
-              designSystemTokens = [
-                `Primary: ${ds.primary_color}`,
-                `Background: ${ds.bg_color}`,
-                `Surface: ${ds.surface_color}`,
-                `Text: ${ds.text_color}`,
-                `Font: ${ds.font_family}`,
-                `Radius: ${ds.border_radius}`,
-              ].join(', ');
+              enrichedTask = `${task}
+
+[디자인 시스템 토큰]
+- Primary Color: ${ds.primary_color}
+- Background: ${ds.bg_color}
+- Surface: ${ds.surface_color}
+- Text: ${ds.text_color}
+- Font: ${ds.font_family}
+- Border Radius: ${ds.border_radius}`;
             }
           } catch { /* 디자인 시스템 없으면 기본값 사용 */ }
         }
-
-        const ccService = ClaudeCodeService.create(agentFull.id, agentFull.role);
-        // ClaudeCodeService가 'start'/'done'/'output' 등을 직접 send()로 전송
-        await ccService.execute(task, send, agentFull.role === 'design' ? { designSystemTokens } : undefined);
-        // done은 ClaudeCodeService 내부에서 이미 전송됨 — 중복 전송 금지
-      } else {
-        await routeToExecutor({ agent: agentFull, task, db, send, overrideModel });
+        await routeToExecutor({ agent: agentFull, task: enrichedTask, db, send, overrideModel });
         res.write(JSON.stringify({ event: 'done', data: { success: true } }) + '\n');
       }
       const outputToSave = accumulatedOutput.trim().slice(0, 50000);

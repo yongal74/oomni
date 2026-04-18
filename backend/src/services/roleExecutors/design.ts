@@ -97,7 +97,9 @@ export async function designExecutor(ctx: ExecutorContext): Promise<void> {
   await saveFeedItem(db, agent.id, 'info', `🎨 Design Bot 시작: ${task}`)
 
   send('stage', { stage: 'designing', label: '고품질 UI 생성 중... (30-60초)' })
-  // claude-opus-4-7: Claude Design 수준의 HTML/CSS 비주얼 출력, 토큰 많이 필요
+  // Design Bot은 모델 스위처 무관하게 항상 claude-opus-4-7 사용
+  // (ctx.overrideModel이 있으면 streamClaude 내부에서 덮어쓰므로 여기서 강제 설정)
+  ctx.overrideModel = 'claude-opus-4-7'
   const result = await streamClaude(ctx, SYSTEM_PROMPT, task, 'claude-opus-4-7', 16000)
 
   // HTML 추출 후 파일 저장

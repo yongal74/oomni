@@ -73,12 +73,349 @@ const AUTOMATION_CATEGORIES: AutomationCategory[] = [
   },
 ]
 
-// ── [인프라] 탭 스킬 ─────────────────────────────────────────────────────────
-const INFRA_SKILLS = [
-  { label: 'Vercel 배포', emoji: '▲', prompt: '/deploy-vercel 현재 프로젝트를 Vercel에 배포하고 배포 URL을 알려줘. vercel.json 설정도 최적화해줘.' },
-  { label: 'Docker 빌드', emoji: '🐳', prompt: '/docker-build 프로덕션용 Dockerfile을 작성하고 docker-compose.yml도 만들어줘. 멀티스테이지 빌드 적용.' },
-  { label: 'GitHub Actions', emoji: '⚙️', prompt: '/setup-github-actions CI/CD 파이프라인을 설정해줘. PR 시 lint+test, main 머지 시 자동 배포.' },
-  { label: 'CI 파이프라인', emoji: '🔄', prompt: '/setup-ci 타입체크, 린트, 테스트, 빌드를 순서대로 실행하는 CI 파이프라인을 설정해줘.' },
+// ── [인프라] 탭 — 카테고리별 스킬 ───────────────────────────────────────────
+interface InfraSkill {
+  label: string
+  desc: string
+  prompt: string
+}
+
+interface InfraCategory {
+  id: string
+  label: string
+  emoji: string
+  skills: InfraSkill[]
+}
+
+const INFRA_CATEGORIES: InfraCategory[] = [
+  {
+    id: 'vercel',
+    label: 'Vercel 배포',
+    emoji: '▲',
+    skills: [
+      {
+        label: '신규 프로젝트 배포',
+        desc: 'vercel.json + 환경변수 설정',
+        prompt: `현재 프로젝트를 Vercel에 처음 배포하는 전체 과정을 진행해줘.
+
+1. vercel.json 생성 (빌드 커맨드, 출력 디렉토리, 리전, 함수 메모리/타임아웃 최적화)
+2. .vercelignore 생성 (node_modules, .env* 제외)
+3. 필요한 환경변수 목록 정리 (로컬 .env 기반)
+4. Vercel CLI: vercel --prod 배포 커맨드 안내
+5. 배포 후 도메인 확인 및 헬스체크 방법
+
+결과: 배포 완료 URL, 환경변수 설정 체크리스트, 주의사항`,
+      },
+      {
+        label: 'Preview 배포 설정',
+        desc: 'PR별 자동 프리뷰 URL',
+        prompt: `GitHub PR마다 자동으로 Vercel Preview URL이 생성되도록 설정해줘.
+
+1. Vercel GitHub 앱 연동 확인
+2. .github/workflows/vercel-preview.yml 작성:
+   - PR open/sync 시 vercel deploy (preview 모드)
+   - PR 코멘트에 Preview URL 자동 게시 (actions/github-script)
+   - PR close 시 preview 자동 삭제
+3. vercel.json에 preview 전용 환경변수 분기 설정
+4. PR 리뷰어에게 Preview URL 슬랙 알림 연동 (선택)
+
+출력: GitHub Actions YAML 파일 완성본`,
+      },
+      {
+        label: '커스텀 도메인 연결',
+        desc: '도메인 DNS + SSL 자동화',
+        prompt: `Vercel 프로젝트에 커스텀 도메인을 연결하는 전체 과정을 안내해줘.
+
+1. vercel domains 추가 커맨드
+2. DNS 설정:
+   - A 레코드: 76.76.21.21 (Vercel IP)
+   - CNAME: cname.vercel-dns.com (서브도메인용)
+   - www 리다이렉트 설정
+3. SSL 인증서 자동 발급 확인 (Let's Encrypt)
+4. www → apex 리다이렉트 vercel.json 설정
+5. 도메인 전파 확인 방법 (dig, nslookup)
+6. HSTS 헤더 설정
+
+출력: DNS 설정 체크리스트, vercel.json redirects 설정`,
+      },
+      {
+        label: '빌드 최적화',
+        desc: '캐싱·번들·Edge 튜닝',
+        prompt: `Vercel 배포 빌드 성능을 최적화해줘.
+
+1. vercel.json 캐시 헤더 설정:
+   - 정적 자산: Cache-Control max-age=31536000, immutable
+   - API 라우트: no-store
+   - HTML: s-maxage=60, stale-while-revalidate
+2. Vercel Edge Functions vs Serverless Functions 선택 기준 분석
+3. ISR (Incremental Static Regeneration) 설정 (Next.js인 경우)
+4. 번들 사이즈 분석: @next/bundle-analyzer 또는 rollup-plugin-visualizer 설정
+5. 빌드 캐시 활용: vercel cache 전략
+6. 함수 리전 최적화 (iad1 vs icn1)
+
+출력: 최적화된 vercel.json, 번들 분석 리포트 커맨드`,
+      },
+    ],
+  },
+  {
+    id: 'docker',
+    label: 'Docker',
+    emoji: '🐳',
+    skills: [
+      {
+        label: '프로덕션 Dockerfile',
+        desc: '멀티스테이지 빌드',
+        prompt: `현재 프로젝트에 맞는 프로덕션용 Dockerfile을 작성해줘.
+
+요구사항:
+1. 멀티스테이지 빌드 (builder → runner):
+   - builder: 전체 devDependencies 포함, 빌드 실행
+   - runner: node:alpine, 프로덕션 의존성만, 최소 이미지
+2. 레이어 캐시 최적화 (package.json COPY → npm install → 소스 COPY 순서)
+3. non-root 유저 실행 (보안)
+4. 환경변수 ARG/ENV 분리
+5. HEALTHCHECK 설정
+6. .dockerignore 생성 (node_modules, .git, .env*, dist 제외)
+
+출력: Dockerfile 완성본 + .dockerignore + 빌드/실행 커맨드`,
+      },
+      {
+        label: 'docker-compose 설정',
+        desc: 'dev/prod 환경 분리',
+        prompt: `docker-compose.yml을 dev/prod 환경별로 분리해서 작성해줘.
+
+1. docker-compose.yml (공통 기반):
+   - 서비스 정의 (app, db, redis 등)
+   - 네트워크 설정
+   - named volumes
+2. docker-compose.dev.yml (개발 오버라이드):
+   - 소스 코드 bind mount (hot reload)
+   - 개발 포트 공개
+   - 디버그 환경변수
+3. docker-compose.prod.yml (프로덕션 오버라이드):
+   - 빌드된 이미지 사용
+   - 재시작 정책: unless-stopped
+   - 리소스 제한 (cpus, memory)
+   - 환경변수 파일 분리
+4. Makefile 또는 npm scripts: up-dev, up-prod, down, logs, shell
+
+출력: 3개 compose 파일 + Makefile`,
+      },
+      {
+        label: 'Docker Hub 자동 푸시',
+        desc: 'GitHub Actions → Registry',
+        prompt: `GitHub Actions로 Docker 이미지를 자동 빌드해서 Docker Hub(또는 GitHub Container Registry)에 푸시하는 CI를 설정해줘.
+
+.github/workflows/docker-publish.yml:
+1. 트리거: main 브랜치 push + 태그(v*) push
+2. 빌드 매트릭스: linux/amd64 + linux/arm64 (buildx 멀티플랫폼)
+3. 이미지 태그 전략:
+   - main 브랜치: :latest + :main-{sha 7자}
+   - 태그 v1.2.3: :1.2.3 + :1.2 + :1 + :latest
+4. 레이어 캐시: actions/cache + --cache-from/to
+5. GitHub Secrets 설정 가이드 (DOCKERHUB_USERNAME, DOCKERHUB_TOKEN)
+6. 빌드 완료 후 Slack 알림 (선택)
+
+출력: GitHub Actions YAML + Secrets 설정 가이드`,
+      },
+      {
+        label: '헬스체크 & 복구',
+        desc: '헬스체크 + 재시작 정책',
+        prompt: `Docker 컨테이너의 헬스체크와 자동 복구 전략을 설정해줘.
+
+1. Dockerfile HEALTHCHECK:
+   - HTTP 엔드포인트: curl -f http://localhost:3000/health
+   - 간격: 30s, 타임아웃: 10s, 재시도: 3, 시작대기: 40s
+2. Express/Fastify /health 엔드포인트 구현:
+   - DB 연결 상태 확인
+   - 외부 서비스 연결 확인
+   - 응답: { status: 'ok', uptime, version, checks: {} }
+3. docker-compose 헬스체크 depends_on 연동
+4. 재시작 정책별 차이: no / always / on-failure:5 / unless-stopped
+5. 장애 시 알림: Docker Events → 슬랙 웹훅
+
+출력: Dockerfile HEALTHCHECK + /health 라우트 코드 + compose 설정`,
+      },
+    ],
+  },
+  {
+    id: 'github',
+    label: 'GitHub',
+    emoji: '🐙',
+    skills: [
+      {
+        label: 'Branch Protection',
+        desc: 'main 브랜치 보호 규칙',
+        prompt: `GitHub 리포지토리의 브랜치 보호 규칙을 설정하는 방법을 안내해줘.
+
+1. main/master 브랜치 보호 설정:
+   - PR 리뷰 최소 1명 필수
+   - 상태 체크 통과 필수 (CI 완료)
+   - 스테일 승인 무효화 (새 커밋 시)
+   - 관리자도 규칙 적용
+   - force push 금지
+2. gh CLI로 설정하는 방법:
+   gh api repos/{owner}/{repo}/branches/main/protection
+3. .github/CODEOWNERS 파일 작성 (디렉토리별 리뷰어 자동 배정)
+4. PR 템플릿: .github/pull_request_template.md (체크리스트)
+5. Issue 템플릿: .github/ISSUE_TEMPLATE/ (버그/기능요청)
+
+출력: gh CLI 커맨드 + CODEOWNERS + PR 템플릿 파일`,
+      },
+      {
+        label: 'Release 자동화',
+        desc: '태그 → 릴리즈노트 자동생성',
+        prompt: `GitHub 태그 push 시 자동으로 Release를 생성하고 릴리즈 노트를 작성하는 자동화를 설정해줘.
+
+.github/workflows/release.yml:
+1. 트리거: tags/v* push
+2. Changelog 자동 생성:
+   - 이전 태그 이후 커밋을 feat/fix/chore 분류
+   - Conventional Commits 파싱
+3. GitHub Release 생성:
+   - gh release create 활용
+   - 자동 생성된 릴리즈 노트 + 수동 섹션
+4. 빌드 산출물 자동 업로드 (exe, dmg, zip 등)
+5. 릴리즈 완료 시 Slack #releases 채널 알림
+6. .github/release-drafter.yml 설정 (PR merge 시 draft 릴리즈 자동 업데이트)
+
+출력: GitHub Actions YAML + release-drafter.yml`,
+      },
+      {
+        label: 'PR 자동화',
+        desc: '라벨·리뷰어·코멘트 자동화',
+        prompt: `GitHub PR 생성/업데이트 시 자동화를 설정해줘.
+
+1. PR 라벨 자동 부여 (.github/labeler.yml):
+   - frontend/ 변경 → "frontend" 라벨
+   - backend/ 변경 → "backend" 라벨
+   - docs/ 변경 → "documentation" 라벨
+   - 파일 수에 따른 크기 라벨 (small/medium/large)
+2. 자동 리뷰어 배정 (.github/CODEOWNERS)
+3. PR 크기 코멘트 (변경 라인 수 기반 경고)
+4. 스테일 PR 자동 닫기 (30일 미활동)
+5. 머지 전 체크리스트 봇 코멘트
+6. Dependabot 설정 (.github/dependabot.yml)
+
+출력: labeler.yml + dependabot.yml + Actions YAML 파일들`,
+      },
+      {
+        label: 'Webhook → Slack',
+        desc: 'GitHub 이벤트 Slack 알림',
+        prompt: `GitHub 이벤트(PR, Issue, 배포, 리뷰)를 Slack 채널에 자동 알림하는 설정을 구현해줘.
+
+방법 1 — GitHub Actions (권장):
+.github/workflows/slack-notify.yml
+- PR opened/merged/closed → #dev 채널
+- Issue opened → #issues 채널
+- Release published → #releases 채널
+- Deployment success/failure → #deploy 채널
+- Slack 메시지 포맷: 제목/링크/담당자/상태 이모지
+
+방법 2 — GitHub Slack 앱 (간단):
+/github subscribe {owner}/{repo} pulls reviews comments deployments
+
+방법 3 — 커스텀 Webhook → Express 엔드포인트:
+- HMAC 서명 검증 (X-Hub-Signature-256)
+- 이벤트별 Slack Block Kit 메시지 포맷
+
+출력: GitHub Actions YAML + Slack Block Kit 메시지 템플릿`,
+      },
+    ],
+  },
+  {
+    id: 'ci',
+    label: 'CI 파이프라인',
+    emoji: '🔄',
+    skills: [
+      {
+        label: 'GitHub Actions CI',
+        desc: 'PR 시 자동 검증 파이프라인',
+        prompt: `GitHub Actions로 PR마다 실행되는 CI 파이프라인을 설정해줘.
+
+.github/workflows/ci.yml:
+1. 트리거: PR opened/synchronize + main push
+2. 병렬 잡 구성:
+   - [typecheck]: npx tsc --noEmit
+   - [lint]: eslint + prettier --check
+   - [test]: vitest run --coverage (coverage 80% 미만 실패)
+   - [build]: npm run build (성공 여부 확인)
+3. 캐시 전략: actions/setup-node + npm cache
+4. 환경변수: GitHub Secrets 연결
+5. PR 체크에 각 잡 결과 표시
+6. main 머지 시 자동 배포 잡 트리거 (depends-on: [typecheck, lint, test, build])
+
+출력: 완성된 .github/workflows/ci.yml`,
+      },
+      {
+        label: '테스트 + 커버리지',
+        desc: 'Vitest + 커버리지 리포트',
+        prompt: `프로젝트에 Vitest 테스트 환경을 구축하고 커버리지 리포트를 설정해줘.
+
+1. vitest.config.ts 작성:
+   - coverage: v8 provider
+   - thresholds: lines 80%, branches 70%, functions 80%
+   - exclude: node_modules, dist, *.config.ts
+2. 테스트 파일 구조 예시 (현재 코드 기반):
+   - 유닛 테스트: utils, validators, pure functions
+   - 통합 테스트: API 엔드포인트 (supertest)
+3. GitHub Actions에서 커버리지 리포트:
+   - vitest run --coverage
+   - coverage-comment PR 코멘트 (davelosert/vitest-coverage-report-action)
+4. 커버리지 배지 생성 (shields.io)
+5. 테스트 작성 우선순위 가이드 (현재 코드 분석 후)
+
+출력: vitest.config.ts + 샘플 테스트 파일 + Actions YAML`,
+      },
+      {
+        label: '자동 배포 파이프라인',
+        desc: 'main merge → 자동 배포',
+        prompt: `main 브랜치 머지 시 자동으로 배포되는 CD(Continuous Deployment) 파이프라인을 설정해줘.
+
+.github/workflows/deploy.yml:
+1. 트리거: main push (CI 통과 후)
+2. 배포 전략 선택 (현재 프로젝트에 맞게):
+   - Vercel: vercel deploy --prod
+   - Docker: 이미지 빌드 → Registry 푸시 → 서버 pull & restart
+   - 직접 서버: SSH → git pull → pm2 reload
+3. 배포 단계:
+   - 빌드 아티팩트 생성
+   - 헬스체크 URL 사전 확인
+   - 배포 실행
+   - 배포 후 헬스체크 (최대 5회 재시도)
+   - 실패 시 자동 롤백
+4. 배포 환경별 분기 (staging → production)
+5. 배포 완료/실패 Slack 알림
+
+출력: deploy.yml + 롤백 스크립트`,
+      },
+      {
+        label: '롤백 전략',
+        desc: '배포 실패 시 자동 롤백',
+        prompt: `배포 실패 시 자동으로 이전 버전으로 롤백하는 전략을 구현해줘.
+
+1. 롤백 트리거 조건:
+   - 헬스체크 실패 (3회 이상)
+   - 에러율 임계값 초과
+   - 수동 롤백 요청 (workflow_dispatch)
+
+2. 플랫폼별 롤백 방법:
+   - Vercel: vercel rollback {deploymentId}
+   - Docker: 이전 이미지 태그로 restart
+   - GitHub Pages: 이전 커밋 revert + push
+   - PM2: pm2 rollback
+
+3. GitHub Actions workflow_dispatch로 수동 롤백:
+   - 입력: 롤백 대상 커밋 SHA 또는 배포 ID
+   - 실행: 해당 버전 재배포
+   - 완료: Slack 알림 (누가, 언제, 어떤 버전으로)
+
+4. 배포 이력 관리: GitHub Deployments API 활용
+
+출력: 롤백 워크플로우 YAML + 배포 이력 추적 스크립트`,
+      },
+    ],
+  },
 ]
 
 // ── [연동] 탭 외부 서비스 ────────────────────────────────────────────────────
@@ -180,6 +517,51 @@ const N8N_CATEGORIES = [
     prompt: 'n8n.io/workflows, docs.n8n.io/integrations/builtin, community.n8n.io에서 Webhook 허브 패턴을 조회한 뒤, 다음을 구현해줘: 단일 Webhook 엔드포인트로 여러 서비스 이벤트 수신 → Switch 노드로 분기 → 각 서비스별 처리 플로우. HMAC 서명 검증 포함.',
   },
 ]
+
+// ── InfraCategoryAccordion ───────────────────────────────────────────────────
+function InfraCategoryAccordion({
+  category,
+  onSkillSelect,
+}: {
+  category: InfraCategory
+  onSkillSelect?: (prompt: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center justify-between w-full px-3 py-2.5 bg-surface hover:bg-border/30 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-base">{category.emoji}</span>
+          <span className="text-xs font-medium text-dim">{category.label}</span>
+          <span className="text-[10px] text-muted/60">{category.skills.length}개</span>
+        </div>
+        {open
+          ? <ChevronDown size={12} className="text-muted" />
+          : <ChevronRight size={12} className="text-muted" />}
+      </button>
+
+      {open && (
+        <div className="divide-y divide-border/50">
+          {category.skills.map(skill => (
+            <button
+              key={skill.label}
+              onClick={() => onSkillSelect?.(skill.prompt)}
+              title={skill.desc}
+              className="flex flex-col items-start gap-0.5 w-full px-3 py-2.5 bg-bg hover:bg-surface/60 transition-colors text-left"
+            >
+              <span className="text-sm text-dim font-medium">{skill.label}</span>
+              <span className="text-[11px] text-muted">{skill.desc}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ── CategoryAccordion ─────────────────────────────────────────────────────────
 function CategoryAccordion({
@@ -424,20 +806,13 @@ export function OpsLeftPanel({ agentId, onSkillSelect }: { agentId: string; onSk
         {/* ── [인프라] 탭 ── */}
         {mainTab === 'infra' && (
           <div className="p-4 space-y-3">
-            <p className="text-xs text-muted uppercase tracking-widest">인프라 & 배포</p>
-            <div className="grid grid-cols-2 gap-2">
-              {INFRA_SKILLS.map(skill => (
-                <button
-                  key={skill.label}
-                  onClick={() => onSkillSelect?.(skill.prompt)}
-                  title={skill.prompt}
-                  className="flex flex-col items-center gap-2 px-3 py-4 rounded-xl border border-border bg-bg hover:border-primary/40 hover:bg-primary/5 transition-colors text-center"
-                >
-                  <span className="text-2xl">{skill.emoji}</span>
-                  <span className="text-xs text-dim leading-snug">{skill.label}</span>
-                </button>
-              ))}
-            </div>
+            {INFRA_CATEGORIES.map(cat => (
+              <InfraCategoryAccordion
+                key={cat.id}
+                category={cat}
+                onSkillSelect={onSkillSelect}
+              />
+            ))}
           </div>
         )}
 
