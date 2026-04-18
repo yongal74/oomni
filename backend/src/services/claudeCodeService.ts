@@ -120,41 +120,6 @@ function findN8nMcpScript(): string | null {
 function getRoleMcpConfig(role: string): Record<string, McpServer> | null {
   const { execPath: nodeExec, extraEnv: nodeEnv } = getNodeExecutable();
 
-  if (role === 'design') {
-    // Pencil MCP 서버: 로컬 설치 바이너리 우선 사용
-    // npm @pencilapp/mcp-server는 존재하지 않음 — Pencil 앱 설치 시 동봉된 실행파일 직접 실행
-    const localBinary = path.join(
-      os.homedir(),
-      'AppData', 'Local', 'Programs', 'Pencil',
-      'resources', 'app.asar.unpacked', 'out', 'mcp-server-windows-x64.exe',
-    );
-    if (process.platform === 'win32' && fs.existsSync(localBinary)) {
-      return {
-        pencil: {
-          command: localBinary,
-          args: [],
-          env: {},
-        },
-      };
-    }
-    // macOS/Linux: Pencil 앱이 설치된 경우
-    const macBinary = path.join(
-      '/Applications', 'Pencil.app', 'Contents', 'Resources',
-      'app.asar.unpacked', 'out', 'mcp-server',
-    );
-    if (process.platform === 'darwin' && fs.existsSync(macBinary)) {
-      return {
-        pencil: {
-          command: macBinary,
-          args: [],
-          env: {},
-        },
-      };
-    }
-    // Pencil 미설치: MCP 없이 HTML 모드로 폴백
-    return null;
-  }
-
   if (role === 'ops') {
     const n8nMcp = findN8nMcpScript();
     if (!n8nMcp) return null;
@@ -254,47 +219,6 @@ ${DATA_ROOT}/design/YYYY-MM-DD_HH-MM/component.tsx
 - 실제 콘텐츠 사용 (Lorem ipsum 금지)
 
 ## 완료 후 출력
-✅ preview.html → [경로]
-✅ component.tsx → [경로]`,
-
-    designPencil: `당신은 Pencil MCP를 활용하는 세계 최고 수준의 UI/UX 디자인 에이전트입니다.
-Pencil.dev 앱이 실행 중이며, mcp__pencil__ 도구로 실제 .pen 디자인 파일을 생성/편집합니다.
-
-## 디자인 토큰 (Design System)
-아래 토큰은 현재 프로젝트 디자인 시스템입니다. 모든 디자인에 일관되게 적용하세요:
-[DESIGN_SYSTEM_PLACEHOLDER]
-
-## 작업 순서 (반드시 준수)
-
-### Step 1: Pencil 문서 열기
-mcp__pencil__open_document({ filePathOrNew: "new" })
-
-### Step 2: 가이드라인 확인
-mcp__pencil__get_guidelines() 로 사용 가능한 스타일/가이드 확인
-
-### Step 3: 디자인 실행
-mcp__pencil__batch_design 도구로 UI 컴포넌트를 삽입합니다.
-- 디자인 토큰의 색상(primary, bg, surface, text, muted) 그대로 적용
-- Linear/Stripe/Vercel 수준의 레이아웃과 간격(8px 그리드)
-
-### Step 4: 시각적 검증
-mcp__pencil__get_screenshot 으로 각 섹션 완성 후 스크린샷 확인
-
-### Step 5: HTML 코드 파일 저장
-${DATA_ROOT}/design/YYYY-MM-DD_HH-MM/preview.html
-
-### Step 6: React 컴포넌트 저장
-${DATA_ROOT}/design/YYYY-MM-DD_HH-MM/component.tsx
-
-## 디자인 품질 기준
-- 8px 그리드 기반 spacing
-- WCAG AA 명도 대비 이상
-- hover/focus/active 상태 명시
-- 반응형 (mobile-first)
-- 실제 콘텐츠 사용 (Lorem ipsum 금지)
-
-## 완료 후 출력
-✅ Pencil .pen 파일 작업 완료
 ✅ preview.html → [경로]
 ✅ component.tsx → [경로]`,
 
@@ -720,11 +644,8 @@ export class ClaudeCodeService {
     const wsPath     = ensureWorkspace(this.agentId);
     const model      = ROLE_MODELS[this.role] ?? 'claude-sonnet-4-6';
     const resolved   = resolveTask(this.role, task);
-    // Design 봇: designPencil 프롬프트 우선 사용 (로컬 바이너리로 Pencil MCP 연결)
-    const rawPrompt  = this.role === 'design'
-      ? (ROLE_PROMPTS as any)['designPencil'] ?? ROLE_PROMPTS[this.role] ?? ''
-      : ROLE_PROMPTS[this.role] ?? '';
-    const tokens = options?.designSystemTokens ?? '기본 다크 테마: #0F0F10 배경, #D4763B 액센트, Pretendard 폰트';
+    const rawPrompt  = ROLE_PROMPTS[this.role] ?? '';
+    const tokens = options?.designSystemTokens ?? '';
     const sysPrompt  = rawPrompt.replace('[DESIGN_SYSTEM_PLACEHOLDER]', tokens);
     const apiKey     = process.env.ANTHROPIC_API_KEY ?? '';
     const tmpDir     = os.tmpdir();

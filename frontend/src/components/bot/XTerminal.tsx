@@ -146,7 +146,6 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
     const rows = term.rows
 
     // role 또는 shellMode를 쿼리 파라미터로 전달
-    // design role: 백엔드가 Claude Code CLI + Pencil MCP로 실행
     // shellMode: 백엔드가 PowerShell/bash로 실행
     const modeParam = shellMode ? '&mode=shell' : ''
     const roleParam = role && !shellMode ? `&role=${role}` : ''
@@ -179,7 +178,6 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
             term.writeln('\x1b[90m💡 claude --dangerously-skip-permissions 로 Claude Code 실행\x1b[0m\r\n')
           } else if (role === 'design') {
             term.writeln('\x1b[1;32m✓ Design Bot 연결됨\x1b[0m — Claude Code 인터랙티브 모드\r\n')
-            term.writeln('\x1b[90m💡 Pencil MCP: Pencil 앱을 먼저 열고 /mcp 명령으로 연결하세요\x1b[0m\r\n')
             if (taskHint?.trim()) {
               term.writeln(`\x1b[90m📋 태스크 힌트: ${taskHint.trim()}\x1b[0m`)
               term.writeln('\x1b[90m(위 내용을 참고해 아래에 직접 입력하세요)\x1b[0m\r\n')
