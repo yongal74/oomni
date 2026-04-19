@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentsApi, designSystemsApi, type FeedItem, type DesignSystem } from '../../../lib/api'
 import { useAppStore } from '../../../store/app.store'
@@ -325,6 +325,9 @@ export function DesignCenterPanel({
 
   const latest = feed[0]
   const [previewTab, setPreviewTab] = useState<PreviewTab>('html')
+  // 한 번 렌더된 HTML은 유지 — isRunning 전환 / feed 재로딩 중 flicker 방지
+  const [lastHtml, setLastHtml] = useState<string | null>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   // 실행 완료 시 feed 즉시 갱신
   useEffect(() => {
@@ -333,11 +336,50 @@ export function DesignCenterPanel({
     }
   }, [isRunning]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 스트리밍 중: 실시간 HTML 추출 (부분 허용)
+  // 스트리밍 중: 실시간 HTML (부분 허용)
   const liveHtml = isRunning ? extractHtml(streamOutput ?? '', true) : null
-  // 완료 후: feed에서 HTML 추출 (부분 HTML도 허용)
+  // 완료 후: feed에서 HTML
   const finalHtml = latest?.content ? extractHtml(latest.content, true) : null
-  const displayHtml = liveHtml ?? finalHtml
+  // 스트리밍 완료 직후 feed reload 전 fallback (streamOutput은 부모가 유지함)
+  const streamFallback = !isRunning && streamOutput ? extractHtml(streamOutput, true) : null
+
+  const currentHtml = liveHtml ?? finalHtml ?? streamFallback
+
+  // 한 번이라도 HTML이 나오면 lastHtml에 보존
+  useEffect(() => {
+    if (currentHtml) setLastHtml(currentHtml)
+  }, [currentHtml])
+
+  const displayHtml = currentHtml ?? lastHtml
+
+  // 스트리밍 중 iframe을 srcDoc 대신 직접 write로 업데이트 (재마운트 없이 점진적 렌더링)
+  const prevHtmlRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!isRunning || !iframeRef.current || !liveHtml) return
+    if (liveHtml === prevHtmlRef.current) return
+    prevHtmlRef.current = liveHtml
+    const doc = iframeRef.current.contentDocument
+    if (!doc) return
+    // 완전히 새로 쓰기 (document.open/write/close) — 완성도가 낮은 HTML도 정상 렌더
+    doc.open()
+    doc.write(liveHtml)
+    doc.close()
+  }, [liveHtml, isRunning])
+
+  // 스트리밍 종료 후 finalHtml로 확정 렌더링
+  useEffect(() => {
+    if (isRunning || !iframeRef.current) return
+    const html = finalHtml ?? streamFallback
+    if (!html || html === prevHtmlRef.current) return
+    prevHtmlRef.current = html
+    const doc = iframeRef.current.contentDocument
+    if (!doc) return
+    doc.open()
+    doc.write(html)
+    doc.close()
+  }, [isRunning, finalHtml, streamFallback])
+
+  const isEmpty = !displayHtml && !isRunning && !streamOutput
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -363,11 +405,19 @@ export function DesignCenterPanel({
         </button>
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden relative">
         {/* HTML 미리보기 탭 */}
         {previewTab === 'html' && (
           <>
-            {!isRunning && !displayHtml && !streamOutput ? (
+            {/* iframe은 항상 마운트 유지 — display 토글로 숨김/표시 */}
+            <iframe
+              ref={iframeRef}
+              className={cn('w-full h-full border-0 absolute inset-0', isEmpty || previewTab !== 'html' ? 'invisible' : 'visible')}
+              title="Design Preview"
+              sandbox="allow-scripts allow-same-origin"
+            />
+            {/* 초기 빈 상태 안내 */}
+            {isEmpty && (
               <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-8">
                 <Palette size={40} className="text-muted/20" />
                 <div>
@@ -383,17 +433,12 @@ export function DesignCenterPanel({
                   ))}
                 </div>
               </div>
-            ) : displayHtml ? (
-              <iframe
-                srcDoc={displayHtml}
-                className="w-full h-full border-0"
-                title="Design Preview"
-                sandbox="allow-scripts allow-same-origin"
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
+            )}
+            {/* HTML 생성 중이지만 아직 200자 미만 */}
+            {isRunning && !liveHtml && !lastHtml && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center bg-bg">
                 <Palette size={32} className="text-muted/20" />
-                <p className="text-[12px] text-muted">HTML 출력 대기 중...</p>
+                <p className="text-[12px] text-muted">HTML 생성 중...</p>
               </div>
             )}
           </>
