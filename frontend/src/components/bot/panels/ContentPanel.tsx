@@ -367,6 +367,22 @@ function parseAiwxDraft(content: string): { title: string; body: string; tags: s
   }
 }
 
+// ── 콘텐츠 타이틀 파싱 ────────────────────────────────────────────────────────
+function parseContentTitle(content: string): { title: string; preview: string } {
+  // # 제목 형식
+  const h1 = content.match(/^#\s+(.+)$/m)
+  if (h1) return { title: h1[1].trim(), preview: content.replace(h1[0], '').trim().slice(0, 200) }
+  // [제목] 형식 (AIWX 등)
+  const bracket = content.match(/\[제목\]\s*\n([^\n]+)/)
+  if (bracket) return { title: bracket[1].trim(), preview: content.replace(bracket[0], '').trim().slice(0, 200) }
+  // **볼드** 첫 줄
+  const bold = content.match(/^\*\*(.+?)\*\*/m)
+  if (bold) return { title: bold[1].trim(), preview: content.replace(bold[0], '').trim().slice(0, 200) }
+  // 첫 줄 fallback
+  const firstLine = content.split('\n')[0].trim()
+  return { title: firstLine.slice(0, 80), preview: content.slice(firstLine.length).trim().slice(0, 200) }
+}
+
 // ── 결과물 카드 ────────────────────────────────────────────────────────────────
 function OutputCard({
   item,
@@ -380,10 +396,12 @@ function OutputCard({
   onCopy: (text: string) => void
 }) {
   const [copied, setCopied] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const outputType = detectOutputType(item.content)
   const signalLevel = extractSignalLevel(item.content)
   const aiwxDraft = parseAiwxDraft(item.content)
   const isAiwx = !!aiwxDraft
+  const { title, preview } = parseContentTitle(item.content)
 
   const handleCopy = async (text: string) => {
     await navigator.clipboard.writeText(text)
@@ -471,14 +489,27 @@ function OutputCard({
         </div>
       ) : (
         <div className="px-4 pb-3 space-y-2">
-          <p className="text-xs text-dim line-clamp-4 leading-relaxed">{item.content}</p>
-          <button
-            onClick={() => handleCopy(item.content)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-surface hover:bg-border text-muted hover:text-text text-xs transition-colors"
-          >
-            {copied ? <Check size={10} className="text-green-400" /> : <Copy size={10} />}
-            복사
-          </button>
+          {title && title !== item.content.slice(0, title.length) && (
+            <p className="text-sm font-semibold text-text leading-snug">{title}</p>
+          )}
+          <p className={cn('text-xs text-dim leading-relaxed', expanded ? '' : 'line-clamp-3')}>
+            {expanded ? item.content : preview}
+          </p>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setExpanded(v => !v)}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-surface hover:bg-border text-muted hover:text-text text-xs transition-colors"
+            >
+              {expanded ? '접기' : '전체 보기'}
+            </button>
+            <button
+              onClick={() => handleCopy(item.content)}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-surface hover:bg-border text-muted hover:text-text text-xs transition-colors"
+            >
+              {copied ? <Check size={10} className="text-green-400" /> : <Copy size={10} />}
+              복사
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -723,7 +754,8 @@ export function ContentCenterPanel({ agentId, selectedType, streamOutput, isRunn
 }
 
 const CONTENT_SKILLS = [
-  { label: '블로그 포스트', prompt: '/blog-post AI/스타트업 트렌드를 주제로 SEO 최적화된 블로그 포스트를 작성해줘' },
+  { label: '블로그 글 (4단계)', prompt: '[outputType:blog] 리서치 데이터를 기반으로 4단계 구조와 최진석 교수체로 블로그 글을 작성해줘 (1800~2200자)' },
+  { label: 'LinkedIn (900자)', prompt: '[outputType:linkedin] 리서치 데이터를 기반으로 4단계 구조와 최진석 교수체로 LinkedIn 포스트를 작성해줘 (900자 내외)' },
   { label: '숏폼 스크립트', prompt: '/short-form-script 솔로 창업자를 위한 60초 숏폼 영상 스크립트를 훅 3가지 변형으로 작성해줘' },
   { label: '소셜 패키지', prompt: '/social-pack 최신 블로그 포스트를 트위터/LinkedIn/인스타 포맷으로 변환해줘' },
   { label: '뉴스레터', prompt: '/newsletter 이번 주 주요 인사이트를 담은 뉴스레터를 작성해줘' },

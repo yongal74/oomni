@@ -9,6 +9,72 @@ import { NextBotDropdown } from '../shared/NextBotDropdown'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
+// ── CEO 브리핑 마크다운 렌더러 ────────────────────────────────────────────────
+function BriefingRenderer({ content }: { content: string }) {
+  const lines = content.split('\n')
+  return (
+    <div className="space-y-0.5">
+      {lines.map((line, i) => {
+        if (line.startsWith('## ')) {
+          return (
+            <div key={i} className="flex items-center gap-2 mt-5 mb-2 first:mt-0">
+              <div className="h-px flex-1 bg-primary/20" />
+              <h2 className="text-[11px] font-bold text-primary uppercase tracking-widest shrink-0 px-1">
+                {line.slice(3)}
+              </h2>
+              <div className="h-px flex-1 bg-primary/20" />
+            </div>
+          )
+        }
+        if (line.startsWith('### ')) {
+          return <h3 key={i} className="text-sm font-semibold text-text mt-3 mb-1">{line.slice(4)}</h3>
+        }
+        if (/^[-*]\s/.test(line)) {
+          const text = line.replace(/^[-*]\s/, '')
+          // 볼드 처리 (**text**)
+          const parts = text.split(/(\*\*[^*]+\*\*)/)
+          return (
+            <div key={i} className="flex gap-2 items-baseline pl-2">
+              <span className="text-primary/60 shrink-0 text-xs mt-0.5">•</span>
+              <p className="text-sm text-dim leading-relaxed">
+                {parts.map((p, j) =>
+                  p.startsWith('**') && p.endsWith('**')
+                    ? <strong key={j} className="text-text font-semibold">{p.slice(2, -2)}</strong>
+                    : p
+                )}
+              </p>
+            </div>
+          )
+        }
+        if (line.match(/^\d+\.\s/)) {
+          const text = line.replace(/^\d+\.\s/, '')
+          const num = line.match(/^(\d+)\./)?.[1]
+          return (
+            <div key={i} className="flex gap-2 items-baseline pl-2">
+              <span className="text-primary text-xs font-bold shrink-0 w-4">{num}.</span>
+              <p className="text-sm text-dim leading-relaxed">{text}</p>
+            </div>
+          )
+        }
+        if (line.trim() === '' || line === '---') {
+          return <div key={i} className="h-2" />
+        }
+        // 볼드 처리 포함 일반 문단
+        const parts = line.split(/(\*\*[^*]+\*\*)/)
+        return (
+          <p key={i} className="text-sm text-dim leading-relaxed">
+            {parts.map((p, j) =>
+              p.startsWith('**') && p.endsWith('**')
+                ? <strong key={j} className="text-text font-semibold">{p.slice(2, -2)}</strong>
+                : p
+            )}
+          </p>
+        )
+      })}
+    </div>
+  )
+}
+
 const BOT_ICONS_MAP: Record<string, React.ElementType> = {
   research: Telescope, build: Code2, design: Palette, content: BookOpen,
   growth: TrendingUp, ops: Workflow, integration: Plug, ceo: Crown,
@@ -136,18 +202,16 @@ export function CeoCenterPanel({ agentId, streamOutput, isRunning }: { agentId: 
           </div>
         ) : displayItem ? (
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-5">
               <p className="text-xs text-muted">{new Date(displayItem.created_at).toLocaleString('ko-KR')}</p>
               <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">{TABS.find(t => t.key === activeTab)?.label}</span>
             </div>
-            <div className="text-base text-dim leading-loose whitespace-pre-wrap">
-              {displayItem.content}
-            </div>
+            <BriefingRenderer content={displayItem.content} />
           </div>
         ) : streamOutput ? (
           <div className="h-full overflow-y-auto">
             <p className="text-xs text-muted mb-4 uppercase tracking-widest">마지막 브리핑</p>
-            <pre className="text-base text-dim leading-loose whitespace-pre-wrap font-sans">{streamOutput}</pre>
+            <BriefingRenderer content={streamOutput} />
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-full gap-4 text-center">

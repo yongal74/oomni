@@ -388,7 +388,7 @@ export function DesignCenterPanel({
         {isRunning && (
           <div className="flex items-center gap-1.5 mr-3">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-[11px] text-muted">{liveHtml ? '실시간 프리뷰' : '생성 중...'}</span>
+            <span className="text-[11px] text-muted">{liveHtml ? '실시간 프리뷰' : 'Claude Design 생성 중...'}</span>
           </div>
         )}
         <button
@@ -403,6 +403,11 @@ export function DesignCenterPanel({
         >
           코드
         </button>
+        <div className="ml-auto flex items-center gap-1">
+          <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/30 font-medium">
+            ✦ Claude Design · Opus 4.7
+          </span>
+        </div>
       </div>
 
       <div className="flex-1 overflow-hidden relative">

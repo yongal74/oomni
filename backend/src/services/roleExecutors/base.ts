@@ -8,15 +8,17 @@ export function getAnthropicClient(): Anthropic {
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' })
 }
 
-export const HAIKU_MODEL  = 'claude-haiku-4-5-20251001'
+export const HAIKU_MODEL   = 'claude-haiku-4-5-20251001'
 export const DEFAULT_MODEL = 'claude-sonnet-4-6'
-export const CEO_MODEL = 'claude-opus-4-6'
+export const CEO_MODEL     = 'claude-opus-4-6'
+export const DESIGN_MODEL  = 'claude-opus-4-7'  // Claude Design — released 2026-04
 
 // Per-model cost (USD per 1M tokens)
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   [HAIKU_MODEL]:   { input: 0.80,  output: 4.00  },
   [DEFAULT_MODEL]: { input: 3.00,  output: 15.00 },
   [CEO_MODEL]:     { input: 15.00, output: 75.00 },
+  [DESIGN_MODEL]:  { input: 5.00,  output: 25.00 },
   'gpt-4o':            { input: 2.50,  output: 10.00 },
   'gpt-4.1':           { input: 2.00,  output: 8.00  },
   'sonar-pro':         { input: 3.00,  output: 15.00 },
@@ -139,8 +141,7 @@ async function streamGemini(
 ): Promise<string> {
   let fullText = ''
   const axios = await import('axios')
-  const geminiModel = model.replace('gemini-', 'gemini-').replace('-pro', '-pro').replace('-flash', '-flash')
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?key=${apiKey}&alt=sse`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${apiKey}&alt=sse`
 
   const response = await axios.default.post(
     url,
