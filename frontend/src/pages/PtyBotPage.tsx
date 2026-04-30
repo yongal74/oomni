@@ -110,6 +110,7 @@ export default function PtyBotPage() {
   const [streamOutput, setStreamOutput] = useState('')
   const [lastOutput, setLastOutput] = useState('')  // 다음봇 전달용 최신 결과물
   const [designScreenshot, setDesignScreenshot] = useState<string | null>(null)
+  const [galleryHtml, setGalleryHtml] = useState<string | null>(null)
   const terminalRef = useRef<XTerminalRef>(null)       // Build Bot 터미널 주입
   const designTerminalRef = useRef<XTerminalRef>(null)  // Design Bot 터미널 주입
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
@@ -182,6 +183,7 @@ export default function PtyBotPage() {
     setLastOutput('')
     setCurrentStage(null)
     setDesignScreenshot(null)
+    setGalleryHtml(null)
     qc.invalidateQueries({ queryKey: ['bot-feed', id] })
   }
 
@@ -412,7 +414,7 @@ export default function PtyBotPage() {
           top={
             <div className="h-full flex flex-col overflow-hidden">
               <div className="flex-1 overflow-hidden">
-                <DesignCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} screenshotUrl={designScreenshot} />
+                <DesignCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} screenshotUrl={designScreenshot} galleryHtml={galleryHtml} />
               </div>
             </div>
           }
@@ -428,7 +430,7 @@ export default function PtyBotPage() {
             className="h-full"
           />}
         />,
-        right: <DesignRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s) => designTerminalRef.current?.send(s)} currentRole="design" content={lastOutput} />,
+        right: <DesignRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s) => designTerminalRef.current?.send(s)} currentRole="design" content={lastOutput} onLoadDesign={setGalleryHtml} />,
       }
     }
 

@@ -250,32 +250,6 @@ export const authApi = {
     authAxios.post('/api/auth/pin/verify', { pin }).then(r => r.data),
 }
 
-// ── 제거된 기능 스텁 (v3.0 PIN 전용 전환 후 해당 기능 미지원) ──────────────
-export interface ShortFormScriptVariant {
-  remotion_props: {
-    durationInFrames: number
-    fps: number
-    width: number
-    height: number
-    [key: string]: unknown
-  }
-  hook: string
-  problem: string
-  solution: string[]
-  proof: string
-  cta: string
-}
-
-export interface ShortFormScript {
-  id: string
-  title: string
-  topic: string
-  script: string
-  status: string
-  created_at: string
-  variants: ShortFormScriptVariant[]
-}
-
 export interface Subscription {
   plan: string
   status: string
@@ -283,40 +257,6 @@ export interface Subscription {
   email?: string
   license_valid_until?: string
   current_period_end?: string
-}
-
-interface CdpSegment {
-  id: string
-  label: string
-  icon?: string
-  color: string
-  count: number
-}
-
-interface CdpSegmentsResult {
-  data: CdpSegment[]
-  mode: string
-}
-
-export const videoApi = {
-  listScripts: (): Promise<{ scripts: ShortFormScript[] }> => Promise.resolve({ scripts: [] }),
-  generateScript: (_topic: string, _role: string): Promise<{ script: ShortFormScript }> =>
-    Promise.reject(new Error('videoApi 미지원 (v3)')),
-  renderVideo: (_id: string, _variant: number): Promise<{ message: string; output_path: string }> =>
-    Promise.reject(new Error('videoApi 미지원 (v3)')),
-  vrewExport: (_id: string): Promise<{ file_path: string }> =>
-    Promise.reject(new Error('videoApi 미지원 (v3)')),
-  getScript: (_id: string): Promise<{ script: ShortFormScript }> =>
-    Promise.reject(new Error('videoApi 미지원 (v3)')),
-}
-
-export const cdpApi = {
-  status: (): Promise<{ data: unknown; mode: string; connected: boolean }> =>
-    Promise.resolve({ data: null, mode: 'none', connected: false }),
-  segments: (): Promise<CdpSegmentsResult> =>
-    Promise.resolve({ data: [], mode: 'none' }),
-  campaign: (_vars: unknown): Promise<unknown> =>
-    Promise.reject(new Error('cdpApi 미지원 (v3)')),
 }
 
 export const paymentsApi = {
@@ -332,7 +272,7 @@ export const paymentsApi = {
 export interface Mission { id: string; name: string; description: string; created_at: string }
 export interface Agent {
   id: string; mission_id: string; name: string;
-  role: 'research'|'build'|'design'|'content'|'growth'|'ops'|'integration'|'ceo';
+  role: 'research'|'build'|'design'|'content'|'ops'|'ceo'|'project_setup'|'env'|'security_audit'|'frontend'|'backend'|'infra';
   schedule: 'manual'|'hourly'|'daily'|'weekly';
   system_prompt: string; budget_cents: number;
   is_active: boolean; reports_to: string|null; created_at: string;
@@ -408,4 +348,40 @@ export const designSystemsApi = {
     api.get<ApiResponse<DesignSystem>>(`/api/design-systems/${missionId}`).then(r => r.data.data),
   update: (missionId: string, data: Partial<DesignSystem>) =>
     api.put<ApiResponse<DesignSystem>>(`/api/design-systems/${missionId}`, data).then(r => r.data.data),
+}
+
+export interface DesignOutput {
+  id: string
+  agent_id: string
+  mission_id: string | null
+  title: string | null
+  html_content?: string
+  created_at: string
+}
+
+export const designOutputsApi = {
+  list: (agentId: string) =>
+    api.get<ApiResponse<DesignOutput[]>>(`/api/agents/${agentId}/design-outputs`).then(r => r.data.data),
+  get: (agentId: string, outputId: string) =>
+    api.get<ApiResponse<DesignOutput>>(`/api/agents/${agentId}/design-outputs/${outputId}`).then(r => r.data.data),
+}
+
+export interface BuildTodo {
+  id: string
+  agent_id: string
+  title: string
+  status: 'todo' | 'in_progress' | 'done'
+  priority: 'low' | 'medium' | 'high'
+  created_at: string
+}
+
+export const buildTodosApi = {
+  list: (agentId: string) =>
+    api.get<ApiResponse<BuildTodo[]>>(`/api/agents/${agentId}/todos`).then(r => r.data.data),
+  create: (agentId: string, data: { title: string; priority?: BuildTodo['priority'] }) =>
+    api.post<ApiResponse<BuildTodo>>(`/api/agents/${agentId}/todos`, data).then(r => r.data.data),
+  update: (agentId: string, todoId: string, data: { status?: BuildTodo['status']; title?: string }) =>
+    api.patch<ApiResponse<BuildTodo>>(`/api/agents/${agentId}/todos/${todoId}`, data).then(r => r.data.data),
+  delete: (agentId: string, todoId: string) =>
+    api.delete(`/api/agents/${agentId}/todos/${todoId}`).then(r => r.data),
 }

@@ -75,12 +75,10 @@ export const SKILLS_DEST    = path.join(CLAUDE_DIR, 'commands');
 // ── 모델 라우팅 ─────────────────────────────────────────────
 const ROLE_MODELS: Record<string, string> = {
   research:    'claude-haiku-4-5-20251001',   // 대량 채점 → 저렴
-  growth:      'claude-haiku-4-5-20251001',
   content:     'claude-sonnet-4-6',
   build:       'claude-sonnet-4-6',
   design:      'claude-sonnet-4-6',
   ops:         'claude-sonnet-4-6',
-  integration: 'claude-sonnet-4-6',
   ceo:         'claude-opus-4-6',             // CEO 판단 → 최고 품질
   // Phase 2 (BOT-08~11)
   project_setup:  'claude-sonnet-4-6',
@@ -221,9 +219,6 @@ ${DATA_ROOT}/design/YYYY-MM-DD_HH-MM/component.tsx
 ## 완료 후 출력
 ✅ preview.html → [경로]
 ✅ component.tsx → [경로]`,
-
-    growth: `당신은 그로스 해킹 에이전트입니다. KPI + 실행 액션 아이템 제시.
-결과: ${DATA_ROOT}/growth/ 저장.`,
 
     ops: `당신은 n8n 워크플로우 자동화 전문 에이전트입니다. n8n MCP 도구로 실제 워크플로우를 생성/배포합니다.
 
@@ -530,7 +525,7 @@ export function initSkills(): void {
   const claudeMd = path.join(src, 'CLAUDE.md');
   if (fs.existsSync(claudeMd)) fs.copyFileSync(claudeMd, path.join(CLAUDE_DIR, 'CLAUDE.md'));
 
-  for (const role of ['research','build','design','content','growth','ops','ceo']) {
+  for (const role of ['research','build','design','content','ops','ceo']) {
     const srcDir = path.join(src, role);
     const dstDir = path.join(SKILLS_DEST, role);
     if (!fs.existsSync(srcDir)) continue;

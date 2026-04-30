@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import {
   Download, Upload, AlertTriangle, CheckCircle, Loader2,
-  User, CreditCard, Key, Database, ExternalLink, X, Bot, Eye, EyeOff
+  User, CreditCard, Key, Database, ExternalLink, X, Bot, Eye, EyeOff, FolderOpen
 } from 'lucide-react'
-import { backupApi, profileApi, paymentsApi, integrationsSettingsApi, settingsApi, type Subscription } from '../lib/api'
+import { backupApi, profileApi, paymentsApi, integrationsSettingsApi, settingsApi, obsidianSettingsApi, type Subscription } from '../lib/api'
+import { BACKEND_URL } from '../config'
 
 interface MsgState {
   type: 'success' | 'error'
@@ -104,6 +105,11 @@ export default function SettingsPage() {
   const [googleMsg, setGoogleMsg] = useState<MsgState | null>(null)
   const [googleSaving, setGoogleSaving] = useState(false)
 
+  // Obsidian 연동
+  const [vaultPath, setVaultPath] = useState('')
+  const [vaultSaved, setVaultSaved] = useState(false)
+  const [vaultSaving, setVaultSaving] = useState(false)
+
   // ── 구독 정보 로드 ──────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -121,6 +127,7 @@ export default function SettingsPage() {
     integrationsSettingsApi.get().then(setIntegrations).catch(() => {})
     settingsApi.getGoogleOAuth().then(setGoogleOAuth).catch(() => {})
     settingsApi.getStatus().then(s => setClaudeApiKeySet(s.api_key_set)).catch(() => {})
+    obsidianSettingsApi.get().then(d => { if (d.vault_path) setVaultPath(d.vault_path) }).catch(() => {})
   }, [])
 
   // ── 프로필 저장 ──────────────────────────────────────────────────────────
@@ -148,7 +155,7 @@ export default function SettingsPage() {
   const handleOpenPayment = (plan: string) => {
     const orderId = `OOMNI-${Date.now()}-${plan.toUpperCase()}`
     const planInfo = PLANS[plan]
-    const backendBase = 'http://localhost:3001'
+    const backendBase = BACKEND_URL
     const successUrl = `${backendBase}/api/payments/toss/success?plan=${encodeURIComponent(plan)}`
     const failUrl = `${backendBase}/api/payments/toss/fail`
     const url =
@@ -749,7 +756,40 @@ export default function SettingsPage() {
         {intMsg && <MsgBox msg={intMsg} />}
       </SectionCard>
 
-      {/* ── 5. Google OAuth 설정 ────────────────────────────────────── */}
+      {/* ── 5. Obsidian 연동 ─────────────────────────────────────────── */}
+      <SectionCard>
+        <SectionTitle icon={<FolderOpen size={16} />} title="Obsidian 연동" />
+        <p className="text-muted text-sm mb-4">
+          봇 결과물을 자동으로 Obsidian에 아카이빙합니다. Vault 폴더의 절대 경로를 입력하세요.
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={vaultPath}
+            onChange={e => setVaultPath(e.target.value)}
+            placeholder="예: C:\Users\username\Documents\ObsidianVault"
+            className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted/50 focus:outline-none focus:border-primary/60"
+          />
+          <button
+            onClick={async () => {
+              setVaultSaving(true)
+              try {
+                await obsidianSettingsApi.save(vaultPath)
+                setVaultSaved(true)
+                setTimeout(() => setVaultSaved(false), 2000)
+              } catch { /* ignore */ } finally { setVaultSaving(false) }
+            }}
+            disabled={!vaultPath || vaultSaving}
+            className={`px-4 py-2 rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 ${
+              vaultSaved ? 'bg-green-900/20 text-green-400 border border-green-800/30' : 'bg-primary text-white hover:bg-primary/90'
+            }`}
+          >
+            {vaultSaved ? '저장됨 ✓' : '저장'}
+          </button>
+        </div>
+      </SectionCard>
+
+      {/* ── 6. Google OAuth 설정 ────────────────────────────────────── */}
       <SectionCard>
         <SectionTitle icon={<Key size={16} />} title="Google 소셜 로그인 설정" />
         <p className="text-muted text-sm mb-4">

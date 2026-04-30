@@ -2,22 +2,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import {
-  agentsApi, feedApi, costApi, issuesApi, schedulesApi, reportsApi,
+  agentsApi, feedApi, costApi, issuesApi,
   missionsApi,
   api,
-  type FeedItem, type Agent, type Issue, type Schedule,
+  type FeedItem, type Agent, type Issue
 } from '../lib/api'
 import { useAppStore } from '../store/app.store'
 import { oomniWs } from '../lib/ws'
 import {
   Play, Plus, X, Check, XCircle, Loader2,
-  ArrowRight, Layers, Archive,
-  Telescope, Code2, Palette, BookOpen, TrendingUp, Workflow, Plug, Crown, Bot,
+  Layers, Archive,
+  Telescope, Code2, Palette, BookOpen, Workflow, Crown, Bot,
 } from 'lucide-react'
 
 const BOT_ICONS: Record<string, React.ElementType> = {
   research: Telescope, build: Code2, design: Palette, content: BookOpen,
-  growth: TrendingUp, ops: Workflow, integration: Plug, ceo: Crown,
+  ops: Workflow, ceo: Crown,
 }
 function BotRoleIcon({ role, size = 14 }: { role?: string; size?: number }) {
   const Icon = (role && BOT_ICONS[role]) || Bot
@@ -32,10 +32,8 @@ const BOT_TEMPLATES = [
   { role: 'research', name: 'Research Bot', emoji: '🔬', desc: '웹 리서치, 경쟁사 분석, 트렌드 조사' },
   { role: 'build', name: 'Build Bot', emoji: '🔨', desc: '코딩, 버그 수정, PR 생성, 테스트' },
   { role: 'design', name: 'Design Bot', emoji: '🎨', desc: 'UI/UX 디자인, 컴포넌트 생성' },
-  { role: 'content', name: 'Content Bot', emoji: '✍️', desc: '블로그, 뉴스레터, SNS 콘텐츠' },
-  { role: 'growth', name: 'Growth Bot', emoji: '📈', desc: 'SEO, 광고 카피, A/B 테스트' },
+  { role: 'content', name: 'Content Bot', emoji: '✍️', desc: '블로그, 뉴스레터, SNS 콘텐츠 · SEO · 마케팅' },
   { role: 'ops', name: 'Ops Bot', emoji: '⚙️', desc: '운영 모니터링, 세무/재무, 리포트 및 자동화 워크플로우 생성' },
-  { role: 'integration', name: 'Integration Bot', emoji: '🔗', desc: '외부 서비스 연동, 데이터 동기화' },
   { role: 'ceo', name: 'CEO Bot', emoji: '👔', desc: '전체 봇 결과 종합, 일일/주간 보고서 자동 생성' },
   { role: 'project_setup', name: 'ProjectSetup Bot', emoji: '🚀', desc: '5가지 질문으로 프로젝트 완전 초기화' },
   { role: 'env', name: 'Env Bot', emoji: '🔑', desc: '환경변수 통합 관리 · NEXT_PUBLIC_ 오용 탐지' },
@@ -49,10 +47,8 @@ const ROLE_SYSTEM_PROMPTS: Record<string, string> = {
   research: '너는 리서치 전문 AI 봇이다. 주어진 주제를 철저히 조사하고 구조화된 보고서로 정리해라.',
   build: '너는 풀스택 개발 AI 봇이다. TDD 방식으로 코드를 작성하고 PR을 생성해라.',
   design: '너는 UI/UX 디자인 AI 봇이다. 사용자 친화적인 디자인을 생성해라.',
-  content: '너는 콘텐츠 제작 AI 봇이다. SEO 최적화된 고품질 콘텐츠를 작성해라.',
-  growth: '너는 그로스 마케팅 AI 봇이다. 데이터 기반으로 성장 전략을 실행해라.',
+  content: '너는 콘텐츠 및 마케팅 AI 봇이다. SEO 최적화된 고품질 콘텐츠를 작성하고 그로스 마케팅 전략을 실행해라.',
   ops: '너는 운영/재무 AI 봇이다. 비용, 수익, 세무 데이터를 자동으로 정리하고 리포트를 생성해라.',
-  integration: '너는 시스템 통합 AI 봇이다. 외부 서비스들을 연결하고 데이터를 동기화해라.',
   ceo: '너는 CEO AI 봇이다. 모든 봇의 활동을 종합하고 전략적 보고서를 생성해라.',
 }
 
@@ -76,21 +72,13 @@ const PRIORITY_COLORS: Record<Issue['priority'], string> = {
 const PRIORITY_LABELS: Record<Issue['priority'], string> = {
   low: '낮음', medium: '중간', high: '높음',
 }
-const TRIGGER_TYPE_LABELS: Record<Schedule['trigger_type'], string> = {
-  interval: '반복',
-  cron: '크론',
-  webhook: '웹훅',
-  bot_complete: '봇 완료 시',
-}
 
-type DashTab = 'feed' | 'issues' | 'cost' | 'schedules' | 'report'
+type DashTab = 'feed' | 'issues' | 'cost'
 
 const DASH_TABS: { key: DashTab; label: string }[] = [
   { key: 'feed', label: '피드' },
   { key: 'issues', label: '티켓' },
   { key: 'cost', label: '비용' },
-  { key: 'schedules', label: '자동화 스케줄' },
-  { key: 'report', label: '리포트' },
 ]
 
 // TODO item type
@@ -196,21 +184,6 @@ export default function DashboardPage() {
     refetchInterval: 15000,
   })
 
-  // 스케줄
-  const { data: schedulesData = [] } = useQuery<Schedule[]>({
-    queryKey: ['schedules', missionId],
-    queryFn: () => schedulesApi.list({ mission_id: missionId }),
-    enabled: !!missionId,
-    refetchInterval: 15000,
-  })
-
-  // 리포트 (오늘 요약)
-  const { data: reportData } = useQuery({
-    queryKey: ['report', missionId, 'daily'],
-    queryFn: () => reportsApi.get(missionId!, 'daily'),
-    enabled: !!missionId && activeTab === 'report',
-    retry: 1,
-  })
 
   // WS 실시간
   useEffect(() => {
@@ -652,69 +625,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* 스케줄 탭 */}
-          {activeTab === 'schedules' && (
-            <div>
-              <div className="space-y-2 max-h-80 overflow-y-auto mb-3">
-                {schedulesData.length === 0 ? (
-                  <div className="text-center text-muted text-[12px] py-6">등록된 스케줄이 없습니다</div>
-                ) : schedulesData.slice(0, 6).map(s => (
-                  <div key={s.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[13px] text-text">{s.name}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-border/40 text-muted">
-                          {TRIGGER_TYPE_LABELS[s.trigger_type]}
-                        </span>
-                      </div>
-                      {s.trigger_type === 'bot_complete' && (
-                        <div className="flex items-center gap-1 mt-0.5 text-[11px] text-muted">
-                          <span>{agentsData?.find((a: Agent) => a.id === s.trigger_value)?.name ?? s.trigger_value}</span>
-                          <ArrowRight size={10} className="text-primary" />
-                          <span>{agentsData?.find((a: Agent) => a.id === s.agent_id)?.name ?? s.agent_id}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className={`w-2 h-2 rounded-full ${s.is_active ? 'bg-green-500' : 'bg-[#444]'}`} />
-                  </div>
-                ))}
-              </div>
-              <Link to="/dashboard/schedules" className="text-[12px] text-primary hover:underline">
-                전체 보기 →
-              </Link>
-            </div>
-          )}
-
-          {/* 리포트 탭 */}
-          {activeTab === 'report' && (
-            <div>
-              {!reportData ? (
-                <div className="flex justify-center py-8">
-                  <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                </div>
-              ) : (
-                <div>
-                  <div className="grid grid-cols-3 gap-3 mb-3">
-                    <div className="bg-bg border border-border rounded-lg p-3 text-center">
-                      <div className="text-[11px] text-muted mb-1">오늘 총 비용</div>
-                      <div className="text-lg font-bold text-primary">${Number(reportData?.cost_usd ?? 0).toFixed(3)}</div>
-                    </div>
-                    <div className="bg-bg border border-border rounded-lg p-3 text-center">
-                      <div className="text-[11px] text-muted mb-1">완료 실행</div>
-                      <div className="text-lg font-bold text-green-400">{reportData?.completed_runs ?? 0}</div>
-                    </div>
-                    <div className="bg-bg border border-border rounded-lg p-3 text-center">
-                      <div className="text-[11px] text-muted mb-1">실패 실행</div>
-                      <div className="text-lg font-bold text-red-400">{reportData?.failed_runs ?? 0}</div>
-                    </div>
-                  </div>
-                  <Link to="/dashboard/reports" className="text-[12px] text-primary hover:underline">
-                    전체 리포트 보기 →
-                  </Link>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
 

@@ -4,20 +4,20 @@
 import { SCHEMA_SQL, TABLES } from '../../../src/db/schema';
 
 describe('DB Schema', () => {
-  test('13개 테이블이 정의되어 있다', () => {
-    expect(TABLES).toHaveLength(13);
+  test('15개 테이블이 정의되어 있다', () => {
+    expect(TABLES).toHaveLength(15);
     expect(TABLES).toEqual(expect.arrayContaining([
       'missions', 'agents', 'heartbeat_runs',
       'issues', 'feed_items', 'cost_events', 'integrations', 'schedules',
       'research_items', 'token_usage',
-      'sessions', 'users', 'design_systems',
+      'sessions', 'users', 'design_systems', 'design_outputs', 'build_todos',
     ]));
   });
 
   test.each([
     'missions', 'agents', 'heartbeat_runs',
     'issues', 'feed_items', 'cost_events', 'integrations', 'schedules',
-    'research_items', 'token_usage', 'sessions', 'users', 'design_systems',
+    'research_items', 'token_usage', 'sessions', 'users', 'design_systems', 'design_outputs', 'build_todos',
   ])('CREATE TABLE IF NOT EXISTS %s 포함', (table) => {
     expect(SCHEMA_SQL).toContain(`CREATE TABLE IF NOT EXISTS ${table}`);
   });

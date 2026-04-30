@@ -8,17 +8,10 @@ const OnboardingPage = React.lazy(() => import('./pages/OnboardingPage'))
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'))
 const ApprovalPage = React.lazy(() => import('./pages/ApprovalPage'))
 const CostPage = React.lazy(() => import('./pages/CostPage'))
-const IntegrationsPage = React.lazy(() => import('./pages/IntegrationsPage'))
 const UnifiedBotPage = React.lazy(() => import('./pages/UnifiedBotPage'))
 const PtyBotPage = React.lazy(() => import('./pages/PtyBotPage'))
-const IssuesPage = React.lazy(() => import('./pages/IssuesPage'))
-const SchedulePage = React.lazy(() => import('./pages/SchedulePage'))
-const ReportPage = React.lazy(() => import('./pages/ReportPage'))
 const PinPage = React.lazy(() => import('./pages/PinPage'))
-const ResearchPage = React.lazy(() => import('./pages/ResearchPage'))
-const PipelinePage = React.lazy(() => import('./pages/PipelinePage'))
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'))
-const MonitoringPage = React.lazy(() => import('./pages/MonitoringPage'))
 
 // PTY 봇 역할 목록
 const PTY_ROLES = new Set(['build', 'design', 'ops'])
@@ -129,15 +122,8 @@ export const router = createHashRouter([
       { index: true, element: <React.Suspense fallback={<Loader />}><DashboardPage /></React.Suspense> },
       { path: 'approvals', element: <React.Suspense fallback={<Loader />}><ApprovalPage /></React.Suspense> },
       { path: 'cost', element: <React.Suspense fallback={<Loader />}><CostPage /></React.Suspense> },
-      { path: 'integrations', element: <React.Suspense fallback={<Loader />}><IntegrationsPage /></React.Suspense> },
       { path: 'bots/:id', element: <BotPageRouter /> },
-      { path: 'issues', element: <React.Suspense fallback={<Loader />}><IssuesPage /></React.Suspense> },
-      { path: 'schedules', element: <React.Suspense fallback={<Loader />}><SchedulePage /></React.Suspense> },
-      { path: 'reports', element: <React.Suspense fallback={<Loader />}><ReportPage /></React.Suspense> },
-      { path: 'research', element: <React.Suspense fallback={<Loader />}><ResearchPage /></React.Suspense> },
-      { path: 'pipeline', element: <React.Suspense fallback={<Loader />}><PipelinePage /></React.Suspense> },
       { path: 'settings', element: <React.Suspense fallback={<Loader />}><SettingsPage /></React.Suspense> },
-      { path: 'monitoring', element: <React.Suspense fallback={<Loader />}><MonitoringPage /></React.Suspense> },
     ],
   },
   {

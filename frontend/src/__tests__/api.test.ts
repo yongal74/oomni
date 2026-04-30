@@ -71,4 +71,28 @@ describe('API 클라이언트', () => {
     expect(typeof integrationsApi.save).toBe('function')
     expect(typeof integrationsApi.delete).toBe('function')
   })
+
+  test('designOutputsApi 함수들이 정의되어 있다 (Design Bot 갤러리)', async () => {
+    const { designOutputsApi } = await import('../lib/api')
+    expect(typeof designOutputsApi.list).toBe('function')
+    expect(typeof designOutputsApi.get).toBe('function')
+  })
+
+  test('integrationsSettingsApi CDP 키 관리 함수들이 정의되어 있다', async () => {
+    const { integrationsSettingsApi } = await import('../lib/api')
+    expect(typeof integrationsSettingsApi.get).toBe('function')
+    expect(typeof integrationsSettingsApi.setCdpKey).toBe('function')
+    expect(typeof integrationsSettingsApi.deleteCdpKey).toBe('function')
+  })
+
+  test('integrationsSettingsApi video 키 관리 함수들이 정의되어 있다', async () => {
+    const { integrationsSettingsApi } = await import('../lib/api')
+    expect(typeof integrationsSettingsApi.setVideoKey).toBe('function')
+    expect(typeof integrationsSettingsApi.deleteVideoKey).toBe('function')
+  })
+
+  test('paymentsApi 함수들이 정의되어 있다', async () => {
+    const { paymentsApi } = await import('../lib/api')
+    expect(typeof paymentsApi.quota).toBe('function')
+  })
 })

@@ -4,10 +4,10 @@ import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '../../store/app.store'
 import { agentsApi } from '../../lib/api'
 import {
-  Activity, BarChart2, Bell, BookOpen, Calendar,
-  ChevronLeft, Code2, Crown, DollarSign, FileText,
-  GitBranch, LayoutDashboard, Palette, Plug, Plus,
-  Search, Settings2, Telescope, TrendingUp, Workflow,
+  Bell, BookOpen,
+  ChevronLeft, Code2, Crown, DollarSign,
+  LayoutDashboard, Palette, Plus,
+  Settings2, Telescope, Workflow,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { oomniWs } from '../../lib/ws'
@@ -26,45 +26,29 @@ type NavIconItem = {
 
 // ─── 봇 역할별 아이콘 / 색상 ─────────────────────────────────────────────────
 const BOT_ICON: Record<string, AnyIcon> = {
-  research:    Telescope,
-  build:       Code2,
-  design:      Palette,
-  content:     BookOpen,
-  growth:      TrendingUp,
-  ops:         Workflow,
-  integration: Plug,
-  ceo:         Crown,
+  research: Telescope,
+  build:    Code2,
+  design:   Palette,
+  content:  BookOpen,
+  ops:      Workflow,
+  ceo:      Crown,
 }
 
 const BOT_COLOR: Record<string, string> = {
-  research:    'text-sky-400',
-  build:       'text-orange-400',
-  design:      'text-purple-400',
-  content:     'text-emerald-400',
-  growth:      'text-pink-400',
-  ops:         'text-yellow-400',
-  integration: 'text-teal-400',
-  ceo:         'text-amber-400',
+  research: 'text-sky-400',
+  build:    'text-orange-400',
+  design:   'text-purple-400',
+  content:  'text-emerald-400',
+  ops:      'text-yellow-400',
+  ceo:      'text-amber-400',
 }
 
 // ─── 네비게이션 그룹 ──────────────────────────────────────────────────────────
 const NAV_ITEMS: NavIconItem[] = [
-  // 메인
-  { to: '/dashboard',            icon: LayoutDashboard, label: '대시보드',       end: true },
-  // 분석
-  { to: '/dashboard/cost',       icon: DollarSign,      label: '비용 추적' },
-  { to: '/dashboard/reports',    icon: BarChart2,        label: '리포트' },
-  { to: '/dashboard/monitoring', icon: Activity,         label: '모니터링' },
-  // 관리
-  { to: '/dashboard/approvals',  icon: Bell,             label: '승인 인박스',    badge: true },
-  { to: '/dashboard/issues',     icon: FileText,         label: '티켓' },
-  { to: '/dashboard/schedules',  icon: Calendar,         label: '자동화' },
-  // 도구
-  { to: '/dashboard/research',   icon: Search,           label: 'Research Studio' },
-  { to: '/dashboard/pipeline',   icon: GitBranch,        label: '파이프라인' },
-  { to: '/dashboard/integrations', icon: Plug,           label: 'Obsidian' },
-  // 설정
-  { to: '/dashboard/settings',   icon: Settings2,        label: '설정' },
+  { to: '/dashboard',           icon: LayoutDashboard, label: '대시보드', end: true },
+  { to: '/dashboard/approvals', icon: Bell,            label: '승인 인박스', badge: true },
+  { to: '/dashboard/cost',      icon: DollarSign,      label: '비용 추적' },
+  { to: '/dashboard/settings',  icon: Settings2,       label: '설정' },
 ]
 
 // ─── 단일 아이콘 버튼 (툴팁 포함) ────────────────────────────────────────────

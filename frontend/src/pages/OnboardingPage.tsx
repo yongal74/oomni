@@ -55,10 +55,6 @@ export default function OnboardingPage() {
     }
   }
 
-  const handleSkipApiKey = () => {
-    setError('')
-    setStep(2)
-  }
 
   // ── Step 2: 미션 만들기 ─────────────────────────────────────────
   const handleStep2 = async () => {
@@ -197,12 +193,9 @@ export default function OnboardingPage() {
                   {loading && <Loader2 size={16} className="animate-spin" />}
                   확인 &amp; 다음
                 </button>
-                <button
-                  onClick={handleSkipApiKey}
-                  className="w-full text-center text-[13px] text-muted hover:text-text transition-colors"
-                >
-                  나중에 설정하기
-                </button>
+                <p className="text-[11px] text-muted/60 text-center">
+                  API 키가 없으면 봇을 실행할 수 없습니다. 먼저 발급받으세요.
+                </p>
               </div>
             </div>
           )}

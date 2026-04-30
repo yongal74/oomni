@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
+import { randomUUID } from 'crypto'
 import { streamClaude, saveFeedItem, DESIGN_MODEL, type ExecutorContext } from './base'
 
 const DATA_ROOT =
@@ -111,6 +112,11 @@ export async function designExecutor(ctx: ExecutorContext): Promise<void> {
       savedPath = saveDesignFile(agent.id, html)
       send('output', { chunk: `\n\n✅ 디자인 파일 저장됨: ${savedPath}` })
     } catch { /* 파일 저장 실패 무시 */ }
+    // DB 저장 (design_outputs 테이블)
+    db.query(
+      `INSERT INTO design_outputs (id, agent_id, mission_id, title, html_content) VALUES ($1,$2,$3,$4,$5)`,
+      [randomUUID(), agent.id, agent.mission_id, task.slice(0, 100), html]
+    ).catch(() => {})
   }
 
   send('stage', { stage: 'done', label: '완료' })

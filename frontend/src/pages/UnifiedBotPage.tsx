@@ -6,14 +6,13 @@ import { useAppStore } from '../store/app.store'
 import {
   Trash2, Settings, ArrowLeft, Send, Square, RotateCcw,
   Clock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Copy,
-  Telescope, BookOpen, TrendingUp, Workflow, Crown, Bot, Palette,
+  Telescope, BookOpen, Workflow, Crown, Bot, Palette,
 } from 'lucide-react'
 import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
 import { ModelSwitcher, type ModelId, type ModeId } from '../components/bot/ModelSwitcher'
 import { XTerminal, type XTerminalRef } from '../components/bot/XTerminal'
 import { ResearchLeftPanel, ResearchCenterPanel, ResearchRightPanel } from '../components/bot/panels/ResearchPanel'
 import { ContentLeftPanel, ContentCenterPanel, ContentRightPanel } from '../components/bot/panels/ContentPanel'
-import { GrowthLeftPanel, GrowthCenterPanel, GrowthRightPanel } from '../components/bot/panels/GrowthPanel'
 import { DesignLeftPanel, DesignCenterPanel, DesignRightPanel } from '../components/bot/panels/DesignPanel'
 import { OpsLeftPanel, OpsCenterPanel, OpsRightPanel } from '../components/bot/panels/OpsPanel'
 import { CeoLeftPanel, CeoCenterPanel, CeoRightPanel } from '../components/bot/panels/CeoPanel'
@@ -23,7 +22,7 @@ import type { ResearchItem } from '../lib/api'
 
 const BOT_ICONS_MAP: Record<string, React.ElementType> = {
   research: Telescope, content: BookOpen,
-  growth: TrendingUp, ops: Workflow, ceo: Crown, design: Palette,
+  ops: Workflow, ceo: Crown, design: Palette,
   project_setup: Bot, env: Bot, security_audit: Bot,
   frontend: Bot, backend: Workflow, infra: Bot,
 }
@@ -34,7 +33,7 @@ function BotIcon({ role, size = 20 }: { role: string; size?: number }) {
 
 const ROLE_LABEL: Record<string, string> = {
   research: 'Research', content: 'Content',
-  growth: 'Growth', ops: 'Ops', ceo: 'CEO', design: 'Design',
+  ops: 'Ops', ceo: 'CEO', design: 'Design',
   project_setup: 'ProjectSetup', env: 'Env', security_audit: 'SecurityAudit',
   frontend: 'Frontend', backend: 'Backend', infra: 'Infra',
 }
@@ -42,7 +41,6 @@ const ROLE_LABEL: Record<string, string> = {
 const PLACEHOLDER: Record<string, string> = {
   research:    '"오늘 AI 트렌드 수집하고 신호강도 채점해줘"',
   content:     '"리서치 결과로 블로그 포스트 초안 작성해줘"',
-  growth:      '"이번 주 사용자 증가 분석하고 캠페인 추천해줘"',
   ops:         '"Slack 메시지 → 이슈 자동 생성 워크플로우 만들어줘"',
   ceo:         '"이번 주 전체 봇 현황 브리핑 작성해줘"',
   design:      '"SaaS 랜딩 페이지 히어로 섹션 디자인해줘" 또는 PENCIL로 직접 디자인',
@@ -868,7 +866,6 @@ export default function UnifiedBotPage() {
         onTypeChange={(type) => { setContentType(type); handleSkillRun(`${type} 형식으로 콘텐츠 초안을 작성해줘`) }}
         onItemSelect={(item) => handleSkillRun(`"${item.title}" 리서치 내용을 ${contentType} 형식으로 변환해서 콘텐츠 초안을 작성해줘\n\n=== 리서치 원문 ===\n${item.content ?? item.summary ?? ''}`)}
       />
-      if (role === 'growth') return <GrowthLeftPanel />
       if (role === 'design') return <DesignLeftPanel
         selectedTemplate={selectedDesignTemplate}
         onTemplateChange={setSelectedDesignTemplate}
@@ -889,7 +886,6 @@ export default function UnifiedBotPage() {
         activeTrack={activeResearchTrack}
       />
       if (role === 'content') return <ContentCenterPanel agentId={agent.id} selectedType={contentType} streamOutput={streamOutput} isRunning={isRunning} />
-      if (role === 'growth') return <GrowthCenterPanel agentId={agent.id} streamOutput={streamOutput} isRunning={isRunning} />
       if (role === 'design') return <DesignCenterPanel
         agentId={agent.id}
         streamOutput={streamOutput}
@@ -911,7 +907,6 @@ export default function UnifiedBotPage() {
         onFileUpload={(content, filename) => handleSkillRun(`__track:${activeResearchTrack}__ 다음 파일(${filename}) 내용을 분석하고 리서치 인사이트를 추출해줘:\n\n${content}`)}
       /></div>
       if (role === 'content') return <div className="p-3"><ContentRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="content" content={lastOutput} /></div>
-      if (role === 'growth') return <div className="p-3"><GrowthRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="growth" content={lastOutput} /></div>
       if (role === 'design') return <div className="p-3"><DesignRightPanel
         agentId={agent.id}
         onSkillSelect={handleSkillRun}
@@ -943,6 +938,7 @@ export default function UnifiedBotPage() {
           setIsRunning(true)
           setStreamOutput('')
           setCurrentStage(s[0].key)
+          // galleryHtml is managed in PtyBotPage (design is a PTY role)
         }}
         onChatDone={() => {
           setIsRunning(false)

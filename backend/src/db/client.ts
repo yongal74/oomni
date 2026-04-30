@@ -160,6 +160,15 @@ export function initDb(): DbClient {
     try { db.pragma('foreign_keys = ON'); } catch { /* ignore */ }
   }
 
+  // growth → content, integration → ops 역할 마이그레이션
+  try {
+    db.exec(`UPDATE agents SET role = 'content' WHERE role = 'growth'`);
+    db.exec(`UPDATE agents SET role = 'ops' WHERE role = 'integration'`);
+    logger.info('[DB] growth→content, integration→ops 마이그레이션 완료');
+  } catch {
+    // 이미 마이그레이션됐거나 해당 행 없으면 무시
+  }
+
   // CEO 봇 중복 제거 (같은 미션에 CEO가 여러 개인 경우 rowid 기준 첫 번째만 유지)
   try {
     db.exec(`

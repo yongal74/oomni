@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { agentsApi, designSystemsApi, type FeedItem, type DesignSystem } from '../../../lib/api'
+import { agentsApi, designSystemsApi, designOutputsApi, type FeedItem, type DesignSystem, type DesignOutput } from '../../../lib/api'
 import { useAppStore } from '../../../store/app.store'
-import { Palette, Layout, Download, Copy, FileCode, Check } from 'lucide-react'
+import { Palette, Layout, Download, Copy, FileCode, Check, Clock } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { ArchiveButton } from '../shared/ArchiveButton'
 import { NextBotDropdown } from '../shared/NextBotDropdown'
@@ -310,11 +310,13 @@ export function DesignCenterPanel({
   agentId,
   streamOutput,
   isRunning,
+  galleryHtml,
 }: {
   agentId: string
   streamOutput?: string
   isRunning?: boolean
   screenshotUrl?: string | null
+  galleryHtml?: string | null
 }) {
   const { data: feed = [], refetch } = useQuery({
     queryKey: ['bot-feed', agentId],
@@ -350,7 +352,19 @@ export function DesignCenterPanel({
     if (currentHtml) setLastHtml(currentHtml)
   }, [currentHtml])
 
-  const displayHtml = currentHtml ?? lastHtml
+  // galleryHtml이 설정되면 iframe에 즉시 렌더
+  useEffect(() => {
+    if (!galleryHtml || !iframeRef.current) return
+    setLastHtml(galleryHtml)
+    const doc = iframeRef.current.contentDocument
+    if (!doc) return
+    doc.open()
+    doc.write(galleryHtml)
+    doc.close()
+    prevHtmlRef.current = galleryHtml
+  }, [galleryHtml])
+
+  const displayHtml = currentHtml ?? lastHtml ?? galleryHtml
 
   // 스트리밍 중 iframe을 srcDoc 대신 직접 write로 업데이트 (재마운트 없이 점진적 렌더링)
   const prevHtmlRef = useRef<string | null>(null)
@@ -467,10 +481,11 @@ export function DesignCenterPanel({
   )
 }
 
-// ── RIGHT: 내보내기 + 스킬 ──────────────────────────────────────
+// ── RIGHT: 내보내기 + 갤러리 + 스킬 ───────────────────────────
 export function DesignRightPanel({
   agentId,
   onSkillSelect,
+  onLoadDesign,
   currentRole = 'design',
   content = '',
 }: {
@@ -478,6 +493,7 @@ export function DesignRightPanel({
   nextBotName?: string
   onNextBot?: () => void
   onSkillSelect?: (prompt: string) => void
+  onLoadDesign?: (html: string) => void
   currentRole?: string
   content?: string
 }) {
@@ -489,6 +505,12 @@ export function DesignRightPanel({
     queryFn: () => agentId ? agentsApi.runs(agentId) : Promise.resolve([]),
     select: (data: FeedItem[]) => data.filter(f => f.type === 'result'),
     enabled: !!agentId,
+  })
+  const { data: designOutputs = [] } = useQuery<DesignOutput[]>({
+    queryKey: ['design-outputs', agentId],
+    queryFn: () => agentId ? designOutputsApi.list(agentId) : Promise.resolve([]),
+    enabled: !!agentId,
+    staleTime: 10000,
   })
   const latest = feed[0]
   const latestContent = latest?.content ?? content
@@ -567,6 +589,32 @@ export function DesignRightPanel({
           </button>
         </div>
       </div>
+
+      {/* 갤러리 — 저장된 디자인 */}
+      {designOutputs.length > 0 && (
+        <div>
+          <p className="text-xs text-muted uppercase tracking-widest mb-2">저장된 디자인 ({designOutputs.length})</p>
+          <div className="space-y-1">
+            {designOutputs.map(output => (
+              <button
+                key={output.id}
+                onClick={async () => {
+                  if (!agentId) return
+                  const detail = await designOutputsApi.get(agentId, output.id)
+                  if (detail.html_content) onLoadDesign?.(detail.html_content)
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg border border-border text-left hover:border-primary/40 hover:bg-surface transition-colors"
+              >
+                <Clock size={11} className="text-muted shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] text-text truncate">{output.title || '(제목 없음)'}</p>
+                  <p className="text-[10px] text-muted">{new Date(output.created_at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 빠른 실행 */}
       <div className="flex-1 overflow-y-auto">

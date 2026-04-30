@@ -1,22 +1,23 @@
 import { useState, useEffect, useRef } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { workspaceApi, type FileNode } from '../../../lib/api'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { workspaceApi, buildTodosApi, type FileNode, type BuildTodo } from '../../../lib/api'
 import {
   ChevronRight, ChevronDown, File, Folder, FolderOpen,
-  Copy, Check, Code2, ClipboardCheck, Layers
+  Copy, Check, Code2, ClipboardCheck, Layers, Plus, Trash2, Circle, Loader, CheckCircle2
 } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { ArchiveButton } from '../shared/ArchiveButton'
 import { NextBotDropdown } from '../shared/NextBotDropdown'
 
 // ── Category tab definitions ─────────────────────────────────────────────────
-type Category = 'all' | 'frontend' | 'backend' | 'setup'
+type Category = 'all' | 'frontend' | 'backend' | 'setup' | 'tasks'
 
 const CATEGORIES: { id: Category; label: string }[] = [
   { id: 'all', label: '전체' },
   { id: 'frontend', label: '프론트엔드' },
   { id: 'backend', label: '백엔드' },
   { id: 'setup', label: '초기세팅' },
+  { id: 'tasks', label: '태스크' },
 ]
 
 // Extensions that belong to each category
@@ -160,6 +161,154 @@ const BACKEND_SKILLS = [
 ]
 
 // ── ProjectSetupWizard ────────────────────────────────────────────────────────
+// ── TaskBoard ─────────────────────────────────────────────────────────────────
+const STATUS_CONFIG: Record<BuildTodo['status'], { label: string; icon: React.ElementType; color: string }> = {
+  todo:        { label: '할 일',   icon: Circle,        color: 'text-muted' },
+  in_progress: { label: '진행 중', icon: Loader,        color: 'text-blue-400' },
+  done:        { label: '완료',    icon: CheckCircle2,  color: 'text-green-400' },
+}
+
+const PRIORITY_COLOR: Record<BuildTodo['priority'], string> = {
+  high:   'bg-red-500/15 text-red-400 border-red-500/30',
+  medium: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
+  low:    'bg-border text-muted border-border',
+}
+
+function TaskBoard({ agentId }: { agentId: string }) {
+  const qc = useQueryClient()
+  const [newTitle, setNewTitle] = useState('')
+  const [newPriority, setNewPriority] = useState<BuildTodo['priority']>('medium')
+
+  const { data: todos = [] } = useQuery<BuildTodo[]>({
+    queryKey: ['build-todos', agentId],
+    queryFn: () => buildTodosApi.list(agentId),
+    refetchInterval: 5000,
+  })
+
+  const create = useMutation({
+    mutationFn: () => buildTodosApi.create(agentId, { title: newTitle, priority: newPriority }),
+    onSuccess: () => { setNewTitle(''); qc.invalidateQueries({ queryKey: ['build-todos', agentId] }) },
+  })
+
+  const update = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: BuildTodo['status'] }) =>
+      buildTodosApi.update(agentId, id, { status }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['build-todos', agentId] }),
+  })
+
+  const remove = useMutation({
+    mutationFn: (id: string) => buildTodosApi.delete(agentId, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['build-todos', agentId] }),
+  })
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newTitle.trim()) return
+    create.mutate()
+  }
+
+  const cycleStatus = (todo: BuildTodo) => {
+    const next: Record<BuildTodo['status'], BuildTodo['status']> = {
+      todo: 'in_progress', in_progress: 'done', done: 'todo',
+    }
+    update.mutate({ id: todo.id, status: next[todo.status] })
+  }
+
+  const groups: Record<BuildTodo['status'], BuildTodo[]> = {
+    todo: todos.filter(t => t.status === 'todo'),
+    in_progress: todos.filter(t => t.status === 'in_progress'),
+    done: todos.filter(t => t.status === 'done'),
+  }
+
+  return (
+    <div className="p-3 space-y-4">
+      {/* 새 태스크 입력 */}
+      <form onSubmit={handleCreate} className="space-y-2">
+        <input
+          value={newTitle}
+          onChange={e => setNewTitle(e.target.value)}
+          placeholder="새 태스크 추가..."
+          className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-xs text-dim placeholder:text-muted/50 focus:outline-none focus:border-primary/50"
+        />
+        <div className="flex gap-2">
+          <select
+            value={newPriority}
+            onChange={e => setNewPriority(e.target.value as BuildTodo['priority'])}
+            className="flex-1 px-2 py-1.5 rounded-lg border border-border bg-bg text-xs text-muted focus:outline-none"
+          >
+            <option value="high">높음</option>
+            <option value="medium">보통</option>
+            <option value="low">낮음</option>
+          </select>
+          <button
+            type="submit"
+            disabled={!newTitle.trim() || create.isPending}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+          >
+            <Plus size={12} /> 추가
+          </button>
+        </div>
+      </form>
+
+      {/* 상태별 그룹 */}
+      {(Object.entries(groups) as [BuildTodo['status'], BuildTodo[]][]).map(([status, items]) => {
+        const cfg = STATUS_CONFIG[status]
+        const Icon = cfg.icon
+        if (items.length === 0 && status === 'done') return null
+        return (
+          <div key={status}>
+            <p className={cn('text-[10px] uppercase tracking-widest mb-1.5 flex items-center gap-1', cfg.color)}>
+              <Icon size={10} /> {cfg.label} ({items.length})
+            </p>
+            {items.length === 0 ? (
+              <p className="text-[10px] text-muted/40 px-1">없음</p>
+            ) : (
+              <div className="space-y-1">
+                {items.map(todo => (
+                  <div
+                    key={todo.id}
+                    className={cn(
+                      'flex items-center gap-2 px-2.5 py-2 rounded-lg border text-xs transition-colors',
+                      status === 'done' ? 'border-green-500/20 bg-green-500/5' : 'border-border bg-bg'
+                    )}
+                  >
+                    <button
+                      onClick={() => cycleStatus(todo)}
+                      className={cn('shrink-0', cfg.color, 'hover:opacity-70 transition-opacity')}
+                      title="클릭해서 상태 변경"
+                    >
+                      <Icon size={13} />
+                    </button>
+                    <span className={cn('flex-1 leading-snug', status === 'done' ? 'line-through text-muted/60' : 'text-dim')}>
+                      {todo.title}
+                    </span>
+                    <span className={cn('shrink-0 text-[9px] px-1.5 py-0.5 rounded border', PRIORITY_COLOR[todo.priority])}>
+                      {todo.priority === 'high' ? '높' : todo.priority === 'medium' ? '중' : '낮'}
+                    </span>
+                    <button
+                      onClick={() => remove.mutate(todo.id)}
+                      className="shrink-0 text-muted/40 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
+
+      {todos.length === 0 && (
+        <div className="text-center py-6">
+          <ClipboardCheck size={24} className="text-muted/20 mx-auto mb-2" />
+          <p className="text-xs text-muted/50">태스크를 추가해보세요</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ProjectSetupWizard({ onSkillSelect }: { onSkillSelect?: (prompt: string) => void }) {
   const [wizardStep, setWizardStep] = useState<'menu' | 'techstack'>('menu')
   const [techStack, setTechStack] = useState({
@@ -485,9 +634,11 @@ export function BuildLeftPanel({
         </div>
       </div>
 
-      {/* File tree or Setup Wizard */}
+      {/* File tree or Setup Wizard or TaskBoard */}
       <div className="flex-1 overflow-y-auto py-2">
-        {category === 'setup' ? (
+        {category === 'tasks' ? (
+          <TaskBoard agentId={agentId} />
+        ) : category === 'setup' ? (
           <ProjectSetupWizard onSkillSelect={onSkillSelect} />
         ) : tree.length === 0 ? (
           <div className="px-4 py-6 text-center">

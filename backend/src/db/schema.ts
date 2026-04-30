@@ -14,7 +14,7 @@ export const SCHEMA_SQL = `
     mission_id TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     role TEXT NOT NULL CHECK(role IN (
-      'research','build','design','content','growth','ops','integration','ceo',
+      'research','build','design','content','ops','ceo',
       'project_setup','env','security_audit','frontend','backend','infra'
     )),
     schedule TEXT,
@@ -176,6 +176,26 @@ export const SCHEMA_SQL = `
   CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
   CREATE INDEX IF NOT EXISTS idx_design_systems_mission_id ON design_systems(mission_id);
   CREATE INDEX IF NOT EXISTS idx_schedules_agent_id ON schedules(agent_id);
+
+  CREATE TABLE IF NOT EXISTS design_outputs (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    mission_id TEXT REFERENCES missions(id) ON DELETE CASCADE,
+    title TEXT,
+    html_content TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_design_outputs_agent_id ON design_outputs(agent_id);
+
+  CREATE TABLE IF NOT EXISTS build_todos (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'todo' CHECK(status IN ('todo','in_progress','done')),
+    priority TEXT NOT NULL DEFAULT 'medium' CHECK(priority IN ('low','medium','high')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_build_todos_agent_id ON build_todos(agent_id);
 `;
 
 // v3.0 테이블 목록 (테스트 검증용)
@@ -183,7 +203,7 @@ export const TABLES = [
   'missions', 'agents', 'heartbeat_runs',
   'feed_items', 'cost_events', 'issues', 'schedules',
   'research_items', 'token_usage',
-  'sessions', 'users', 'design_systems', 'integrations',
+  'sessions', 'users', 'design_systems', 'integrations', 'design_outputs', 'build_todos',
 ];
 
 // v2.x 감지용 — v2.x DB는 agents_v5 또는 agents_v6 잔재 혹은 subscriptions 테이블 보유

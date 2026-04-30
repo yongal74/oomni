@@ -111,7 +111,7 @@ async function verifyStreamToken(
 }
 
 const VALID_ROLES = [
-  'research','build','design','content','growth','ops','integration','ceo',
+  'research','build','design','content','ops','ceo',
   'project_setup','env','security_audit','frontend','backend','infra',
 ] as const;
 const VALID_SCHEDULES = ['manual','hourly','daily','weekly'] as const;
@@ -667,6 +667,75 @@ export function agentsRouter(db: DbClient): Router {
     killPtySession(String(req.params.id));
     res.json({ ok: true });
   });
+
+  // GET /api/agents/:id/design-outputs — 디자인 출력 목록 (최근 20개, HTML 제외)
+  router.get('/:id/design-outputs', async (req: Request, res: Response) => {
+    const result = await db.query(
+      'SELECT id, agent_id, mission_id, title, created_at FROM design_outputs WHERE agent_id = $1 ORDER BY created_at DESC LIMIT 20',
+      [req.params.id]
+    )
+    res.json({ data: result.rows })
+  })
+
+  // GET /api/agents/:id/design-outputs/:outputId — 디자인 출력 상세 (HTML 포함)
+  router.get('/:id/design-outputs/:outputId', async (req: Request, res: Response) => {
+    const result = await db.query(
+      'SELECT * FROM design_outputs WHERE id = $1 AND agent_id = $2',
+      [req.params.outputId, req.params.id]
+    )
+    if ((result.rows as unknown[]).length === 0) {
+      res.status(404).json({ error: '디자인 출력을 찾을 수 없습니다' })
+      return
+    }
+    res.json({ data: (result.rows as unknown[])[0] })
+  })
+
+  // ── Build Bot TODO ─────────────────────────────────────────────────────────
+  // GET /api/agents/:id/todos
+  router.get('/:id/todos', async (req: Request, res: Response) => {
+    const result = await db.query(
+      'SELECT * FROM build_todos WHERE agent_id = $1 ORDER BY created_at ASC',
+      [req.params.id]
+    )
+    res.json({ data: result.rows })
+  })
+
+  // POST /api/agents/:id/todos
+  router.post('/:id/todos', async (req: Request, res: Response) => {
+    const { title, priority = 'medium' } = req.body as { title?: string; priority?: string }
+    if (!title?.trim()) { res.status(400).json({ error: 'title이 필요합니다' }); return }
+    const id = uuidv4()
+    await db.query(
+      `INSERT INTO build_todos (id, agent_id, title, priority) VALUES ($1, $2, $3, $4)`,
+      [id, req.params.id, title.trim(), priority]
+    )
+    const result = await db.query('SELECT * FROM build_todos WHERE id = $1', [id])
+    res.status(201).json({ data: (result.rows as unknown[])[0] })
+  })
+
+  // PATCH /api/agents/:id/todos/:todoId
+  router.patch('/:id/todos/:todoId', async (req: Request, res: Response) => {
+    const { status, title } = req.body as { status?: string; title?: string }
+    if (!status && !title) { res.status(400).json({ error: 'status 또는 title이 필요합니다' }); return }
+    const updates: string[] = []
+    const params: unknown[] = []
+    if (status) { updates.push(`status = $${params.length + 1}`); params.push(status) }
+    if (title) { updates.push(`title = $${params.length + 1}`); params.push(title.trim()) }
+    params.push(req.params.todoId, req.params.id)
+    await db.query(
+      `UPDATE build_todos SET ${updates.join(', ')} WHERE id = $${params.length - 1} AND agent_id = $${params.length}`,
+      params
+    )
+    const result = await db.query('SELECT * FROM build_todos WHERE id = $1', [req.params.todoId])
+    if ((result.rows as unknown[]).length === 0) { res.status(404).json({ error: '할 일을 찾을 수 없습니다' }); return }
+    res.json({ data: (result.rows as unknown[])[0] })
+  })
+
+  // DELETE /api/agents/:id/todos/:todoId
+  router.delete('/:id/todos/:todoId', async (req: Request, res: Response) => {
+    await db.query('DELETE FROM build_todos WHERE id = $1 AND agent_id = $2', [req.params.todoId, req.params.id])
+    res.status(204).send()
+  })
 
   // DELETE /api/agents/:id
   router.delete('/:id', async (req: Request, res: Response) => {

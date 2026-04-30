@@ -119,6 +119,62 @@ describe('Agents API', () => {
     });
   });
 
+  describe('GET /api/agents/:id/design-outputs', () => {
+    test('Design Bot 저장된 출력 목록 반환 → 200', async () => {
+      mockDb.query.mockResolvedValue({
+        rows: [
+          { id: 'out-1', agent_id: 'agent-1', mission_id: 'm-1', title: '랜딩 페이지', created_at: '2026-01-01T00:00:00Z' },
+        ]
+      });
+
+      const res = await request(app)
+        .get('/api/agents/agent-1/design-outputs')
+        .set('Authorization', 'Bearer test-internal-key');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].title).toBe('랜딩 페이지');
+      // html_content는 목록에서 제외 (성능)
+      expect(res.body.data[0].html_content).toBeUndefined();
+    });
+
+    test('결과 없으면 빈 배열 반환', async () => {
+      mockDb.query.mockResolvedValue({ rows: [] });
+
+      const res = await request(app)
+        .get('/api/agents/agent-x/design-outputs')
+        .set('Authorization', 'Bearer test-internal-key');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual([]);
+    });
+  });
+
+  describe('GET /api/agents/:id/design-outputs/:outputId', () => {
+    test('특정 출력 상세 조회 (html_content 포함) → 200', async () => {
+      mockDb.query.mockResolvedValue({
+        rows: [{ id: 'out-1', agent_id: 'agent-1', html_content: '<html>...</html>', title: '랜딩', created_at: '2026-01-01' }]
+      });
+
+      const res = await request(app)
+        .get('/api/agents/agent-1/design-outputs/out-1')
+        .set('Authorization', 'Bearer test-internal-key');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.html_content).toBe('<html>...</html>');
+    });
+
+    test('존재하지 않는 outputId → 404', async () => {
+      mockDb.query.mockResolvedValue({ rows: [] });
+
+      const res = await request(app)
+        .get('/api/agents/agent-1/design-outputs/not-exist')
+        .set('Authorization', 'Bearer test-internal-key');
+
+      expect(res.status).toBe(404);
+    });
+  });
+
   describe('보안 헤더', () => {
     test('응답에 X-Content-Type-Options 헤더가 있다', async () => {
       mockDb.query.mockResolvedValue({ rows: [] });

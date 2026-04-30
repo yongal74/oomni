@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { agentsApi, researchApi, videoApi, type FeedItem, type ResearchItem, type ShortFormScript } from '../../../lib/api'
-import { Copy, Check, FileText, Video, Download, Film, Upload, X, ArrowUpDown, ExternalLink, Newspaper, Briefcase } from 'lucide-react'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { agentsApi, researchApi, type FeedItem, type ResearchItem } from '../../../lib/api'
+import { Copy, Check, FileText, Download, Upload, X, ArrowUpDown, ExternalLink, Newspaper, Briefcase } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { ArchiveButton } from '../shared/ArchiveButton'
 import { NextBotDropdown } from '../shared/NextBotDropdown'
@@ -12,7 +12,6 @@ const CONTENT_TYPES = [
   { key: 'twitter', label: '트위터 스레드', emoji: '🐦' },
   { key: 'linkedin', label: 'LinkedIn', emoji: '💼' },
   { key: 'youtube_script', label: '유튜브 스크립트', emoji: '🎬' },
-  { key: 'shortform', label: '숏폼 영상', emoji: '📱' },
 ]
 
 // LEFT: 콘텐츠 타입 + 리서치 연결
@@ -49,11 +48,6 @@ export function ContentLeftPanel({ missionId, selectedType, onTypeChange, onItem
             >
               <span className="text-base">{type.emoji}</span>
               <span className="text-sm">{type.label}</span>
-              {type.key === 'shortform' && (
-                <span className="ml-auto text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold">
-                  NEW
-                </span>
-              )}
             </button>
           ))}
         </div>
@@ -116,203 +110,6 @@ export function ContentLeftPanel({ missionId, selectedType, onTypeChange, onItem
           </label>
         )}
       </div>
-    </div>
-  )
-}
-
-// ── 숏폼 영상 패널 ────────────────────────────────────────────────────────────
-function ShortformVideoPanel() {
-  const queryClient = useQueryClient()
-  const [topic, setTopic] = useState('')
-  const [selectedScript, setSelectedScript] = useState<ShortFormScript | null>(null)
-  const [selectedVariant, setSelectedVariant] = useState(0)
-  const [renderStatus, setRenderStatus] = useState<string | null>(null)
-
-  const { data: scripts = [] } = useQuery({
-    queryKey: ['video-scripts'],
-    queryFn: () => videoApi.listScripts().then(r => r.scripts),
-    refetchInterval: 5000,
-  })
-
-  const generateMutation = useMutation({
-    mutationFn: (t: string) => videoApi.generateScript(t, 'content'),
-    onSuccess: (data) => {
-      setSelectedScript(data.script)
-      queryClient.invalidateQueries({ queryKey: ['video-scripts'] })
-    },
-  })
-
-  const renderMutation = useMutation({
-    mutationFn: ({ id, variant }: { id: string; variant: number }) =>
-      videoApi.renderVideo(id, variant),
-    onSuccess: (data) => {
-      setRenderStatus(data.message)
-      setTimeout(() => setRenderStatus(null), 4000)
-    },
-  })
-
-  const vrewMutation = useMutation({
-    mutationFn: (id: string) => videoApi.vrewExport(id),
-    onSuccess: (data) => {
-      setRenderStatus(`Vrew 저장 완료: ${data.file_path}`)
-      setTimeout(() => setRenderStatus(null), 4000)
-    },
-  })
-
-  const currentVariant = selectedScript?.variants[selectedVariant]
-
-  return (
-    <div className="h-full flex flex-col gap-4 overflow-y-auto p-5">
-      {/* Script generation */}
-      <div>
-        <p className="text-xs text-muted uppercase tracking-widest mb-3">스크립트 생성</p>
-        <div className="flex gap-2">
-          <input
-            value={topic}
-            onChange={e => setTopic(e.target.value)}
-            placeholder="주제 입력 (예: AI 생산성 도구)"
-            className="flex-1 bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted/50 focus:outline-none focus:border-primary/50"
-            onKeyDown={e => e.key === 'Enter' && topic && generateMutation.mutate(topic)}
-          />
-          <button
-            onClick={() => topic && generateMutation.mutate(topic)}
-            disabled={!topic || generateMutation.isPending}
-            className="px-4 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
-          >
-            {generateMutation.isPending ? '생성 중...' : '생성'}
-          </button>
-        </div>
-      </div>
-
-      {/* Script list */}
-      {scripts.length > 0 && (
-        <div>
-          <p className="text-xs text-muted uppercase tracking-widest mb-2">저장된 스크립트</p>
-          <div className="space-y-1 max-h-32 overflow-y-auto">
-            {scripts.map(s => (
-              <button
-                key={s.id}
-                onClick={() => videoApi.getScript(s.id).then(r => {
-                  setSelectedScript(r.script)
-                  setSelectedVariant(0)
-                })}
-                className={cn(
-                  'w-full text-left px-3 py-2 rounded-lg text-sm transition-colors',
-                  selectedScript?.id === s.id
-                    ? 'bg-primary/10 border border-primary/30 text-text'
-                    : 'bg-bg border border-border text-dim hover:border-primary/20'
-                )}
-              >
-                <span className="font-medium">{s.title}</span>
-                <span className="text-muted text-xs ml-2">{s.topic}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Script preview + Player */}
-      {selectedScript && currentVariant && (
-        <>
-          {/* Variant selector */}
-          <div>
-            <p className="text-xs text-muted uppercase tracking-widest mb-2">변형 선택</p>
-            <div className="flex gap-1.5">
-              {selectedScript.variants.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedVariant(i)}
-                  className={cn(
-                    'flex-1 py-1.5 rounded text-xs font-medium transition-colors',
-                    selectedVariant === i
-                      ? 'bg-primary text-white'
-                      : 'bg-bg border border-border text-dim hover:border-primary/30'
-                  )}
-                >
-                  변형 {i + 1}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Script text */}
-          <div className="bg-bg rounded-lg border border-border p-4 space-y-3">
-            <div>
-              <span className="text-xs font-semibold text-purple-400">HOOK</span>
-              <p className="text-sm text-dim mt-1">{currentVariant.hook}</p>
-            </div>
-            <div>
-              <span className="text-xs font-semibold text-red-400">PROBLEM</span>
-              <p className="text-sm text-dim mt-1">{currentVariant.problem}</p>
-            </div>
-            <div>
-              <span className="text-xs font-semibold text-green-400">SOLUTION</span>
-              <ol className="mt-1 space-y-0.5">
-                {currentVariant.solution.map((s, i) => (
-                  <li key={i} className="text-sm text-dim">{i + 1}. {s}</li>
-                ))}
-              </ol>
-            </div>
-            <div>
-              <span className="text-xs font-semibold text-blue-400">PROOF</span>
-              <p className="text-sm text-dim mt-1">{currentVariant.proof}</p>
-            </div>
-            <div>
-              <span className="text-xs font-semibold text-pink-400">CTA</span>
-              <p className="text-sm text-dim mt-1">{currentVariant.cta}</p>
-            </div>
-          </div>
-
-          {/* Action buttons */}
-          <div className="space-y-2">
-            <button
-              onClick={() => renderMutation.mutate({ id: selectedScript.id, variant: selectedVariant })}
-              disabled={renderMutation.isPending}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary hover:bg-primary/90 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
-            >
-              <Film size={14} />
-              {renderMutation.isPending ? '렌더링 중...' : '영상 렌더링 (MP4)'}
-            </button>
-            <button
-              onClick={() => vrewMutation.mutate(selectedScript.id)}
-              disabled={vrewMutation.isPending}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-border text-dim hover:border-primary/40 hover:text-text text-sm rounded-lg disabled:opacity-50 transition-colors"
-            >
-              <Download size={14} />
-              {vrewMutation.isPending ? '저장 중...' : 'Vrew 내보내기 (.txt)'}
-            </button>
-          </div>
-
-          {/* Status message */}
-          {renderStatus && (
-            <div className="px-3 py-2 bg-green-500/10 border border-green-500/30 rounded-lg">
-              <p className="text-xs text-green-400">{renderStatus}</p>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Empty state */}
-      {!selectedScript && !generateMutation.isPending && (
-        <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
-          <Video size={36} className="text-muted/30" />
-          <p className="text-sm text-muted">주제를 입력하고 스크립트를 생성하세요</p>
-          <p className="text-xs text-muted/60">TikTok, YouTube Shorts, Instagram Reels 최적화</p>
-        </div>
-      )}
-
-      {generateMutation.isPending && (
-        <div className="flex flex-col items-center justify-center py-10 gap-3">
-          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <p className="text-sm text-muted">Claude가 스크립트 3개를 생성하는 중...</p>
-        </div>
-      )}
-
-      {generateMutation.isError && (
-        <div className="px-3 py-2 bg-red-500/10 border border-red-500/30 rounded-lg">
-          <p className="text-xs text-red-400">스크립트 생성 실패. 다시 시도해주세요.</p>
-        </div>
-      )}
     </div>
   )
 }
@@ -535,11 +332,6 @@ export function ContentCenterPanel({ agentId, selectedType, streamOutput, isRunn
     select: (data: FeedItem[]) => data.filter(f => f.type === 'result'),
     refetchInterval: 3000,
   })
-
-  // Show shortform video panel when shortform type is selected
-  if (selectedType === 'shortform') {
-    return <ShortformVideoPanel />
-  }
 
   // 탭별 필터링
   const filteredFeed = feed.filter(item => {
@@ -780,6 +572,15 @@ const AIWX_SKILLS = [
   { label: '콘텐츠 소팅', prompt: '리서치 아이템들을 콘텐츠 제작 우선순위로 소팅해줘' },
 ]
 
+const MARKETING_SKILLS = [
+  { label: '주간 성장 보고서', prompt: '/weekly-report 이번 주 사용자 증가, 전환율, 이탈률 지표를 분석하고 개선 방안을 제시해줘' },
+  { label: '사용자 세그먼트', prompt: '/segment-users RFM 분석으로 사용자를 세그먼트하고 각 그룹별 액션 플랜을 만들어줘' },
+  { label: '캠페인 기획',     prompt: '/campaign-plan 다음 달 성장 캠페인을 채널별 실행 계획과 KPI와 함께 기획해줘' },
+  { label: 'A/B 테스트',     prompt: '/ab-test 온보딩 전환율을 높이기 위한 A/B 테스트를 설계하고 PostHog Feature Flag 코드를 작성해줘' },
+  { label: '퍼널 분석',      prompt: '/funnel-analysis 현재 전환 퍼널의 병목 구간을 찾고 ICE 스코어로 개선 우선순위를 정해줘' },
+  { label: 'SEO 키워드',     prompt: '현재 서비스의 SEO 키워드 전략과 메타 태그 최적화 방안을 제시해줘' },
+]
+
 // RIGHT: 발행 옵션 + 다음봇
 export function ContentRightPanel({ agentId, onSkillSelect, currentRole = 'content', content = '' }: {
   agentId: string
@@ -790,7 +591,7 @@ export function ContentRightPanel({ agentId, onSkillSelect, currentRole = 'conte
   content?: string
 }) {
   const [copied, setCopied] = useState(false)
-  const [skillTab, setSkillTab] = useState<'general' | 'informational' | 'business' | 'aiwx'>('general')
+  const [skillTab, setSkillTab] = useState<'general' | 'informational' | 'business' | 'aiwx' | 'marketing'>('general')
 
   const { data: feed = [] } = useQuery({
     queryKey: ['bot-feed', agentId],
@@ -826,12 +627,14 @@ export function ContentRightPanel({ agentId, onSkillSelect, currentRole = 'conte
     { key: 'informational' as const, label: '정보성' },
     { key: 'business' as const, label: '사업성' },
     { key: 'aiwx' as const, label: 'AIWX' },
+    { key: 'marketing' as const, label: '마케팅' },
   ]
 
   const currentSkills =
     skillTab === 'informational' ? INFORMATIONAL_SKILLS
     : skillTab === 'business' ? BUSINESS_SKILLS
     : skillTab === 'aiwx' ? AIWX_SKILLS
+    : skillTab === 'marketing' ? MARKETING_SKILLS
     : CONTENT_SKILLS
 
   return (
@@ -902,6 +705,8 @@ export function ContentRightPanel({ agentId, onSkillSelect, currentRole = 'conte
                   ? 'border-blue-500/30 text-blue-400 hover:border-blue-500/50 hover:bg-blue-500/5'
                   : skillTab === 'business'
                   ? 'border-orange-500/30 text-orange-400 hover:border-orange-500/50 hover:bg-orange-500/5'
+                  : skillTab === 'marketing'
+                  ? 'border-pink-500/30 text-pink-400 hover:border-pink-500/50 hover:bg-pink-500/5'
                   : 'border-border text-dim hover:border-primary/40 hover:text-primary hover:bg-primary/5'
               )}
             >
