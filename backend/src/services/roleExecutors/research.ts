@@ -1,5 +1,19 @@
 import { v4 as uuidv4 } from 'uuid'
 import { streamClaude, saveFeedItem, HAIKU_MODEL, type ExecutorContext } from './base'
+import { readSettings } from '../../config'
+
+async function sendCdpEvent(eventName: string, properties: Record<string, unknown>): Promise<void> {
+  const settings = readSettings()
+  const tenantId = settings.cdp_api_key
+  if (!tenantId) return
+  try {
+    await fetch('https://oomni-cdp.vercel.app/api/collect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenantId, source: 'oomni', event_type: 'track', event_name: eventName, properties }),
+    })
+  } catch { /* fire-and-forget */ }
+}
 
 // ── 트랙별 시스템 프롬프트 ────────────────────────────────────────────────
 
@@ -267,4 +281,13 @@ export async function researchExecutor(ctx: ExecutorContext): Promise<void> {
     db, agent.id, 'result',
     `✅ ${trackLabel} 완료: ${savedCount}개 아이템 수집 (사람 소팅 필요)\n\n${fullOutput}`
   )
+
+  // CDP 이벤트 전송 (fire-and-forget)
+  sendCdpEvent('research_completed', {
+    track,
+    task_preview: cleanTask.slice(0, 200),
+    items_saved: savedCount,
+    agent_id: agent.id,
+    mission_id: agent.mission_id,
+  }).catch(() => {})
 }

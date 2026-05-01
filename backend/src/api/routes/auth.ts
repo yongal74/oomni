@@ -21,6 +21,40 @@ function hashPin(pin: string): string {
   return createHash('sha256').update(pin + 'oomni-salt').digest('hex');
 }
 
+// ── 브루트포스 방어 ───────────────────────────────────────
+// 5회 실패 시 15분 잠금 (메모리 기반, 재시작 시 초기화)
+const LOCKOUT_MAX   = 5;
+const LOCKOUT_MS    = 15 * 60 * 1000; // 15분
+
+interface FailRecord { count: number; until: number }
+const failMap = new Map<string, FailRecord>();
+
+function getClientKey(req: import('express').Request): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  const ip = Array.isArray(forwarded) ? forwarded[0] : (forwarded?.split(',')[0] ?? req.ip ?? 'local');
+  return ip.trim();
+}
+
+function isLocked(key: string): boolean {
+  const rec = failMap.get(key);
+  if (!rec) return false;
+  if (Date.now() > rec.until) { failMap.delete(key); return false; }
+  return rec.count >= LOCKOUT_MAX;
+}
+
+function recordFailure(key: string): void {
+  const rec = failMap.get(key);
+  if (!rec || Date.now() > rec.until) {
+    failMap.set(key, { count: 1, until: Date.now() + LOCKOUT_MS });
+  } else {
+    rec.count++;
+  }
+}
+
+function clearFailure(key: string): void {
+  failMap.delete(key);
+}
+
 // 세션 토큰 생성 (30일 만료, DB 저장)
 function createSession(userId: string): string {
   const db = getRawDb();
@@ -55,8 +89,9 @@ export function authRouter(): Router {
   // POST /api/auth/setup — 최초 PIN 설정 (admin 유저 생성)
   router.post('/setup', (req: Request, res: Response) => {
     const { pin } = req.body as { pin?: unknown };
-    if (!pin || String(pin).length < 4) {
-      res.status(400).json({ error: 'PIN은 4자리 이상이어야 합니다' });
+    const pinStr = String(pin ?? '');
+    if (!pin || pinStr.length < 4 || pinStr.length > 20) {
+      res.status(400).json({ error: 'PIN은 4~20자리여야 합니다' });
       return;
     }
     const db = getRawDb();
@@ -74,6 +109,11 @@ export function authRouter(): Router {
 
   // POST /api/auth/login — PIN 로그인
   router.post('/login', (req: Request, res: Response) => {
+    const clientKey = getClientKey(req);
+    if (isLocked(clientKey)) {
+      res.status(429).json({ error: '로그인 시도 횟수 초과. 15분 후 다시 시도하세요.' });
+      return;
+    }
     const { pin } = req.body as { pin?: unknown };
     if (!pin) {
       res.status(400).json({ error: 'PIN 필요' });
@@ -84,9 +124,11 @@ export function authRouter(): Router {
       .prepare(`SELECT id FROM users WHERE role = 'admin' AND pin_hash = ?`)
       .get(hashPin(String(pin))) as { id: string } | undefined;
     if (!user) {
+      recordFailure(clientKey);
       res.status(401).json({ error: 'PIN이 올바르지 않습니다' });
       return;
     }
+    clearFailure(clientKey);
     const token = createSession(user.id);
     res.json({ token });
   });
@@ -134,8 +176,9 @@ export function authRouter(): Router {
   // POST /api/auth/pin/set — 최초 PIN 설정 (호환)
   router.post('/pin/set', (req: Request, res: Response) => {
     const { pin } = req.body as { pin?: unknown };
-    if (!pin || String(pin).length < 4) {
-      res.status(400).json({ error: 'PIN은 4자리 이상이어야 합니다' });
+    const pinStr = String(pin ?? '');
+    if (!pin || pinStr.length < 4 || pinStr.length > 20) {
+      res.status(400).json({ error: 'PIN은 4~20자리여야 합니다' });
       return;
     }
     const db = getRawDb();
@@ -152,6 +195,11 @@ export function authRouter(): Router {
 
   // POST /api/auth/pin/verify — PIN 검증 → 세션 토큰 (호환)
   router.post('/pin/verify', (req: Request, res: Response) => {
+    const clientKey = getClientKey(req);
+    if (isLocked(clientKey)) {
+      res.status(429).json({ error: '로그인 시도 횟수 초과. 15분 후 다시 시도하세요.' });
+      return;
+    }
     const { pin } = req.body as { pin?: unknown };
     if (!pin) {
       res.status(400).json({ error: 'PIN 필요' });
@@ -167,9 +215,11 @@ export function authRouter(): Router {
       .prepare(`SELECT id FROM users WHERE role = 'admin' AND pin_hash = ?`)
       .get(hashPin(String(pin))) as { id: string } | undefined;
     if (!user) {
+      recordFailure(clientKey);
       res.status(401).json({ error: 'PIN이 올바르지 않습니다' });
       return;
     }
+    clearFailure(clientKey);
     const token = createSession(user.id);
     res.json({ success: true, session_token: token });
   });
@@ -184,8 +234,9 @@ export function authRouter(): Router {
       res.status(400).json({ error: 'currentPin, newPin 필요' });
       return;
     }
-    if (String(newPin).length < 4) {
-      res.status(400).json({ error: '새 PIN은 4자리 이상이어야 합니다' });
+    const newPinStr = String(newPin);
+    if (newPinStr.length < 4 || newPinStr.length > 20) {
+      res.status(400).json({ error: '새 PIN은 4~20자리여야 합니다' });
       return;
     }
     const db = getRawDb();

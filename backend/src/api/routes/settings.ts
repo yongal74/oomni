@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { saveSettings, readSettings } from '../../config';
 
 const ApiKeySchema = z.object({
-  key: z.string().min(10, 'API 키가 너무 짧습니다'),
+  key: z.string().min(10, 'API 키가 너무 짧습니다').max(300, 'API 키가 너무 깁니다'),
 });
 
 function maskApiKey(key: string): string {

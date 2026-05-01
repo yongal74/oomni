@@ -1,4 +1,26 @@
 import { streamClaude, saveFeedItem, type ExecutorContext } from './base'
+import { readSettings } from '../../config'
+
+// ── CDP 이벤트 전송 (fire-and-forget) ─────────────────────────────────────────
+
+async function sendCdpEvent(eventName: string, properties: Record<string, unknown>): Promise<void> {
+  const settings = readSettings()
+  const tenantId = settings.cdp_api_key
+  if (!tenantId) return
+  try {
+    await fetch('https://oomni-cdp.vercel.app/api/collect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenantId,
+        source: 'oomni',
+        event_type: 'track',
+        event_name: eventName,
+        properties,
+      }),
+    })
+  } catch { /* fire-and-forget — CDP 오류가 OOMNI에 영향을 주지 않음 */ }
+}
 
 // ── 시스템 프롬프트 ──────────────────────────────────────────────────────────
 
@@ -404,4 +426,14 @@ export async function contentExecutor(ctx: ExecutorContext): Promise<void> {
     outputType,
     platform,
   })
+
+  // CDP 이벤트 전송 (비동기, fire-and-forget)
+  sendCdpEvent('content_generated', {
+    output_type: outputType,
+    platform,
+    task_preview: cleanTask.slice(0, 200),
+    agent_id: agent.id,
+    mission_id: agent.mission_id,
+    content_length: content.length,
+  }).catch(() => {})
 }

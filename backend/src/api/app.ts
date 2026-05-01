@@ -78,6 +78,14 @@ export function createApp(options: AppOptions): Application {
     message: { error: '봇 트리거 요청이 너무 많습니다.' },
   });
 
+  // 인증 엔드포인트: 15분에 10회 (브루트포스 추가 방어)
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: { error: '인증 시도 횟수를 초과했습니다. 15분 후 다시 시도하세요.' },
+    skipSuccessfulRequests: true,
+  });
+
   app.use(limiter);
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
@@ -93,8 +101,8 @@ export function createApp(options: AppOptions): Application {
   // ── 설정 라우터 (인증 없이 접근 가능, 온보딩용) ──────────
   app.use('/api/settings', settingsRouter());
 
-  // ── 인증 라우터 (Bearer 인증 제외) ──────────────────────
-  app.use('/api/auth', authRouter());
+  // ── 인증 라우터 (Bearer 인증 제외, 별도 rate limit) ─────
+  app.use('/api/auth', authLimiter, authRouter());
 
   // ── 웹훅 라우터 (/api 인증 밖) ───────────────────────────
   const triggerFn = options.triggerAgent ?? (async (_agentId: string, _task?: string) => ({ skipped: true }));
