@@ -539,6 +539,147 @@ ${sourceContext}
     }
   });
 
+  // ── 소스 관리 API ─────────────────────────────────────────
+
+  // GET /api/research/sources — 전체 소스 목록
+  router.get('/sources', async (_req, res: Response) => {
+    try {
+      const result = await db.query(
+        `SELECT * FROM research_sources ORDER BY category, name`
+      )
+      res.json({ data: result.rows })
+    } catch (err) {
+      logger.error('[research] GET /sources 오류', err)
+      res.status(500).json({ error: '서버 내부 오류' })
+    }
+  })
+
+  // PATCH /api/research/sources/:id — on/off 토글
+  router.patch('/sources/:id', async (req, res: Response) => {
+    try {
+      const { is_active } = req.body as { is_active?: boolean }
+      if (typeof is_active !== 'boolean') {
+        res.status(400).json({ error: 'is_active(boolean) 필요' })
+        return
+      }
+      const result = await db.query(
+        `UPDATE research_sources SET is_active = $1 WHERE id = $2 RETURNING *`,
+        [is_active ? 1 : 0, req.params.id]
+      )
+      if ((result.rows as unknown[]).length === 0) {
+        res.status(404).json({ error: '소스를 찾을 수 없습니다' })
+        return
+      }
+      res.json({ data: (result.rows as unknown[])[0] })
+    } catch (err) {
+      logger.error('[research] PATCH /sources/:id 오류', err)
+      res.status(500).json({ error: '서버 내부 오류' })
+    }
+  })
+
+  // POST /api/research/sources — 새 소스 추가
+  router.post('/sources', async (req, res: Response) => {
+    try {
+      const SourceSchema = z.object({
+        name:     z.string().min(1).max(100),
+        url:      z.string().min(1).max(500),
+        type:     z.enum(['rss', 'youtube', 'x', 'special']).default('rss'),
+        category: z.string().max(50).default('custom'),
+      })
+      const parsed = SourceSchema.safeParse(req.body)
+      if (!parsed.success) {
+        res.status(400).json({ error: parsed.error.issues[0]?.message ?? '입력 오류' })
+        return
+      }
+      const { name, url, type, category } = parsed.data
+      const id = uuidv4()
+      const result = await db.query(
+        `INSERT INTO research_sources (id, name, url, type, category, is_active, is_custom)
+         VALUES ($1,$2,$3,$4,$5,1,1) RETURNING *`,
+        [id, name, url, type, category]
+      )
+      res.status(201).json({ data: (result.rows as unknown[])[0] })
+    } catch (err) {
+      logger.error('[research] POST /sources 오류', err)
+      res.status(500).json({ error: '서버 내부 오류' })
+    }
+  })
+
+  // DELETE /api/research/sources/:id — 커스텀 소스 삭제
+  router.delete('/sources/:id', async (req, res: Response) => {
+    try {
+      const src = await db.query(
+        `SELECT is_custom FROM research_sources WHERE id = $1`, [req.params.id]
+      )
+      const row = (src.rows as Array<{ is_custom: number }>)[0]
+      if (!row) { res.status(404).json({ error: '소스를 찾을 수 없습니다' }); return }
+      if (!row.is_custom) { res.status(403).json({ error: '기본 소스는 삭제할 수 없습니다 (비활성화만 가능)' }); return }
+      await db.query(`DELETE FROM research_sources WHERE id = $1`, [req.params.id])
+      res.status(204).send()
+    } catch (err) {
+      logger.error('[research] DELETE /sources/:id 오류', err)
+      res.status(500).json({ error: '서버 내부 오류' })
+    }
+  })
+
+  // POST /api/research/ingest — n8n 등 외부에서 기사 배치 삽입
+  // Body: { mission_id, items: [{ title, url, summary, source, published_at }] }
+  router.post('/ingest', async (req: Request, res: Response) => {
+    try {
+      const IngestSchema = z.object({
+        mission_id: z.string().min(1),
+        items: z.array(z.object({
+          title:        z.string().min(1).max(500),
+          url:          z.string().url().optional(),
+          summary:      z.string().max(1000).optional(),
+          source:       z.string().max(100).optional(),
+          published_at: z.string().optional(),
+          signal_score: z.number().min(0).max(100).optional(),
+        })).min(1).max(200),
+      });
+
+      const parsed = IngestSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: parsed.error.issues[0]?.message ?? '입력 오류' });
+        return;
+      }
+
+      const { mission_id, items } = parsed.data;
+      let inserted = 0;
+
+      for (const item of items) {
+        // 중복 체크 (URL 또는 제목 기준)
+        const existing = await db.query(
+          `SELECT id FROM research_items WHERE mission_id = $1 AND (source_url = $2 OR title = $3) LIMIT 1`,
+          [mission_id, item.url ?? '', item.title]
+        );
+        if ((existing.rows as unknown[]).length > 0) continue;
+
+        await db.query(
+          `INSERT INTO research_items (id, mission_id, source_type, source_url, title, summary, tags, signal_score, filter_decision)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+          [
+            uuidv4(),
+            mission_id,
+            item.source ?? 'n8n',
+            item.url ?? null,
+            item.title,
+            item.summary ?? null,
+            JSON.stringify([item.source ?? 'n8n']),
+            item.signal_score ?? 0,
+            'pending',
+          ]
+        );
+        inserted++;
+      }
+
+      res.json({ inserted, skipped: items.length - inserted });
+    } catch (err) {
+      logger.error('[research] POST /ingest 오류', err);
+      res.status(500).json({ error: '서버 내부 오류' });
+    }
+  });
+
   // DELETE /api/research/:id
   router.delete('/:id', async (req: Request, res: Response) => {
     try {

@@ -15,6 +15,7 @@ import { AgentRunner } from './agents/runner';
 import { EventEmitter } from 'events';
 import { logger } from './logger';
 import { initSkills, WORKSPACE_ROOT, SKILLS_DEST } from './services/claudeCodeService';
+import { seedResearchSources } from './db/seedResearchSources';
 const WORKSPACE_BASE = WORKSPACE_ROOT;
 const SKILLS_BASE = SKILLS_DEST;
 
@@ -83,6 +84,7 @@ async function main() {
 
   // 2. DB 초기화 (SQLite — 동기)
   const db = initDb();
+  seedResearchSources(); // 최초 실행 시 기본 소스 시드
 
   // 3. Agent Runner + Heartbeat 스케줄러 (app보다 먼저 생성해야 triggerAgent 주입 가능)
   const emitter = new EventEmitter();

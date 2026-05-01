@@ -366,6 +366,14 @@ ipcMain.handle('open-external', (_event, url) => {
 
 ipcMain.handle('get-app-version', () => app.getVersion())
 
+ipcMain.on('check-for-updates', () => {
+  if (autoUpdater && !isDev) {
+    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+      console.warn('[Updater] 수동 업데이트 확인 실패:', err.message)
+    })
+  }
+})
+
 // ── 알림 IPC 핸들러 ──────────────────────────────────────
 // Frontend usage:
 // window.electronAPI.showNotification({ title: '승인 대기', body: '봇이 승인을 요청했습니다' })

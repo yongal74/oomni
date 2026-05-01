@@ -3,14 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { workspaceApi, buildTodosApi, type FileNode, type BuildTodo } from '../../../lib/api'
 import {
   ChevronRight, ChevronDown, File, Folder, FolderOpen,
-  Copy, Check, Code2, ClipboardCheck, Layers, Plus, Trash2, Circle, Loader, CheckCircle2
+  Copy, Check, Code2, ClipboardCheck, Layers, Plus, Trash2, Circle, Loader, CheckCircle2,
+  Shield, HardHat, Search, Cpu, AlertTriangle,
 } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { ArchiveButton } from '../shared/ArchiveButton'
 import { NextBotDropdown } from '../shared/NextBotDropdown'
 
 // ── Category tab definitions ─────────────────────────────────────────────────
-type Category = 'all' | 'frontend' | 'backend' | 'setup' | 'tasks'
+type Category = 'all' | 'frontend' | 'backend' | 'setup' | 'tasks' | 'harness'
 
 const CATEGORIES: { id: Category; label: string }[] = [
   { id: 'all', label: '전체' },
@@ -18,21 +19,24 @@ const CATEGORIES: { id: Category; label: string }[] = [
   { id: 'backend', label: '백엔드' },
   { id: 'setup', label: '초기세팅' },
   { id: 'tasks', label: '태스크' },
+  { id: 'harness', label: '하네스' },
 ]
 
 // Extensions that belong to each category
-const CATEGORY_EXTENSIONS: Record<Exclude<Category, 'all' | 'setup'>, string[]> = {
+const CATEGORY_EXTENSIONS: Record<Exclude<Category, 'all' | 'setup' | 'harness'>, string[]> = {
   frontend: ['tsx', 'jsx', 'ts', 'js', 'css', 'scss', 'html', 'svg'],
   backend: ['ts', 'js', 'py', 'go', 'rs', 'java', 'sh'],
+  tasks: [],
 }
 
-const CATEGORY_KEYWORDS: Record<Exclude<Category, 'all' | 'setup'>, string[]> = {
+const CATEGORY_KEYWORDS: Record<Exclude<Category, 'all' | 'setup' | 'harness'>, string[]> = {
   frontend: ['component', 'page', 'layout', 'ui', 'view', 'style', 'theme', 'hook'],
   backend: ['api', 'server', 'route', 'service', 'middleware', 'controller', 'handler'],
+  tasks: [],
 }
 
 function fileMatchesCategory(node: FileNode, category: Category): boolean {
-  if (category === 'all' || category === 'setup') return true
+  if (category === 'all' || category === 'setup' || category === 'harness') return true
   const name = node.name.toLowerCase()
   const ext = name.split('.').pop() ?? ''
   const keywords = CATEGORY_KEYWORDS[category as 'frontend' | 'backend']
@@ -159,6 +163,88 @@ const BACKEND_SKILLS = [
   { label: 'RLS 정책', prompt: '/setup-rls Supabase Row Level Security 정책을 설정해줘' },
   { label: 'Edge Function', prompt: '/new-edge-function Supabase Edge Function을 만들어줘' },
 ]
+
+// ── HarnessPanel ──────────────────────────────────────────────────────────────
+const HARNESS_TRACKS = [
+  {
+    id: 'architecture',
+    icon: HardHat,
+    label: '아키텍처 설계',
+    color: 'text-blue-400',
+    borderColor: 'border-blue-500/30',
+    bgColor: 'bg-blue-500/5',
+    desc: 'ERD · 컴포넌트 · WBS · ADR · 리스크 분석',
+    prompt: '아키텍처 설계: 현재 프로젝트의 시스템 컨텍스트, 컴포넌트 분해, 데이터 모델 ERD, 기술스택 ADR, 핵심 리스크, WBS를 작성해줘.',
+  },
+  {
+    id: 'bootstrap',
+    icon: Cpu,
+    label: '프로젝트 부트스트랩',
+    color: 'text-green-400',
+    borderColor: 'border-green-500/30',
+    bgColor: 'bg-green-500/5',
+    desc: 'package.json · .env.example · CLAUDE.md · README',
+    prompt: '프로젝트 초기세팅: package.json(deps 포함), .env.example(시크릿 없음), .gitignore, CLAUDE.md(운영원칙), README.md를 생성해줘.',
+  },
+  {
+    id: 'review',
+    icon: Search,
+    label: '코드 리뷰',
+    color: 'text-yellow-400',
+    borderColor: 'border-yellow-500/30',
+    bgColor: 'bg-yellow-500/5',
+    desc: 'CRITICAL/HIGH/MEDIUM 버그 · 성능 · 기술부채',
+    prompt: '코드 리뷰: 워크스페이스 코드의 버그(CRITICAL/HIGH/MEDIUM/LOW 심각도), 성능 문제, 기술부채를 분석하고 Before/After 개선 코드를 포함해서 알려줘.',
+  },
+  {
+    id: 'security',
+    icon: Shield,
+    label: '보안 감사',
+    color: 'text-red-400',
+    borderColor: 'border-red-500/30',
+    bgColor: 'bg-red-500/5',
+    desc: 'OWASP Top 10 · Gate A/B/C · CRITICAL 자동 차단',
+    prompt: '보안 감사: OWASP Top 10 기준으로 Gate A(사전체크), Gate B(코드분석), Gate C(배포전체크)를 수행하고 CRITICAL 이슈를 모두 찾아줘.',
+  },
+]
+
+function HarnessPanel({ onSkillSelect }: { onSkillSelect?: (prompt: string) => void }) {
+  return (
+    <div className="p-3 space-y-2">
+      <p className="text-[10px] text-muted uppercase tracking-widest mb-3 px-1">
+        자동화 하네스 — 4-Track
+      </p>
+      {HARNESS_TRACKS.map(track => {
+        const Icon = track.icon
+        return (
+          <button
+            key={track.id}
+            onClick={() => onSkillSelect?.(track.prompt)}
+            className={cn(
+              'w-full text-left p-3 rounded-xl border transition-all hover:scale-[1.01]',
+              track.borderColor, track.bgColor
+            )}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Icon size={13} className={track.color} />
+              <span className={cn('text-xs font-semibold', track.color)}>{track.label}</span>
+            </div>
+            <p className="text-[10px] text-muted leading-relaxed">{track.desc}</p>
+          </button>
+        )
+      })}
+
+      <div className="mt-3 pt-3 border-t border-border">
+        <div className="flex items-start gap-2 px-1">
+          <AlertTriangle size={11} className="text-orange-400 shrink-0 mt-0.5" />
+          <p className="text-[10px] text-muted/70 leading-relaxed">
+            보안 감사에서 🚨 CRITICAL 발견 시 자동으로 승인 대기 상태가 됩니다.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ── ProjectSetupWizard ────────────────────────────────────────────────────────
 // ── TaskBoard ─────────────────────────────────────────────────────────────────
@@ -634,12 +720,14 @@ export function BuildLeftPanel({
         </div>
       </div>
 
-      {/* File tree or Setup Wizard or TaskBoard */}
+      {/* File tree or Setup Wizard or TaskBoard or Harness */}
       <div className="flex-1 overflow-y-auto py-2">
         {category === 'tasks' ? (
           <TaskBoard agentId={agentId} />
         ) : category === 'setup' ? (
           <ProjectSetupWizard onSkillSelect={onSkillSelect} />
+        ) : category === 'harness' ? (
+          <HarnessPanel onSkillSelect={onSkillSelect} />
         ) : tree.length === 0 ? (
           <div className="px-4 py-6 text-center">
             <Layers size={24} className="text-muted/30 mx-auto mb-2" />
@@ -670,11 +758,13 @@ export function BuildCenterPanel({
   selectedFile,
   isRunning,
   streamContent,
+  stageLabel,
 }: {
   agentId: string
   selectedFile: FileNode | null
   isRunning: boolean
   streamContent: string
+  stageLabel?: string
 }) {
   const [copied, setCopied] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -728,7 +818,7 @@ export function BuildCenterPanel({
           {isRunning && (
             <span className="flex items-center gap-1 text-[10px] text-primary">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              생성 중
+              {stageLabel ?? '생성 중'}
             </span>
           )}
         </div>
@@ -841,7 +931,8 @@ export function BuildRightPanel({
   // Tab-aware skills
   const skills = currentCategory === 'frontend' ? FRONTEND_SKILLS
     : currentCategory === 'backend' ? BACKEND_SKILLS
-    : currentCategory === 'setup' ? [] // setup shows wizard in left panel
+    : currentCategory === 'setup' ? []
+    : currentCategory === 'harness' ? []
     : BUILD_SKILLS
 
   return (

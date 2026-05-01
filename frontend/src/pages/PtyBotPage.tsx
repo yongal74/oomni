@@ -379,6 +379,7 @@ export default function PtyBotPage() {
             selectedFile={selectedBuildFile}
             isRunning={isRunning}
             streamContent={streamOutput}
+            stageLabel={currentStage ?? undefined}
           />}
           bottom={<XTerminal
             ref={terminalRef}

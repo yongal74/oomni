@@ -154,6 +154,14 @@ export const researchApi = {
     api.post<{ content: string; file_path: string; publish_result?: { success: boolean; error?: string } }>(
       '/api/research/aiwx-post', data, { timeout: 120000 }
     ).then(r => r.data),
+  // 소스 관리
+  listSources: () =>
+    api.get<{ data: ResearchSource[] }>('/api/research/sources').then(r => r.data.data),
+  toggleSource: (id: string, is_active: boolean) =>
+    api.patch(`/api/research/sources/${id}`, { is_active }).then(r => r.data),
+  addSource: (data: { name: string; url: string; type?: string; category?: string }) =>
+    api.post<{ data: ResearchSource }>('/api/research/sources', data).then(r => r.data.data),
+  deleteSource: (id: string) => api.delete(`/api/research/sources/${id}`),
 }
 
 // 설정 (Bearer 없이 직접 호출, 온보딩용)
@@ -298,6 +306,17 @@ export interface Schedule {
   trigger_value: string;
   is_active: boolean; last_run_at: string | null; created_at: string;
 }
+export interface ResearchSource {
+  id: string
+  name: string
+  url: string
+  type: 'rss' | 'youtube' | 'x' | 'special'
+  category: string
+  is_active: number
+  is_custom: number
+  created_at: string
+}
+
 export interface ResearchItem {
   id: string
   mission_id: string

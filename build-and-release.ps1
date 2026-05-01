@@ -8,7 +8,7 @@ function Log($msg) {
 }
 
 Set-Location $ROOT
-Log "=== OOMNI v4.1.0 build start ==="
+Log "=== OOMNI v4.2.0 build start ==="
 
 # 1. Frontend build
 Log "[1/6] Frontend Vite build..."
@@ -37,20 +37,20 @@ if ($LASTEXITCODE -ne 0) { Log "ERROR: electron-builder failed (exit $LASTEXITCO
 # 5. Git commit & push
 Log "[5/6] Git commit & push..."
 & git -C $ROOT add -A 2>&1 | Out-File $LOG -Append
-& git -C $ROOT commit -m "feat: v4.1.0 - security hardening (PIN brute-force protection, auth rate limit, CDP tracking)" 2>&1 | Out-File $LOG -Append
+& git -C $ROOT commit -m "feat: v4.2.0 - Build Bot 4-Track Harness (Architecture/Bootstrap/Review/Security) + Security Gate auto-scan" 2>&1 | Out-File $LOG -Append
 $r = & git -C $ROOT push origin master 2>&1
 $r | Out-File $LOG -Append
 if ($LASTEXITCODE -ne 0) { Log "ERROR: git push failed" } else { Log "OK: git push done" }
 
 # 6. GitHub Release
-Log "[6/6] GitHub Release v4.1.0..."
+Log "[6/6] GitHub Release v4.2.0..."
 $distDir = Join-Path $ROOT "dist-app"
 $exePath = Get-ChildItem $distDir -Filter "*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
 if ($exePath) {
-  $notes = "v4.1.0: Security hardening (PIN brute-force lockout, auth rate limiting), CDP event tracking, auto-updater"
-  $r = & gh release create v4.1.0 "$exePath" --title "OOMNI v4.1.0" --notes $notes 2>&1
+  $notes = "v4.2.0: Build Bot Harness — 4-Track (Architecture/Bootstrap/Review/Security) + Security Gate auto-scan on every build. CRITICAL 보안 이슈 자동 차단."
+  $r = & gh release create v4.2.0 "$exePath" --title "OOMNI v4.2.0" --notes $notes 2>&1
   $r | Out-File $LOG -Append
-  if ($LASTEXITCODE -ne 0) { Log "ERROR: GitHub Release failed" } else { Log "OK: GitHub Release v4.1.0 done" }
+  if ($LASTEXITCODE -ne 0) { Log "ERROR: GitHub Release failed" } else { Log "OK: GitHub Release v4.2.0 done" }
 } else {
   Log "WARN: no .exe in dist-app - skipping release"
 }

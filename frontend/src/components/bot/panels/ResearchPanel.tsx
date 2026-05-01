@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { researchApi, type ResearchItem } from '../../../lib/api'
-import { Check, Eye, X, FileText, Copy, Upload, Download } from 'lucide-react'
+import { researchApi, type ResearchItem, type ResearchSource } from '../../../lib/api'
+import { Check, Eye, X, FileText, Copy, Upload, Download, Settings } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { ArchiveButton } from '../shared/ArchiveButton'
 import { NextBotDropdown } from '../shared/NextBotDropdown'
@@ -17,31 +17,7 @@ interface Props {
   isRunning?: boolean
 }
 
-// ── 기본 소스/키워드 (트랙별) ─────────────────────────────────────────────
-const DEFAULT_SOURCES_BUSINESS = [
-  { label: 'Crunchbase', emoji: '🔴' },
-  { label: 'TechCrunch M&A', emoji: '🔴' },
-  { label: 'Bloomberg Tech', emoji: '🔴' },
-  { label: 'CB Insights', emoji: '🔴' },
-  { label: 'Product Hunt', emoji: '🟡' },
-  { label: 'Hacker News (Show HN)', emoji: '🟡' },
-  { label: 'AngelList', emoji: '🟡' },
-  { label: 'Substack 비즈니스', emoji: '🟢' },
-  { label: 'VC 블로그', emoji: '🟢' },
-  { label: 'LinkedIn 업계 리포트', emoji: '🟢' },
-]
-const DEFAULT_SOURCES_INFORMATIONAL = [
-  { label: 'arXiv 최신 논문', emoji: '🔴' },
-  { label: 'GitHub 트렌딩', emoji: '🔴' },
-  { label: 'Stack Overflow', emoji: '🔴' },
-  { label: 'Reddit r/MachineLearning', emoji: '🟡' },
-  { label: 'Hacker News', emoji: '🟡' },
-  { label: 'DEV.to', emoji: '🟡' },
-  { label: 'Medium 기술 블로그', emoji: '🟢' },
-  { label: 'Anthropic/OpenAI 블로그', emoji: '🟢' },
-  { label: 'YouTube 교육 채널', emoji: '🟢' },
-  { label: 'Quora 질문', emoji: '🟢' },
-]
+// ── 기본 키워드 (트랙별) ──────────────────────────────────────────────────
 const DEFAULT_KEYWORDS_BUSINESS = ['AI SaaS 수익화', 'M&A 트렌드', '스타트업 투자']
 const DEFAULT_KEYWORDS_INFORMATIONAL = ['AI 기술 트렌드', '머신러닝 논문', '오픈소스 LLM']
 
@@ -83,6 +59,171 @@ const SKILLS_INFORMATIONAL = [
   { label: '커뮤니티 인사이트', prompt: 'Reddit·Hacker News·DEV.to 커뮤니티 핫 토픽 수집해줘', highlight: false },
 ]
 
+// ── 소스 관리 패널 ─────────────────────────────────────────────────────────
+const CATEGORY_LABELS: Record<string, string> = {
+  kr_ai: '🇰🇷 한국 AI/IT', kr_finance: '🇰🇷 한국 금융',
+  us_ai: '🇺🇸 미국 AI', global_ai: '🌐 글로벌 AI 블로그',
+  crypto: '⛓ 블록체인/크립토', finance: '💰 금융/시장',
+  tech: '💻 테크 종합', research: '🔬 연구/커뮤니티',
+  youtube_ai: '📺 YouTube AI', youtube_crypto: '📺 YouTube 크립토',
+  youtube_tech: '📺 YouTube 테크', x_ai: '🐦 X AI',
+  x_crypto: '🐦 X 크립토', google_news: '🌐 Google News',
+  custom: '⚙️ 사용자 추가',
+}
+
+function SourceManager() {
+  const qc = useQueryClient()
+  const [filterCat, setFilterCat] = useState<string>('all')
+  const [search, setSearch] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newUrl, setNewUrl] = useState('')
+  const [newType, setNewType] = useState<'rss' | 'youtube' | 'x'>('rss')
+
+  const { data: sources = [], isLoading } = useQuery<ResearchSource[]>({
+    queryKey: ['research-sources'],
+    queryFn: () => researchApi.listSources(),
+  })
+
+  const toggleMut = useMutation({
+    mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
+      researchApi.toggleSource(id, is_active),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['research-sources'] }),
+  })
+  const addMut = useMutation({
+    mutationFn: () => researchApi.addSource({ name: newName, url: newUrl, type: newType, category: 'custom' }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['research-sources'] }); setAdding(false); setNewName(''); setNewUrl('') },
+  })
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => researchApi.deleteSource(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['research-sources'] }),
+  })
+
+  const categories = ['all', ...Array.from(new Set(sources.map(s => s.category)))]
+  const filtered = sources.filter(s =>
+    (filterCat === 'all' || s.category === filterCat) &&
+    (!search || s.name.toLowerCase().includes(search.toLowerCase()))
+  )
+  const activeCount = sources.filter(s => s.is_active).length
+
+  return (
+    <div className="p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-text">소스 관리</p>
+        <span className="text-[10px] text-muted">{activeCount}/{sources.length} 활성</span>
+      </div>
+
+      {/* 검색 */}
+      <input
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="소스 검색..."
+        className="w-full bg-bg border border-border rounded-md px-2.5 py-1.5 text-xs text-text placeholder-muted/60 focus:outline-none focus:border-primary/60"
+      />
+
+      {/* 카테고리 필터 */}
+      <div className="flex flex-wrap gap-1">
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setFilterCat(cat)}
+            className={cn(
+              'px-2 py-0.5 rounded text-[10px] font-medium transition-colors',
+              filterCat === cat ? 'bg-primary/20 text-primary' : 'bg-bg text-muted hover:text-text border border-border'
+            )}
+          >
+            {cat === 'all' ? `전체 (${sources.length})` : (CATEGORY_LABELS[cat] ?? cat)}
+          </button>
+        ))}
+      </div>
+
+      {/* 소스 목록 */}
+      <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1">
+        {isLoading && <p className="text-xs text-muted text-center py-4">로딩 중...</p>}
+        {filtered.map(src => (
+          <div key={src.id} className="flex items-center gap-2 py-1.5 px-2 rounded-md bg-bg hover:bg-border/20 group transition-colors">
+            {/* 토글 */}
+            <button
+              onClick={() => toggleMut.mutate({ id: src.id, is_active: !src.is_active })}
+              className={cn(
+                'shrink-0 w-8 h-4 rounded-full transition-colors relative',
+                src.is_active ? 'bg-primary/70' : 'bg-border'
+              )}
+            >
+              <span className={cn(
+                'absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all shadow-sm',
+                src.is_active ? 'left-[18px]' : 'left-0.5'
+              )} />
+            </button>
+            {/* 이름 */}
+            <span className={cn('flex-1 text-[11px] truncate', src.is_active ? 'text-dim' : 'text-muted/50 line-through')}>
+              {src.name}
+            </span>
+            {/* 타입 뱃지 */}
+            <span className="text-[9px] text-muted/60 shrink-0">{src.type}</span>
+            {/* 커스텀 소스 삭제 */}
+            {src.is_custom ? (
+              <button
+                onClick={() => deleteMut.mutate(src.id)}
+                className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-400 transition-all shrink-0"
+              >
+                <X size={10} />
+              </button>
+            ) : <span className="w-[10px]" />}
+          </div>
+        ))}
+        {!isLoading && filtered.length === 0 && (
+          <p className="text-xs text-muted text-center py-4">검색 결과 없음</p>
+        )}
+      </div>
+
+      {/* 새 소스 추가 */}
+      {adding ? (
+        <div className="space-y-2 p-2 rounded-lg border border-border bg-bg/60">
+          <input
+            autoFocus
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            placeholder="소스 이름 (예: 🔵 My Blog)"
+            className="w-full bg-bg border border-border rounded-md px-2.5 py-1.5 text-xs text-text placeholder-muted/60 focus:outline-none focus:border-primary/60"
+          />
+          <input
+            value={newUrl}
+            onChange={e => setNewUrl(e.target.value)}
+            placeholder="URL (RSS/YouTube 채널 RSS)"
+            className="w-full bg-bg border border-border rounded-md px-2.5 py-1.5 text-xs text-text placeholder-muted/60 focus:outline-none focus:border-primary/60"
+          />
+          <div className="flex gap-1">
+            {(['rss', 'youtube', 'x'] as const).map(t => (
+              <button key={t} onClick={() => setNewType(t)}
+                className={cn('flex-1 py-1 rounded text-[10px] font-medium border transition-colors',
+                  newType === t ? 'bg-primary/20 text-primary border-primary/30' : 'bg-bg text-muted border-border'
+                )}
+              >{t}</button>
+            ))}
+          </div>
+          <div className="flex gap-1.5">
+            <button onClick={() => addMut.mutate()}
+              disabled={!newName.trim() || !newUrl.trim()}
+              className="flex-1 py-1.5 bg-primary/10 text-primary rounded-md text-xs font-medium hover:bg-primary/20 transition-colors disabled:opacity-40">
+              추가
+            </button>
+            <button onClick={() => setAdding(false)}
+              className="px-3 py-1.5 text-muted hover:text-text rounded-md text-xs transition-colors border border-border">
+              취소
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setAdding(true)}
+          className="w-full py-2 rounded-lg border border-dashed border-border text-xs text-muted hover:text-primary hover:border-primary/40 transition-colors">
+          + 새 소스 추가
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ── LEFT 패널 ──────────────────────────────────────────────────────────────
 export function ResearchLeftPanel({
   missionId: _missionId,
@@ -95,44 +236,24 @@ export function ResearchLeftPanel({
   onTrackChange: (track: ResearchTrack) => void
   onRunWithTrack: (track: ResearchTrack, prompt: string) => void
 }) {
-  const [sources, setSources] = useState<Array<{ label: string; emoji: string }>>(() =>
-    loadFromStorage(SK(activeTrack, 'sources'),
-      activeTrack === 'business' ? DEFAULT_SOURCES_BUSINESS : DEFAULT_SOURCES_INFORMATIONAL)
-  )
+  const [leftTab, setLeftTab] = useState<'run' | 'sources'>('run')
   const [keywords, setKeywords] = useState<string[]>(() =>
     loadFromStorage(SK(activeTrack, 'keywords'),
       activeTrack === 'business' ? DEFAULT_KEYWORDS_BUSINESS : DEFAULT_KEYWORDS_INFORMATIONAL)
   )
   const [showFilters, setShowFilters] = useState(false)
-  const [newSource, setNewSource] = useState('')
   const [newKeyword, setNewKeyword] = useState('')
-  const [showSourceInput, setShowSourceInput] = useState(false)
   const [showKeywordInput, setShowKeywordInput] = useState(false)
 
-  // 트랙 변경 시 소스/키워드 다시 로드
   useEffect(() => {
-    setSources(loadFromStorage(SK(activeTrack, 'sources'),
-      activeTrack === 'business' ? DEFAULT_SOURCES_BUSINESS : DEFAULT_SOURCES_INFORMATIONAL))
     setKeywords(loadFromStorage(SK(activeTrack, 'keywords'),
       activeTrack === 'business' ? DEFAULT_KEYWORDS_BUSINESS : DEFAULT_KEYWORDS_INFORMATIONAL))
-    setShowSourceInput(false)
     setShowKeywordInput(false)
   }, [activeTrack])
 
-  const saveSources = (next: typeof sources) => {
-    setSources(next)
-    localStorage.setItem(SK(activeTrack, 'sources'), JSON.stringify(next))
-  }
   const saveKeywords = (next: string[]) => {
     setKeywords(next)
     localStorage.setItem(SK(activeTrack, 'keywords'), JSON.stringify(next))
-  }
-
-  const addSource = () => {
-    if (!newSource.trim()) return
-    saveSources([...sources, { label: newSource.trim(), emoji: '📡' }])
-    setNewSource('')
-    setShowSourceInput(false)
   }
   const addKeyword = () => {
     if (!newKeyword.trim()) return
@@ -149,7 +270,29 @@ export function ResearchLeftPanel({
     : keywords.join(', ') + ' 관련 정보성 리서치 수행해줘'
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="flex flex-col h-full">
+      {/* 상단 탭: 실행 / 소스관리 */}
+      <div className="flex border-b border-border shrink-0">
+        <button onClick={() => setLeftTab('run')}
+          className={cn('flex-1 py-2.5 text-xs font-medium transition-colors',
+            leftTab === 'run' ? 'text-text border-b-2 border-primary' : 'text-muted hover:text-text'
+          )}>
+          리서치 실행
+        </button>
+        <button onClick={() => setLeftTab('sources')}
+          className={cn('flex-1 py-2.5 text-xs font-medium transition-colors flex items-center justify-center gap-1',
+            leftTab === 'sources' ? 'text-text border-b-2 border-primary' : 'text-muted hover:text-text'
+          )}>
+          <Settings size={10} /> 소스 관리
+        </button>
+      </div>
+
+      {leftTab === 'sources' ? (
+        <div className="flex-1 overflow-y-auto">
+          <SourceManager />
+        </div>
+      ) : (
+      <div className="p-4 space-y-4 flex-1 overflow-y-auto">
       {/* 트랙 탭 */}
       <div className="flex rounded-lg bg-bg overflow-hidden border border-border">
         <button
@@ -188,47 +331,6 @@ export function ResearchLeftPanel({
       >
         {activeTrack === 'business' ? '📊 사업성 리서치 실행' : '💡 정보성 리서치 실행'}
       </button>
-
-      {/* 수집 소스 */}
-      <div>
-        <p className="text-xs text-muted uppercase tracking-widest mb-2">수집 소스</p>
-        <div className="space-y-1">
-          {sources.map((s, i) => (
-            <div key={i} className="flex items-center justify-between py-1.5 px-2.5 rounded-md bg-bg hover:bg-border/20 group transition-colors">
-              <div className="flex items-center gap-2">
-                <span className="text-xs">{s.emoji}</span>
-                <span className="text-xs text-dim">{s.label}</span>
-              </div>
-              <button
-                onClick={() => saveSources(sources.filter((_, j) => j !== i))}
-                className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-400 transition-all"
-              >
-                <X size={10} />
-              </button>
-            </div>
-          ))}
-        </div>
-        {showSourceInput ? (
-          <div className="mt-1.5 flex gap-1.5">
-            <input
-              autoFocus
-              value={newSource}
-              onChange={e => setNewSource(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') addSource(); if (e.key === 'Escape') setShowSourceInput(false) }}
-              placeholder="소스 이름..."
-              className="flex-1 bg-bg border border-border rounded-md px-2.5 py-1.5 text-xs text-text placeholder-muted/60 focus:outline-none focus:border-primary/60"
-            />
-            <button onClick={addSource} className="px-2 py-1.5 bg-primary/10 text-primary rounded-md text-xs hover:bg-primary/20 transition-colors">추가</button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowSourceInput(true)}
-            className="mt-1.5 text-xs text-muted hover:text-primary transition-colors flex items-center gap-1"
-          >
-            + 소스 추가
-          </button>
-        )}
-      </div>
 
       {/* 키워드 */}
       <div>
@@ -289,6 +391,8 @@ export function ResearchLeftPanel({
           </div>
         )}
       </div>
+    </div>
+      )}
     </div>
   )
 }

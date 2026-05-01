@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import {
   Download, Upload, AlertTriangle, CheckCircle, Loader2,
-  User, CreditCard, Key, Database, ExternalLink, X, Bot, Eye, EyeOff, FolderOpen
+  User, CreditCard, Key, Database, ExternalLink, X, Bot, Eye, EyeOff, FolderOpen, Info, RefreshCw, MessageSquare
 } from 'lucide-react'
 import { backupApi, profileApi, paymentsApi, integrationsSettingsApi, settingsApi, obsidianSettingsApi, type Subscription } from '../lib/api'
 import { BACKEND_URL } from '../config'
@@ -888,6 +888,64 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* ── 버전 및 피드백 섹션 ─────────────────────────────────────── */}
+      <SectionCard>
+        <SectionTitle icon={<Info size={16} />} title="버전 및 피드백" />
+        <div className="space-y-4">
+          {/* 버전 정보 */}
+          <div className="flex items-center justify-between p-4 bg-bg border border-border rounded-lg">
+            <div>
+              <div className="text-[14px] font-medium text-text mb-0.5">OOMNI</div>
+              <div className="text-[12px] text-muted">버전 4.2.0</div>
+            </div>
+            <button
+              onClick={() => {
+                const api = (window as { electronAPI?: { checkForUpdates?: () => void } }).electronAPI
+                if (api?.checkForUpdates) {
+                  api.checkForUpdates()
+                } else {
+                  window.open('https://github.com/yongal74/oomni/releases', '_blank')
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-dim hover:border-primary/40 hover:text-text text-[12px] rounded-lg transition-colors"
+            >
+              <RefreshCw size={12} />
+              업데이트 확인
+            </button>
+          </div>
+
+          {/* 피드백 */}
+          <div className="flex items-center justify-between p-4 bg-bg border border-border rounded-lg">
+            <div>
+              <div className="text-[14px] font-medium text-text mb-0.5">피드백 보내기</div>
+              <div className="text-[12px] text-muted">버그 제보, 기능 요청, 개선 의견</div>
+            </div>
+            <a
+              href="https://github.com/yongal74/oomni/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-dim hover:border-primary/40 hover:text-text text-[12px] rounded-lg transition-colors"
+            >
+              <MessageSquare size={12} />
+              GitHub 이슈
+            </a>
+          </div>
+
+          {/* 랜딩페이지 */}
+          <div className="text-center">
+            <a
+              href="https://yongal74.github.io/oomni/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-muted hover:text-primary transition-colors inline-flex items-center gap-1"
+            >
+              <ExternalLink size={10} />
+              yongal74.github.io/oomni
+            </a>
+          </div>
+        </div>
+      </SectionCard>
 
       {/* ── 데이터 복원 확인 모달 ──────────────────────────────────── */}
       {showConfirm && (
