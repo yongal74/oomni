@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { createHashRouter, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { AppLayout } from './components/layout/AppLayout'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { authApi, agentsApi, type Agent } from './lib/api'
 
 const OnboardingPage = React.lazy(() => import('./pages/OnboardingPage'))
@@ -12,6 +13,12 @@ const UnifiedBotPage = React.lazy(() => import('./pages/UnifiedBotPage'))
 const PtyBotPage = React.lazy(() => import('./pages/PtyBotPage'))
 const PinPage = React.lazy(() => import('./pages/PinPage'))
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'))
+const MissionBoard = React.lazy(() => import('./pages/MissionBoard').then(m => ({ default: m.MissionBoard })))
+const ResearchHub = React.lazy(() => import('./pages/ResearchHub'))
+const GrowthStudio = React.lazy(() => import('./pages/GrowthStudio'))
+const DesignStudio = React.lazy(() => import('./pages/DesignStudio'))
+const OpsCenter = React.lazy(() => import('./pages/OpsCenter'))
+const CDPView   = React.lazy(() => import('./pages/CDPView'))
 
 // PTY 봇 역할 목록
 const PTY_ROLES = new Set(['build', 'design', 'ops'])
@@ -55,6 +62,17 @@ const Loader = () => (
     <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
   </div>
 )
+
+// 페이지마다 Suspense + ErrorBoundary 격리 — 한 페이지 에러가 전체 앱 크래시를 막음
+function PageWrap({ children }: { children: React.ReactNode }) {
+  return (
+    <ErrorBoundary>
+      <React.Suspense fallback={<Loader />}>
+        {children}
+      </React.Suspense>
+    </ErrorBoundary>
+  )
+}
 
 // 앱 시작 시 PIN 상태 확인 후 리다이렉트
 function AuthGuard() {
@@ -119,11 +137,17 @@ export const router = createHashRouter([
     path: '/dashboard',
     element: <AppLayout />,
     children: [
-      { index: true, element: <React.Suspense fallback={<Loader />}><DashboardPage /></React.Suspense> },
-      { path: 'approvals', element: <React.Suspense fallback={<Loader />}><ApprovalPage /></React.Suspense> },
-      { path: 'cost', element: <React.Suspense fallback={<Loader />}><CostPage /></React.Suspense> },
-      { path: 'bots/:id', element: <BotPageRouter /> },
-      { path: 'settings', element: <React.Suspense fallback={<Loader />}><SettingsPage /></React.Suspense> },
+      { index: true, element: <PageWrap><DashboardPage /></PageWrap> },
+      { path: 'board',          element: <PageWrap><MissionBoard /></PageWrap> },
+      { path: 'research',       element: <PageWrap><ResearchHub /></PageWrap> },
+      { path: 'growth',         element: <PageWrap><GrowthStudio /></PageWrap> },
+      { path: 'design-studio',  element: <PageWrap><DesignStudio /></PageWrap> },
+      { path: 'ops',            element: <PageWrap><OpsCenter /></PageWrap> },
+      { path: 'cdp',            element: <PageWrap><CDPView /></PageWrap> },
+      { path: 'approvals',      element: <PageWrap><ApprovalPage /></PageWrap> },
+      { path: 'cost',           element: <PageWrap><CostPage /></PageWrap> },
+      { path: 'bots/:id',       element: <ErrorBoundary><BotPageRouter /></ErrorBoundary> },
+      { path: 'settings',       element: <PageWrap><SettingsPage /></PageWrap> },
     ],
   },
   {

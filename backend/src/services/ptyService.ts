@@ -100,15 +100,6 @@ function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = 
     env,
   });
 
-  // shellMode가 아닌 경우 PowerShell 준비 후 Claude Code 자동 실행
-  if (!shellMode) {
-    const cliPath = getCliPath().replace(/\\/g, '/');
-    void role; // 현재 역할별 분기 없음 — 모든 역할 동일 방식
-    setTimeout(() => {
-      ptyProcess.write(`node "${cliPath}" --dangerously-skip-permissions\r`);
-    }, 500);
-  }
-
   const session: PtySession = {
     pty: ptyProcess,
     clients: new Set(),
@@ -116,6 +107,19 @@ function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = 
     cols,
     rows,
   };
+
+  // shellMode가 아닌 경우 PowerShell 준비 후 Claude Code 자동 실행
+  if (!shellMode) {
+    // Design 역할은 SDK 방식(Design Studio)으로만 실행 — PTY 미지원
+    if (role === 'design') {
+      ptyProcess.write('echo "Design Bot은 Design Studio 탭에서 실행하세요 (claude-opus-4-7 SDK 방식)"\r');
+      return session;
+    }
+    const cliPath = getCliPath().replace(/\\/g, '/');
+    setTimeout(() => {
+      ptyProcess.write(`node "${cliPath}" --dangerously-skip-permissions\r`);
+    }, 500);
+  }
 
   // PTY 출력 → 모든 WebSocket 클라이언트에 브로드캐스트
   ptyProcess.onData((data: string) => {

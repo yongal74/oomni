@@ -31,6 +31,7 @@ interface Settings {
   obsidian_vault_path?: string;
   cdp_api_key?: string;
   video_api_key?: string;
+  openai_api_key?: string;
 }
 
 // ── 암호화 유틸 ────────────────────────────────────────────

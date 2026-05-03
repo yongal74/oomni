@@ -1,28 +1,53 @@
-﻿import { useState } from 'react'
+/**
+ * OnboardingPage.tsx — OOMNI v5.1.0 온보딩
+ *
+ * 레이아웃: 좌측 브랜드 패널 | 우측 4-step 폼
+ * Step 1: Claude API 키 입력
+ * Step 2: 미션 이름 설정
+ * Step 3: AI 팀 템플릿 선택
+ * Step 4: 완료
+ */
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { missionsApi, settingsApi, type Mission } from '../lib/api'
 import { useAppStore } from '../store/app.store'
-import { Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react'
+import {
+  Eye, EyeOff, Loader2, CheckCircle, ChevronRight,
+  Zap, Search, Palette, Code2, TrendingUp, Crown, Workflow,
+} from 'lucide-react'
+import { cn } from '../lib/utils'
+
+// ─── 브랜드 패널 기능 목록 ─────────────────────────────────────────────────────
+
+const FEATURES = [
+  { icon: Search,    label: 'Research Bot',  desc: '시장·경쟁사·트렌드 자동 조사' },
+  { icon: Code2,     label: 'Build Bot',     desc: '코드 작성 및 배포 자동화' },
+  { icon: Palette,   label: 'Design Bot',    desc: 'UI/UX 디자인 자동 생성' },
+  { icon: TrendingUp,label: 'Growth Bot',    desc: '콘텐츠·마케팅 파이프라인' },
+  { icon: Workflow,  label: 'Ops Bot',       desc: 'n8n 자동화 워크플로우 설계' },
+  { icon: Crown,     label: 'CEO Bot',       desc: '전략 브리핑 및 의사결정 지원' },
+]
 
 const PRESETS = [
-  { label: '🚀 스타트업 운영', name: '스타트업 운영', desc: 'SaaS 제품 개발 및 마케팅' },
-  { label: '📱 앱 개발', name: '앱 개발', desc: '모바일/웹 앱 개발 및 배포' },
-  { label: '✍️ 콘텐츠 크리에이터', name: '콘텐츠 크리에이터', desc: 'SNS 콘텐츠 기획 및 제작' },
-  { label: '🛒 쇼핑몰 운영', name: '쇼핑몰 운영', desc: '온라인 쇼핑몰 운영 및 마케팅' },
+  { label: '스타트업 운영',     name: '스타트업 운영',     desc: 'SaaS 제품 개발 및 마케팅' },
+  { label: '앱 개발',           name: '앱 개발',           desc: '모바일/웹 앱 개발 및 배포' },
+  { label: '콘텐츠 크리에이터', name: '콘텐츠 크리에이터', desc: 'SNS 콘텐츠 기획 및 제작' },
+  { label: '쇼핑몰 운영',       name: '쇼핑몰 운영',       desc: '온라인 쇼핑몰 운영 및 마케팅' },
 ]
 
 const TOTAL_STEPS = 4
 
 export default function OnboardingPage() {
-  const navigate = useNavigate()
+  const navigate  = useNavigate()
   const { setCurrentMission } = useAppStore()
-  const [step, setStep] = useState(1)
-  const [error, setError] = useState('')
+  const [step,    setStep]    = useState(1)
+  const [error,   setError]   = useState('')
   const [loading, setLoading] = useState(false)
 
   // Step 1
-  const [apiKey, setApiKey] = useState('')
-  const [showKey, setShowKey] = useState(false)
+  const [apiKey,   setApiKey]   = useState('')
+  const [showKey,  setShowKey]  = useState(false)
+  const [apiKeySet, setApiKeySet] = useState(false)
 
   // Step 2
   const [missionName, setMissionName] = useState('')
@@ -31,18 +56,13 @@ export default function OnboardingPage() {
 
   // Step 3
   const [selectedTemplate, setSelectedTemplate] = useState<'solo-factory-os' | 'manual' | null>(null)
-  const [templateApplied, setTemplateApplied] = useState(false)
+  const [templateApplied,  setTemplateApplied]  = useState(false)
 
-  // Summary flags
-  const [apiKeySet, setApiKeySet] = useState(false)
+  // ── Step handlers ──────────────────────────────────────────────────────────
 
-  // ── Step 1: API 키 설정 ─────────────────────────────────────────
   const handleStep1 = async () => {
     setError('')
-    if (!apiKey.trim()) {
-      setError('API 키를 입력해주세요')
-      return
-    }
+    if (!apiKey.trim()) { setError('API 키를 입력해주세요'); return }
     setLoading(true)
     try {
       await settingsApi.setApiKey(apiKey)
@@ -55,14 +75,9 @@ export default function OnboardingPage() {
     }
   }
 
-
-  // ── Step 2: 미션 만들기 ─────────────────────────────────────────
   const handleStep2 = async () => {
     setError('')
-    if (!missionName.trim()) {
-      setError('미션 이름을 입력해주세요')
-      return
-    }
+    if (!missionName.trim()) { setError('미션 이름을 입력해주세요'); return }
     setLoading(true)
     try {
       const mission = await missionsApi.create({ name: missionName, description: missionDesc })
@@ -77,13 +92,9 @@ export default function OnboardingPage() {
     }
   }
 
-  // ── Step 3: 봇 구성 ──────────────────────────────────────────────
   const handleStep3 = async () => {
     setError('')
-    if (!selectedTemplate) {
-      setError('템플릿을 선택해주세요')
-      return
-    }
+    if (!selectedTemplate) { setError('템플릿을 선택해주세요'); return }
     setLoading(true)
     try {
       if (selectedTemplate === 'solo-factory-os' && createdMission) {
@@ -94,120 +105,160 @@ export default function OnboardingPage() {
       }
       setStep(4)
     } catch {
-      // 템플릿 적용 실패해도 완료 단계로 진행
-      setStep(4)
+      setStep(4) // 실패해도 완료로 진행
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSelectTemplate = (t: 'solo-factory-os' | 'manual') => {
-    setSelectedTemplate(t)
-    setError('')
-  }
+  const handleFinish = () => navigate('/dashboard')
 
-  // ── Step 4: 완료 ────────────────────────────────────────────────
-  const handleFinish = () => {
-    navigate('/dashboard')
-  }
+  // ── render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-[#060b18] flex">
+
+      {/* ── 좌측: 브랜드 패널 ──────────────────────────────────────────────── */}
+      <div className="hidden lg:flex w-[420px] shrink-0 flex-col justify-between p-10 bg-gradient-to-br from-[#0a0f1e] via-[#0d1525] to-[#060b18] border-r border-[#1c2440]">
+
         {/* 로고 */}
-        <div className="text-center mb-8">
-          <div className="text-3xl font-bold text-primary mb-1">OOMNI</div>
-          <div className="text-muted text-sm">딸깍 하나로 AI 팀이 일한다</div>
-        </div>
-
-        {/* 진행 표시 */}
-        <div className="flex items-center gap-2 mb-8 justify-center">
-          {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map(n => (
-            <div key={n} className="flex items-center gap-2">
-              <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-medium transition-colors ${
-                  step > n
-                    ? 'bg-primary text-white'
-                    : step === n
-                    ? 'bg-primary text-white'
-                    : 'bg-surface border border-border text-muted'
-                }`}
-              >
-                {step > n ? <CheckCircle size={14} /> : n}
-              </div>
-              {n < TOTAL_STEPS && (
-                <div className={`w-10 h-px ${step > n ? 'bg-primary' : 'bg-border'}`} />
-              )}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+              <Zap size={16} className="text-white" />
             </div>
-          ))}
+            <span className="text-xl font-bold text-white tracking-tight">OOMNI</span>
+          </div>
+          <p className="text-[#4a5580] text-sm">솔로프리너를 위한 AI 에이전트 팀</p>
         </div>
 
-        <div className="bg-surface border border-border rounded-xl p-6">
-          {/* ── Step 1: API 키 설정 ── */}
+        {/* 기능 목록 */}
+        <div className="space-y-4 my-8">
+          <p className="text-[11px] text-[#4a5580] uppercase tracking-widest mb-4">AI 팀 구성</p>
+          {FEATURES.map(f => {
+            const Icon = f.icon
+            return (
+              <div key={f.label} className="flex items-start gap-3">
+                <div className="w-7 h-7 rounded-md bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                  <Icon size={13} className="text-indigo-400" />
+                </div>
+                <div>
+                  <div className="text-[13px] font-medium text-[#c8d0e8]">{f.label}</div>
+                  <div className="text-[11px] text-[#4a5580]">{f.desc}</div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* 하단 */}
+        <div className="text-[11px] text-[#303a55] space-y-1">
+          <p>API 키는 이 기기에만 저장됩니다</p>
+          <p>외부로 전송되지 않습니다</p>
+        </div>
+      </div>
+
+      {/* ── 우측: 폼 ───────────────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col items-center justify-center p-6 overflow-y-auto">
+
+        {/* 모바일 로고 */}
+        <div className="lg:hidden flex items-center gap-2 mb-8">
+          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
+            <Zap size={14} className="text-white" />
+          </div>
+          <span className="text-lg font-bold text-white">OOMNI</span>
+        </div>
+
+        <div className="w-full max-w-[400px]">
+
+          {/* 스텝 인디케이터 */}
+          <div className="flex items-center gap-1.5 mb-8">
+            {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map(n => (
+              <div key={n} className="flex items-center gap-1.5">
+                <div className={cn(
+                  'w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold transition-all',
+                  step > n
+                    ? 'bg-indigo-600 text-white'
+                    : step === n
+                    ? 'bg-indigo-600 text-white ring-2 ring-indigo-500/30'
+                    : 'bg-[#1a2035] border border-[#2a3050] text-[#4a5580]',
+                )}>
+                  {step > n ? <CheckCircle size={12} /> : n}
+                </div>
+                {n < TOTAL_STEPS && (
+                  <div className={cn(
+                    'h-px w-8 transition-colors',
+                    step > n ? 'bg-indigo-600' : 'bg-[#1a2035]',
+                  )} />
+                )}
+              </div>
+            ))}
+            <span className="ml-2 text-[11px] text-[#4a5580]">
+              {step === 1 ? 'API 키' : step === 2 ? '미션' : step === 3 ? '팀 구성' : '완료'}
+            </span>
+          </div>
+
+          {/* ── Step 1: API 키 ── */}
           {step === 1 && (
-            <div>
-              <h2 className="text-lg font-semibold text-text mb-1">시작하기</h2>
-              <p className="text-muted text-sm mb-5">
-                Claude API 키를 입력하면 바로 시작할 수 있습니다.
-              </p>
-              <p className="text-muted text-sm mb-4">Claude API 키로 시작하기</p>
+            <StepCard title="Claude API 키 설정" desc="봇을 실행하려면 Anthropic API 키가 필요합니다">
               <div className="space-y-4">
                 <div>
-                  <label className="text-[12px] text-muted block mb-1.5">Anthropic API 키</label>
+                  <label className="text-[11px] text-[#4a5580] uppercase tracking-wide block mb-1.5">
+                    Anthropic API 키
+                  </label>
                   <div className="relative">
                     <input
                       type={showKey ? 'text' : 'password'}
                       value={apiKey}
                       onChange={e => setApiKey(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && handleStep1()}
-                      placeholder="sk-ant-..."
+                      placeholder="sk-ant-api03-..."
                       autoFocus
-                      className="w-full bg-bg border border-border rounded px-3 py-2 text-[13px] text-text placeholder-muted focus:outline-none focus:border-primary pr-10"
+                      className="w-full bg-[#0d1525] border border-[#1c2440] rounded-lg px-3 py-2.5 text-sm text-[#c8d0e8] placeholder-[#303a55] focus:outline-none focus:border-indigo-500/60 transition-colors pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowKey(!showKey)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4a5580] hover:text-[#c8d0e8] transition-colors"
                     >
                       {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
                   </div>
-                  <p className="text-[11px] text-muted mt-1.5">
+                  <p className="text-[11px] text-[#303a55] mt-1.5">
                     <a
                       href="https://console.anthropic.com"
                       target="_blank"
                       rel="noreferrer"
-                      className="text-primary hover:underline"
+                      className="text-indigo-400 hover:text-indigo-300 transition-colors"
                     >
                       console.anthropic.com
                     </a>
-                    에서 발급받을 수 있습니다
+                    {' '}에서 발급
                   </p>
                 </div>
-                {error && <p className="text-red-400 text-[12px]">{error}</p>}
+                {error && <ErrorMsg>{error}</ErrorMsg>}
+                <PrimaryButton onClick={handleStep1} loading={loading}>
+                  다음 단계로 <ChevronRight size={14} />
+                </PrimaryButton>
                 <button
-                  onClick={handleStep1}
-                  disabled={loading}
-                  className="w-full bg-primary hover:bg-primary-hover text-white py-2.5 rounded text-[14px] font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+                  type="button"
+                  onClick={() => { setStep(2); setError('') }}
+                  className="w-full text-center text-[11px] text-[#303a55] hover:text-[#4a5580] transition-colors"
                 >
-                  {loading && <Loader2 size={16} className="animate-spin" />}
-                  확인 &amp; 다음
+                  나중에 설정하기
                 </button>
-                <p className="text-[11px] text-muted/60 text-center">
-                  API 키가 없으면 봇을 실행할 수 없습니다. 먼저 발급받으세요.
-                </p>
               </div>
-            </div>
+            </StepCard>
           )}
 
-          {/* ── Step 2: 미션 만들기 ── */}
+          {/* ── Step 2: 미션 ── */}
           {step === 2 && (
-            <div>
-              <h2 className="text-lg font-semibold text-text mb-1">첫 번째 미션 만들기</h2>
-              <p className="text-muted text-sm mb-5">미션은 AI 팀이 달성할 목표입니다</p>
+            <StepCard title="첫 미션 만들기" desc="AI 팀이 달성할 목표를 설정하세요">
               <div className="space-y-4">
                 <div>
-                  <label className="text-[12px] text-muted block mb-1.5">미션 이름</label>
+                  <label className="text-[11px] text-[#4a5580] uppercase tracking-wide block mb-1.5">
+                    미션 이름
+                  </label>
                   <input
                     type="text"
                     value={missionName}
@@ -215,162 +266,204 @@ export default function OnboardingPage() {
                     onKeyDown={e => e.key === 'Enter' && handleStep2()}
                     placeholder="나의 스타트업"
                     autoFocus
-                    className="w-full bg-bg border border-border rounded px-3 py-2 text-[13px] text-text placeholder-muted focus:outline-none focus:border-primary"
+                    className="w-full bg-[#0d1525] border border-[#1c2440] rounded-lg px-3 py-2.5 text-sm text-[#c8d0e8] placeholder-[#303a55] focus:outline-none focus:border-indigo-500/60 transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="text-[12px] text-muted block mb-1.5">설명 (선택)</label>
+                  <label className="text-[11px] text-[#4a5580] uppercase tracking-wide block mb-1.5">
+                    설명 (선택)
+                  </label>
                   <textarea
                     value={missionDesc}
                     onChange={e => setMissionDesc(e.target.value)}
                     placeholder="SaaS 제품 개발 및 마케팅"
                     rows={2}
-                    className="w-full bg-bg border border-border rounded px-3 py-2 text-[13px] text-text placeholder-muted focus:outline-none focus:border-primary resize-none"
+                    className="w-full bg-[#0d1525] border border-[#1c2440] rounded-lg px-3 py-2.5 text-sm text-[#c8d0e8] placeholder-[#303a55] focus:outline-none focus:border-indigo-500/60 transition-colors resize-none"
                   />
                 </div>
-                {/* 프리셋 버튼 */}
+                {/* 프리셋 */}
                 <div>
-                  <label className="text-[12px] text-muted block mb-2">예시 선택</label>
+                  <p className="text-[11px] text-[#4a5580] mb-2">빠른 선택</p>
                   <div className="grid grid-cols-2 gap-2">
                     {PRESETS.map(p => (
                       <button
                         key={p.label}
                         type="button"
                         onClick={() => { setMissionName(p.name); setMissionDesc(p.desc) }}
-                        className="text-left px-3 py-2 rounded-lg border border-border hover:border-primary hover:bg-surface text-[12px] text-text transition-colors"
+                        className={cn(
+                          'text-left px-3 py-2 rounded-lg border text-[11px] transition-all',
+                          missionName === p.name
+                            ? 'border-indigo-500/60 bg-indigo-600/10 text-indigo-300'
+                            : 'border-[#1c2440] text-[#4a5580] hover:border-[#2a3050] hover:text-[#c8d0e8]',
+                        )}
                       >
                         {p.label}
                       </button>
                     ))}
                   </div>
                 </div>
-                {error && <p className="text-red-400 text-[12px]">{error}</p>}
-                <button
-                  onClick={handleStep2}
-                  disabled={loading}
-                  className="w-full bg-primary hover:bg-primary-hover text-white py-2.5 rounded text-[14px] font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
-                >
-                  {loading && <Loader2 size={16} className="animate-spin" />}
-                  미션 만들기
-                </button>
+                {error && <ErrorMsg>{error}</ErrorMsg>}
+                <PrimaryButton onClick={handleStep2} loading={loading}>
+                  미션 만들기 <ChevronRight size={14} />
+                </PrimaryButton>
               </div>
-            </div>
+            </StepCard>
           )}
 
-          {/* ── Step 3: AI 팀 구성 ── */}
+          {/* ── Step 3: 팀 구성 ── */}
           {step === 3 && (
-            <div>
-              <h2 className="text-lg font-semibold text-text mb-1">AI 팀을 구성하세요</h2>
-              <p className="text-muted text-sm mb-5">시작 방법을 선택하세요</p>
-              <div className="space-y-3 mb-5">
-                {/* OOMNI 팀 구성 */}
-                <button
-                  type="button"
-                  onClick={() => handleSelectTemplate('solo-factory-os')}
-                  className={`w-full text-left p-4 rounded-xl border-2 transition-colors ${
-                    selectedTemplate === 'solo-factory-os'
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border hover:border-primary/50 bg-surface/50'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[14px] font-semibold text-text">OOMNI 팀 구성</span>
-                        <span className="text-[10px] bg-primary text-white px-1.5 py-0.5 rounded font-medium">
-                          추천
-                        </span>
-                      </div>
-                      <p className="text-[12px] text-muted">
-                        Research, Design, Build, Content, Ops, CEO 6개 봇으로 시작
-                      </p>
-                    </div>
-                    {selectedTemplate === 'solo-factory-os' && (
-                      <CheckCircle size={18} className="text-primary shrink-0 mt-0.5" />
-                    )}
-                  </div>
-                </button>
-
-                {/* 직접 구성 */}
-                <button
-                  type="button"
-                  onClick={() => handleSelectTemplate('manual')}
-                  className={`w-full text-left p-4 rounded-xl border-2 transition-colors ${
-                    selectedTemplate === 'manual'
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border hover:border-primary/50 bg-surface/50'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="text-[14px] font-semibold text-text mb-1">직접 구성</div>
-                      <p className="text-[12px] text-muted">나중에 직접 봇을 추가합니다</p>
-                    </div>
-                    {selectedTemplate === 'manual' && (
-                      <CheckCircle size={18} className="text-primary shrink-0 mt-0.5" />
-                    )}
-                  </div>
-                </button>
+            <StepCard title="AI 팀 구성" desc="어떻게 시작할지 선택하세요">
+              <div className="space-y-3 mb-4">
+                <TemplateOption
+                  selected={selectedTemplate === 'solo-factory-os'}
+                  onClick={() => setSelectedTemplate('solo-factory-os')}
+                  badge="추천"
+                  title="OOMNI 팀 자동 구성"
+                  desc="Research · Build · Design · Content · Ops · CEO — 6개 봇이 바로 세팅됩니다"
+                />
+                <TemplateOption
+                  selected={selectedTemplate === 'manual'}
+                  onClick={() => setSelectedTemplate('manual')}
+                  title="직접 구성"
+                  desc="대시보드에서 봇을 하나씩 추가합니다"
+                />
               </div>
-              {error && <p className="text-red-400 text-[12px] mb-3">{error}</p>}
-              <button
-                onClick={handleStep3}
-                disabled={loading || !selectedTemplate}
-                className="w-full bg-primary hover:bg-primary-hover text-white py-2.5 rounded text-[14px] font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
-              >
-                {loading && <Loader2 size={16} className="animate-spin" />}
-                시작하기
-              </button>
-            </div>
+              {error && <ErrorMsg>{error}</ErrorMsg>}
+              <PrimaryButton onClick={handleStep3} loading={loading} disabled={!selectedTemplate}>
+                시작하기 <ChevronRight size={14} />
+              </PrimaryButton>
+            </StepCard>
           )}
 
           {/* ── Step 4: 완료 ── */}
           {step === 4 && (
-            <div className="text-center">
-              <div className="text-4xl mb-3">🎉</div>
-              <h2 className="text-lg font-semibold text-text mb-1">준비 완료!</h2>
-              <p className="text-muted text-sm mb-6">설정이 완료되었습니다. OOMNI를 시작하세요.</p>
-              <div className="bg-surface rounded-lg p-4 text-left space-y-2 mb-6">
-                <div className="flex items-center gap-2 text-[13px]">
-                  <CheckCircle size={14} className={apiKeySet ? 'text-primary' : 'text-muted'} />
-                  <span className={apiKeySet ? 'text-text' : 'text-muted'}>
-                    {apiKeySet ? 'API 키 연결 완료' : 'API 키 미설정 (나중에 설정 가능)'}
-                  </span>
+            <StepCard title="" desc="">
+              <div className="text-center py-2">
+                <div className="w-14 h-14 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle size={28} className="text-indigo-400" />
                 </div>
-                {createdMission && (
-                  <div className="flex items-center gap-2 text-[13px]">
-                    <CheckCircle size={14} className="text-primary" />
-                    <span className="text-text">미션: {createdMission.name}</span>
-                  </div>
-                )}
-                {selectedTemplate === 'solo-factory-os' && (
-                  <div className="flex items-center gap-2 text-[13px]">
-                    <CheckCircle size={14} className="text-primary" />
-                    <span className="text-text">OOMNI 팀 구성{templateApplied ? ' 완료' : ''}</span>
-                  </div>
-                )}
-                {selectedTemplate === 'manual' && (
-                  <div className="flex items-center gap-2 text-[13px]">
-                    <CheckCircle size={14} className="text-muted" />
-                    <span className="text-muted">봇 구성 (대시보드에서 직접 추가)</span>
-                  </div>
-                )}
+                <h2 className="text-xl font-bold text-white mb-1">준비 완료!</h2>
+                <p className="text-[#4a5580] text-sm mb-6">OOMNI가 실행될 준비가 됐습니다</p>
+
+                {/* 요약 */}
+                <div className="bg-[#0d1525] border border-[#1c2440] rounded-xl p-4 text-left space-y-2.5 mb-6">
+                  <SummaryRow done={apiKeySet}     label={apiKeySet ? 'Claude API 연결 완료' : 'API 키 미설정 (설정 > API 키에서 추가)'} />
+                  {createdMission && (
+                    <SummaryRow done label={`미션: ${createdMission.name}`} />
+                  )}
+                  {selectedTemplate === 'solo-factory-os' && (
+                    <SummaryRow done label={`OOMNI 팀 6개 봇 구성${templateApplied ? ' 완료' : ''}`} />
+                  )}
+                  {selectedTemplate === 'manual' && (
+                    <SummaryRow done={false} label="봇 구성 — 대시보드에서 직접 추가" />
+                  )}
+                </div>
+
+                <button
+                  onClick={handleFinish}
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                >
+                  OOMNI 시작하기 <ChevronRight size={14} />
+                </button>
               </div>
-              <button
-                onClick={handleFinish}
-                className="w-full bg-primary hover:bg-primary-hover text-white py-2.5 rounded text-[14px] font-medium transition-colors"
-              >
-                OOMNI 시작하기
-              </button>
-            </div>
+            </StepCard>
           )}
         </div>
-
-        <p className="text-center text-[11px] text-muted mt-4">
-          API 키는 이 기기에서만 사용되며 외부로 전송되지 않습니다
-        </p>
       </div>
     </div>
   )
 }
 
+// ─── sub-components ────────────────────────────────────────────────────────────
+
+function StepCard({ title, desc, children }: {
+  title: string; desc: string; children: React.ReactNode
+}) {
+  return (
+    <div>
+      {title && (
+        <div className="mb-6">
+          <h2 className="text-lg font-bold text-white mb-1">{title}</h2>
+          <p className="text-[#4a5580] text-sm">{desc}</p>
+        </div>
+      )}
+      <div className="bg-[#0d1525] border border-[#1c2440] rounded-2xl p-6">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function PrimaryButton({ onClick, loading, disabled, children }: {
+  onClick: () => void
+  loading?: boolean
+  disabled?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading || disabled}
+      className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors"
+    >
+      {loading && <Loader2 size={14} className="animate-spin" />}
+      {children}
+    </button>
+  )
+}
+
+function TemplateOption({ selected, onClick, badge, title, desc }: {
+  selected: boolean; onClick: () => void
+  badge?: string; title: string; desc: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'w-full text-left p-4 rounded-xl border-2 transition-all',
+        selected
+          ? 'border-indigo-500/70 bg-indigo-600/10'
+          : 'border-[#1c2440] hover:border-[#2a3050] bg-[#0a0f1e]',
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm font-semibold text-white">{title}</span>
+            {badge && (
+              <span className="text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded font-medium">
+                {badge}
+              </span>
+            )}
+          </div>
+          <p className="text-[12px] text-[#4a5580]">{desc}</p>
+        </div>
+        <div className={cn(
+          'w-4 h-4 rounded-full border-2 mt-0.5 shrink-0 flex items-center justify-center transition-colors',
+          selected ? 'border-indigo-500 bg-indigo-500' : 'border-[#2a3050]',
+        )}>
+          {selected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+        </div>
+      </div>
+    </button>
+  )
+}
+
+function SummaryRow({ done, label }: { done: boolean; label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-[12px]">
+      <CheckCircle size={13} className={done ? 'text-indigo-400' : 'text-[#303a55]'} />
+      <span className={done ? 'text-[#c8d0e8]' : 'text-[#303a55]'}>{label}</span>
+    </div>
+  )
+}
+
+function ErrorMsg({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 text-[12px] text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
+      <span>⚠</span>
+      <span>{children}</span>
+    </div>
+  )
+}

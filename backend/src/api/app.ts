@@ -25,6 +25,11 @@ import { templatesRouter } from './routes/templates';
 import { obsidianRouter } from './routes/obsidian';
 import { backupRouter } from './routes/backup';
 import { designSystemsRouter } from './routes/design-systems';
+import { tasksRouter } from './routes/tasks';
+import { growthRouter } from './routes/growth';
+import { designRouter } from './routes/design';
+import { identityRouter } from './routes/identity';
+import { opsRouter } from './routes/ops';
 import { logger } from '../logger';
 
 interface AppOptions {
@@ -151,6 +156,11 @@ export function createApp(options: AppOptions): Application {
   app.use('/api/obsidian', obsidianRouter());
   app.use('/api/backup', backupRouter());
   app.use('/api/design-systems', designSystemsRouter(options.db));
+  app.use('/api/tasks', tasksRouter(options.db));
+  app.use('/api/growth', growthRouter(options.db));
+  app.use('/api/design', designRouter(options.db));
+  app.use('/api/identity', identityRouter(options.db));
+  app.use('/api/ops', opsRouter(options.db));
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });

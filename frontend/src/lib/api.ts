@@ -276,6 +276,80 @@ export const paymentsApi = {
     Promise.reject(new Error('paymentsApi 미지원 (v3)')),
 }
 
+// CDP / Identity
+export interface CdpProfile {
+  id: string
+  mission_id: string
+  user_id: string | null
+  anonymous_id: string | null
+  email_hash: string | null
+  phone_hash: string | null
+  channel: string | null
+  sources: string   // JSON array
+  traits: string    // JSON object
+  event_count: number
+  ltv: number
+  first_seen_at: string
+  last_seen_at: string
+  segment?: {
+    ltvTier: 'high' | 'mid' | 'low'
+    eventCount: number
+    sources: string[]
+  }
+}
+
+export const identityApi = {
+  listProfiles: (missionId: string, limit = 50, offset = 0) =>
+    api.get<{ data: CdpProfile[]; total: number }>(
+      '/api/identity/profiles',
+      { params: { mission_id: missionId, limit, offset } }
+    ).then(r => r.data),
+  getProfile: (profileId: string, missionId: string) =>
+    api.get<{ data: CdpProfile }>(`/api/identity/profile/${profileId}`, {
+      params: { mission_id: missionId }
+    }).then(r => r.data.data),
+  resolve: (data: {
+    mission_id: string
+    email?: string
+    phone?: string
+    user_id?: string
+    anonymous_id?: string
+    source: string
+    traits?: Record<string, unknown>
+  }) =>
+    api.post<{ data: { profileId: string; isNew: boolean; merged: boolean; mergedCount: number } }>(
+      '/api/identity/resolve', data
+    ).then(r => r.data.data),
+  getGraph: (profileId: string, missionId: string) =>
+    api.get<{ data: IdentityGraph }>(`/api/identity/graph/${profileId}`, {
+      params: { mission_id: missionId }
+    }).then(r => r.data.data),
+}
+
+export interface GraphNode {
+  id: string
+  type: string
+  label: string
+  idClass?: 'deterministic' | 'probabilistic' | 'behavioral'
+  confidence?: number
+  ltvTier?: 'high' | 'mid' | 'low'
+  eventCount?: number
+}
+
+export interface GraphEdge {
+  source: string
+  target: string
+  idClass: 'deterministic' | 'probabilistic' | 'behavioral'
+  confidence: number
+}
+
+export interface IdentityGraph {
+  profileId: string
+  nodes: GraphNode[]
+  edges: GraphEdge[]
+  mergedFrom: string[]
+}
+
 // 타입들
 export interface Mission { id: string; name: string; description: string; created_at: string }
 export interface Agent {
