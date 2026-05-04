@@ -113,11 +113,6 @@ function getNodeRadius(node: GraphNode): number {
   return NODE_RADIUS[node.type] ?? NODE_RADIUS.default
 }
 
-function maskHash(hash: string | null): string {
-  if (!hash) return '—'
-  return hash.slice(0, 8) + '…' + hash.slice(-4)
-}
-
 // ─── force simulation ─────────────────────────────────────────────────────────
 
 const REPULSION   = 3500
@@ -705,7 +700,8 @@ function RawField({ label, value }: { label: string; value: string | null | unde
 // ─── main page ────────────────────────────────────────────────────────────────
 
 export default function CDPView() {
-  const { currentMissionId } = useAppStore()
+  const { currentMission } = useAppStore()
+  const currentMissionId = currentMission?.id
   const [search,      setSearch]      = useState('')
   const [tierFilter,  setTierFilter]  = useState<'all' | 'high' | 'mid' | 'low'>('all')
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null)

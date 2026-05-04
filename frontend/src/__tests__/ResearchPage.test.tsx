@@ -57,7 +57,7 @@ let ResearchPage: React.ComponentType
 describe('ResearchPage', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
-    const mod = await import('../pages/ResearchPage')
+    const mod = await import('../pages/ResearchHub')
     ResearchPage = mod.default
   })
 

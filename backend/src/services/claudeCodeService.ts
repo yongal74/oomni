@@ -77,7 +77,7 @@ const ROLE_MODELS: Record<string, string> = {
   research:    'claude-haiku-4-5-20251001',   // 대량 채점 → 저렴
   content:     'claude-sonnet-4-6',
   build:       'claude-sonnet-4-6',
-  design:      'claude-sonnet-4-6',
+  design:      'claude-opus-4-7',              // Claude Design — SDK 전용, opus-4-7 필수
   ops:         'claude-sonnet-4-6',
   ceo:         'claude-opus-4-6',             // CEO 판단 → 최고 품질
   // Phase 2 (BOT-08~11)

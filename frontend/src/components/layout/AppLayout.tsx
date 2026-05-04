@@ -8,6 +8,7 @@ import {
   ChevronLeft, Code2, Crown, DollarSign,
   LayoutDashboard, Palette, Plus,
   Settings2, Telescope, Workflow,
+  CheckSquare, Rocket, Database,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { oomniWs } from '../../lib/ws'
@@ -45,10 +46,16 @@ const BOT_COLOR: Record<string, string> = {
 
 // ─── 네비게이션 그룹 ──────────────────────────────────────────────────────────
 const NAV_ITEMS: NavIconItem[] = [
-  { to: '/dashboard',           icon: LayoutDashboard, label: '대시보드', end: true },
-  { to: '/dashboard/approvals', icon: Bell,            label: '승인 인박스', badge: true },
-  { to: '/dashboard/cost',      icon: DollarSign,      label: '비용 추적' },
-  { to: '/dashboard/settings',  icon: Settings2,       label: '설정' },
+  { to: '/dashboard',                 icon: LayoutDashboard, label: '대시보드',     end: true },
+  { to: '/dashboard/board',           icon: CheckSquare,     label: 'Mission Board' },
+  { to: '/dashboard/research',        icon: Telescope,       label: 'Research Hub' },
+  { to: '/dashboard/growth',          icon: Rocket,          label: 'Growth Studio' },
+  { to: '/dashboard/design-studio',   icon: Palette,         label: 'Design Studio' },
+  { to: '/dashboard/ops',             icon: Workflow,        label: 'Ops Center' },
+  { to: '/dashboard/cdp',            icon: Database,        label: 'CDP 뷰' },
+  { to: '/dashboard/approvals',       icon: Bell,            label: '승인 인박스',  badge: true },
+  { to: '/dashboard/cost',            icon: DollarSign,      label: '비용 추적' },
+  { to: '/dashboard/settings',        icon: Settings2,       label: '설정' },
 ]
 
 // ─── 단일 아이콘 버튼 (툴팁 포함) ────────────────────────────────────────────

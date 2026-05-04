@@ -8,7 +8,7 @@
  *   Center: 노드 설정 가이드 (스트리밍)
  *   Right:  AI 채팅 (→ n8n JSON 생성)
  */
-import React, {
+import {
   useState, useRef, useEffect, useCallback,
 } from 'react'
 import {
@@ -168,7 +168,6 @@ function WorkflowDiagram({ workflow }: { workflow: N8nWorkflow | null }) {
       ctx.lineWidth = 1.5
       ctx.stroke()
       // arrowhead
-      const dx = x2 - (x2 - 8), dy = y2 - y1
       ctx.beginPath()
       ctx.moveTo(x2, y2)
       ctx.lineTo(x2 - 8, y2 - 5)
@@ -275,7 +274,8 @@ interface ChatMessage {
 // ─── main OpsCenter ───────────────────────────────────────────────────────────
 
 export default function OpsCenter() {
-  const { currentMissionId } = useAppStore()
+  const { currentMission } = useAppStore()
+  const currentMissionId = currentMission?.id
   const [tab,        setTab]        = useState<'types' | 'builder'>('types')
   const [selectedType, setSelectedType] = useState<typeof AUTO_TYPES[0] | null>(null)
 
@@ -304,10 +304,6 @@ export default function OpsCenter() {
     const newMessages = [...messages, userMsg]
     setMessages(newMessages)
     setStreaming(true)
-
-    const context = selectedType
-      ? `자동화 유형: ${selectedType.code} ${selectedType.label}\n\n`
-      : ''
 
     try {
       const systemPrompt = selectedType

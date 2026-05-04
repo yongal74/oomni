@@ -2,7 +2,7 @@
 
 솔로 창업자를 위한 AI 에이전트 자동화 플랫폼. Research → Build → Design → Growth → Ops 봇이 파이프라인으로 연결되어 팀 없이 팀처럼 일합니다.
 
-**현재 버전**: v2.9.6 | **플랫폼**: Windows 10/11 x64 | **다운로드**: [yongal74.github.io/oomni](https://yongal74.github.io/oomni/)
+**현재 버전**: v5.1.0 | **플랫폼**: Windows 10/11 x64 | **다운로드**: [yongal74.github.io/oomni](https://yongal74.github.io/oomni/)
 
 ---
 
@@ -155,11 +155,14 @@ oomni/
 
 | 버전 | 주요 변경 |
 |------|-----------|
+| v5.1.0 | CDP ID-Graph Canvas (force-directed 그래프), OpsCenter T1~T7 자동화 카드 + AX Clinic 3-패널 워크플로우 디자이너, Onboarding 스플릿 스크린 재설계, POST /api/ops/chat SSE 엔드포인트, TS 수정 다수 |
+| v4.2.0 | Build Bot 4-Track Harness (Architecture/Bootstrap/Review/Security), Security Gate 자동 스캔 |
+| v4.0.1 | Design Bot 갤러리, CDP 통합, TaskBoard, 기술부채 제거 |
+| v3.2.0 | 랜딩페이지 업데이트, 문서 동기화 |
+| v3.0.2 | v3.0.0 안정화 패치 |
 | v2.9.6 | CEO/Build bot role CHECK 제약 버그 수정, Reports mission_id 쿼리 수정, Schedules agent 존재 검증 추가, Pencil MCP 경로 수정 |
 | v2.9.5 | CEO role DB 마이그레이션, Build Bot exit code 1 수정, 봇간 산출물 전달, Design Bot 수동 전환 |
 | v2.9.3 | Build Bot WebSocket 오류 수정, CEO 봇 추가 실패 수정, Pencil 설치 버튼, Settings Claude API Key |
-| v2.9.2 | XTerminal initialInput, Pencil MCP 상태 뱃지, 세션 초기화 버튼 |
-| v2.9.1 | 소셜 로그인, 미션 인라인 생성, CEO 봇 SSE |
 
 ---
 

@@ -1,5 +1,6 @@
 import { researchExecutor } from './research'
 import { contentExecutor } from './content'
+import { growthExecutor } from './growth'
 import { buildExecutor } from './build'
 import { opsExecutor } from './ops'
 import { ceoExecutor } from './ceo'
@@ -27,6 +28,7 @@ export async function routeToExecutor(ctx: ExecutorContext): Promise<void> {
   switch (role) {
     case 'research': return researchExecutor(ctx)
     case 'content': return contentExecutor(ctx)
+    case 'growth': return growthExecutor(ctx)
     case 'build': return buildExecutor(ctx)
     case 'ops': return opsExecutor(ctx)
     case 'ceo': return ceoExecutor(ctx)

@@ -32,6 +32,23 @@ interface Settings {
   cdp_api_key?: string;
   video_api_key?: string;
   openai_api_key?: string;
+  // v5.2.0 Lead Gen
+  gemini_api_key?: string;
+  ideogram_api_key?: string;
+  n8n_instagram_webhook?: string;
+  n8n_tiktok_webhook?: string;
+  instagram_app_id?: string;
+  instagram_app_secret?: string;
+  youtube_client_id?: string;
+  youtube_client_secret?: string;
+  tiktok_client_key?: string;
+  tiktok_client_secret?: string;
+  x_client_id?: string;
+  x_client_secret?: string;
+  naver_client_id?: string;
+  naver_client_secret?: string;
+  linkedin_client_id?: string;
+  linkedin_client_secret?: string;
 }
 
 // ── 암호화 유틸 ────────────────────────────────────────────
@@ -81,6 +98,14 @@ const SENSITIVE_FIELDS: (keyof Settings)[] = [
   'google_client_secret',
   'cdp_api_key',
   'video_api_key',
+  'gemini_api_key',
+  'ideogram_api_key',
+  'instagram_app_secret',
+  'youtube_client_secret',
+  'tiktok_client_secret',
+  'x_client_secret',
+  'naver_client_secret',
+  'linkedin_client_secret',
 ];
 
 // ── 설정 파일 읽기/쓰기 ─────────────────────────────────────
@@ -173,6 +198,15 @@ export function readSettings(): Settings {
   // Non-sensitive fields — return as-is
   if (raw.preferred_ide) result.preferred_ide = raw.preferred_ide;
   if (raw.obsidian_vault_path) result.obsidian_vault_path = raw.obsidian_vault_path;
+  if (raw.n8n_instagram_webhook) result.n8n_instagram_webhook = raw.n8n_instagram_webhook;
+  if (raw.n8n_tiktok_webhook) result.n8n_tiktok_webhook = raw.n8n_tiktok_webhook;
+  // Non-sensitive SNS IDs
+  if (raw.instagram_app_id) result.instagram_app_id = raw.instagram_app_id;
+  if (raw.youtube_client_id) result.youtube_client_id = raw.youtube_client_id;
+  if (raw.tiktok_client_key) result.tiktok_client_key = raw.tiktok_client_key;
+  if (raw.x_client_id) result.x_client_id = raw.x_client_id;
+  if (raw.naver_client_id) result.naver_client_id = raw.naver_client_id;
+  if (raw.linkedin_client_id) result.linkedin_client_id = raw.linkedin_client_id;
   // CDP / video keys are sensitive but also needed directly
   if (raw.cdp_api_key) result.cdp_api_key = decryptField(raw.cdp_api_key);
   if (raw.video_api_key) result.video_api_key = decryptField(raw.video_api_key);

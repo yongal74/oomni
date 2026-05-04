@@ -18,7 +18,8 @@ const ResearchHub = React.lazy(() => import('./pages/ResearchHub'))
 const GrowthStudio = React.lazy(() => import('./pages/GrowthStudio'))
 const DesignStudio = React.lazy(() => import('./pages/DesignStudio'))
 const OpsCenter = React.lazy(() => import('./pages/OpsCenter'))
-const CDPView   = React.lazy(() => import('./pages/CDPView'))
+const CDPView        = React.lazy(() => import('./pages/CDPView'))
+const SnsSettingsPage = React.lazy(() => import('./pages/SnsSettingsPage'))
 
 // PTY 봇 역할 목록
 const PTY_ROLES = new Set(['build', 'design', 'ops'])
@@ -148,6 +149,7 @@ export const router = createHashRouter([
       { path: 'cost',           element: <PageWrap><CostPage /></PageWrap> },
       { path: 'bots/:id',       element: <ErrorBoundary><BotPageRouter /></ErrorBoundary> },
       { path: 'settings',       element: <PageWrap><SettingsPage /></PageWrap> },
+      { path: 'sns-settings',   element: <PageWrap><React.Suspense fallback={<Loader />}><SnsSettingsPage /></React.Suspense></PageWrap> },
     ],
   },
   {

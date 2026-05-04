@@ -106,6 +106,11 @@ export function initDb(): DbClient {
     { sql: "ALTER TABLE research_items ADD COLUMN source_url TEXT",       label: 'research_items.source_url' },
     { sql: "ALTER TABLE research_items ADD COLUMN next_action TEXT",      label: 'research_items.next_action' },
     { sql: "ALTER TABLE research_items ADD COLUMN converted_output TEXT", label: 'research_items.converted_output' },
+    // v5.2.0 growth_content 확장
+    { sql: "ALTER TABLE growth_content ADD COLUMN video_url TEXT",        label: 'growth_content.video_url' },
+    { sql: "ALTER TABLE growth_content ADD COLUMN segment TEXT",          label: 'growth_content.segment' },
+    { sql: "ALTER TABLE growth_content ADD COLUMN publish_channels TEXT", label: 'growth_content.publish_channels' },
+    { sql: "ALTER TABLE growth_content ADD COLUMN published_at TEXT",     label: 'growth_content.published_at' },
   ];
   for (const patch of columnPatches) {
     try {
@@ -160,13 +165,49 @@ export function initDb(): DbClient {
     try { db.pragma('foreign_keys = ON'); } catch { /* ignore */ }
   }
 
-  // growth → content, integration → ops 역할 마이그레이션
+  // integration → ops 역할 마이그레이션 (growth는 v5.2.0부터 독립 role)
   try {
-    db.exec(`UPDATE agents SET role = 'content' WHERE role = 'growth'`);
     db.exec(`UPDATE agents SET role = 'ops' WHERE role = 'integration'`);
-    logger.info('[DB] growth→content, integration→ops 마이그레이션 완료');
+    logger.info('[DB] integration→ops 마이그레이션 완료');
   } catch {
     // 이미 마이그레이션됐거나 해당 행 없으면 무시
+  }
+
+  // v5.2.0: agents CHECK 제약에 'growth' 없는 경우 → 테이블 재생성
+  try {
+    const agentsSchema = db.prepare(
+      `SELECT sql FROM sqlite_master WHERE type='table' AND name='agents'`
+    ).get() as { sql: string } | undefined;
+    if (agentsSchema?.sql && !agentsSchema.sql.includes("'growth'")) {
+      logger.info('[DB] agents CHECK에 growth 없음 → 테이블 재생성');
+      const _db = db;
+      _db.pragma('foreign_keys = OFF');
+      _db.transaction(() => {
+        _db.exec(`ALTER TABLE agents RENAME TO agents_old_v52`);
+        _db.exec(`CREATE TABLE agents (
+          id TEXT PRIMARY KEY,
+          mission_id TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          role TEXT NOT NULL CHECK(role IN (
+            'research','build','design','content','growth','ops','ceo',
+            'project_setup','env','security_audit','frontend','backend','infra'
+          )),
+          schedule TEXT,
+          system_prompt TEXT,
+          budget_cents INTEGER DEFAULT 0,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          reports_to TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )`);
+        _db.exec(`INSERT INTO agents SELECT * FROM agents_old_v52`);
+        _db.exec(`DROP TABLE agents_old_v52`);
+      })();
+      _db.pragma('foreign_keys = ON');
+      logger.info('[DB] agents 재생성 완료 (growth role 추가)');
+    }
+  } catch (e) {
+    logger.warn('[DB] agents CHECK 수정 건너뜀:', e);
+    try { db.pragma('foreign_keys = ON'); } catch { /* ignore */ }
   }
 
   // CEO 봇 중복 제거 (같은 미션에 CEO가 여러 개인 경우 rowid 기준 첫 번째만 유지)

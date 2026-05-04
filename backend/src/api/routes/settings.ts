@@ -145,5 +145,73 @@ export function settingsRouter(): Router {
     });
   });
 
+  // ── v5.2.0 SNS & AI 설정 ─────────────────────────────────────────────────
+
+  // GET /api/settings/sns-status — Ideogram/Gemini/n8n 상태
+  router.get('/sns-status', (_req: Request, res: Response) => {
+    const s = readSettings();
+    res.json({
+      gemini_configured: !!(s.gemini_api_key),
+      ideogram_configured: !!(s.ideogram_api_key),
+      n8n_instagram_webhook: s.n8n_instagram_webhook ?? null,
+      n8n_tiktok_webhook: s.n8n_tiktok_webhook ?? null,
+      x_configured: !!(s.x_client_id && s.x_client_secret),
+      youtube_configured: !!(s.youtube_client_id && s.youtube_client_secret),
+      linkedin_configured: !!(s.linkedin_client_id && s.linkedin_client_secret),
+      naver_configured: !!(s.naver_client_id && s.naver_client_secret),
+    });
+  });
+
+  // POST /api/settings/ideogram-key — Ideogram API 키 저장
+  router.post('/ideogram-key', (req: Request, res: Response) => {
+    const { key } = req.body as { key?: string };
+    if (!key || key.length < 8) {
+      res.status(400).json({ error: 'Ideogram API 키를 입력하세요' });
+      return;
+    }
+    saveSettings({ ideogram_api_key: key });
+    res.json({ success: true, message: 'Ideogram API 키가 저장되었습니다' });
+  });
+
+  // POST /api/settings/gemini-key — Gemini(Veo) API 키 저장
+  router.post('/gemini-key', (req: Request, res: Response) => {
+    const { key } = req.body as { key?: string };
+    if (!key || key.length < 8) {
+      res.status(400).json({ error: 'Gemini API 키를 입력하세요' });
+      return;
+    }
+    saveSettings({ gemini_api_key: key });
+    res.json({ success: true, message: 'Gemini(Veo) API 키가 저장되었습니다' });
+  });
+
+  // POST /api/settings/n8n-webhooks — n8n 웹훅 URL 저장
+  router.post('/n8n-webhooks', (req: Request, res: Response) => {
+    const { instagram, tiktok } = req.body as { instagram?: string; tiktok?: string };
+    saveSettings({
+      n8n_instagram_webhook: instagram ?? undefined,
+      n8n_tiktok_webhook: tiktok ?? undefined,
+    });
+    res.json({ success: true, message: 'n8n 웹훅 URL이 저장되었습니다' });
+  });
+
+  // POST /api/settings/sns-oauth — SNS OAuth 자격증명 저장
+  router.post('/sns-oauth', (req: Request, res: Response) => {
+    const body = req.body as Record<string, string | undefined>;
+    const updates: Record<string, string | undefined> = {};
+    const fields = [
+      'x_client_id', 'x_client_secret',
+      'youtube_client_id', 'youtube_client_secret',
+      'linkedin_client_id', 'linkedin_client_secret',
+      'naver_client_id', 'naver_client_secret',
+      'instagram_app_id', 'instagram_app_secret',
+      'tiktok_client_key', 'tiktok_client_secret',
+    ];
+    for (const f of fields) {
+      if (body[f] !== undefined) updates[f] = body[f] || undefined;
+    }
+    saveSettings(updates);
+    res.json({ success: true, message: 'SNS OAuth 자격증명이 저장되었습니다' });
+  });
+
   return router;
 }

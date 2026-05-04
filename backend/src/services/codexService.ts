@@ -25,6 +25,7 @@ export async function executeCodex(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let OpenAI: any;
   try {
+    // @ts-expect-error openai is optional peer dependency
     OpenAI = (await import('openai')).default;
   } catch {
     throw new Error('openai 패키지가 설치되지 않았습니다. npm install openai 를 실행하세요.');

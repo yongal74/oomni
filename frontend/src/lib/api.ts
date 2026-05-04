@@ -178,6 +178,17 @@ export const settingsApi = {
     api.post('/api/settings/google-oauth', { client_id, client_secret }).then(r => r.data),
   getGoogleOAuth: (): Promise<{ configured: boolean; client_id_masked: string | null }> =>
     api.get('/api/settings/google-oauth').then(r => r.data),
+  // v5.2.0 SNS & AI
+  getSnsStatus: (): Promise<SnsStatus> =>
+    api.get<SnsStatus>('/api/settings/sns-status').then(r => r.data),
+  setIdeogramKey: (key: string): Promise<{ success: boolean; message: string }> =>
+    api.post('/api/settings/ideogram-key', { key }).then(r => r.data),
+  setGeminiKey: (key: string): Promise<{ success: boolean; message: string }> =>
+    api.post('/api/settings/gemini-key', { key }).then(r => r.data),
+  setN8nWebhooks: (data: { instagram?: string; tiktok?: string }): Promise<{ success: boolean }> =>
+    api.post('/api/settings/n8n-webhooks', data).then(r => r.data),
+  setSnsOAuth: (data: Record<string, string | undefined>): Promise<{ success: boolean }> =>
+    api.post('/api/settings/sns-oauth', data).then(r => r.data),
 }
 
 // 통합 연동 설정
@@ -466,6 +477,96 @@ export interface BuildTodo {
   status: 'todo' | 'in_progress' | 'done'
   priority: 'low' | 'medium' | 'high'
   created_at: string
+}
+
+// ── Growth API ────────────────────────────────────────────────────────────────
+
+export interface GrowthContent {
+  id: string
+  mission_id: string
+  channel: string
+  content: string
+  image_url: string | null
+  video_url: string | null
+  segment: string | null
+  status: string
+  created_at: string
+}
+
+export interface LeadRow {
+  id: string
+  mission_id: string
+  profile_id: string | null
+  score: number
+  tier: 'hot' | 'nurture' | 'cold'
+  signals: string
+  last_signal_at: string
+  created_at: string
+  updated_at: string
+}
+
+export interface LeadStats {
+  hot: number
+  nurture: number
+  cold: number
+  total: number
+  avgScore: number
+}
+
+export interface SnsStatus {
+  gemini_configured: boolean
+  ideogram_configured: boolean
+  n8n_instagram_webhook: string | null
+  n8n_tiktok_webhook: string | null
+  x_configured: boolean
+  youtube_configured: boolean
+  linkedin_configured: boolean
+  naver_configured: boolean
+}
+
+export const growthApi = {
+  ingest: (data: { url?: string; name?: string; description?: string; image_urls?: string[] }) =>
+    api.post<ApiResponse<unknown>>('/api/growth/ingest', data).then(r => r.data.data),
+
+  generate: (data: {
+    mission_id: string
+    channel: string
+    seed_content: string
+    tone?: string
+    segment?: string
+    with_image?: boolean
+    with_video?: boolean
+  }) => api.post<ApiResponse<GrowthContent>>('/api/growth/generate', data).then(r => r.data.data),
+
+  listContent: (missionId: string, channel?: string, segment?: string) =>
+    api.get<ApiResponse<GrowthContent[]>>('/api/growth/content', {
+      params: { mission_id: missionId, channel, segment },
+    }).then(r => r.data.data),
+
+  publish: (data: {
+    content_id: string
+    mission_id: string
+    platforms: string[]
+    schedule_at?: string | null
+  }) => api.post<ApiResponse<unknown>>('/api/growth/publish', data).then(r => r.data.data),
+
+  recordSignal: (data: {
+    mission_id: string
+    profile_id?: string | null
+    signal: string
+    score?: number
+  }) => api.post<ApiResponse<LeadRow>>('/api/growth/lead/signal', data).then(r => r.data.data),
+
+  getLeads: (missionId: string, tier?: 'hot' | 'nurture' | 'cold') =>
+    api.get<ApiResponse<{ leads: LeadRow[]; stats: LeadStats }>>('/api/growth/leads', {
+      params: { mission_id: missionId, tier },
+    }).then(r => r.data.data),
+
+  trigger: (missionId: string, reason?: string) =>
+    api.post<ApiResponse<unknown>>('/api/growth/trigger', { mission_id: missionId, reason }).then(r => r.data.data),
+
+  status: () =>
+    api.get<ApiResponse<{ gemini_configured: boolean; active_triggers: string[] }>>('/api/growth/status').then(r => r.data.data),
 }
 
 export const buildTodosApi = {
