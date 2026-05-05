@@ -568,20 +568,64 @@ export default function StudioBotPage() {
                   ))}
                 </div>
               ) : !isRunning ? (
-                <div className="h-full flex flex-col items-center justify-center gap-3 text-center">
-                  <Image size={36} className="text-border" />
-                  <p className="text-muted text-[13px]">그래픽 이미지 생성 결과가 여기에 표시됩니다</p>
-                  <p className="text-muted/60 text-[11px]">
-                    {ideogramKeySet ? '왼쪽 카테고리를 선택하거나 채팅에서 직접 설명하세요' : 'Settings → Ideogram API 키를 입력하면 이미지를 생성할 수 있습니다'}
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2 justify-center">
-                    {['인스타 제품 광고 배너', 'YouTube 썸네일 — 강의 커버', 'TikTok 세로 영상 커버', '마케팅 이벤트 배너'].map(ex => (
-                      <button key={ex}
-                        onClick={() => { setInput(ex); setChatOpen(true) }}
-                        className="px-3 py-1.5 bg-surface border border-border rounded-lg text-[11px] text-muted hover:text-text hover:border-pink-500/40 transition-colors">
-                        {ex}
-                      </button>
-                    ))}
+                <div className="h-full overflow-y-auto p-5">
+                  {/* Canva 메인 카드 */}
+                  <div className="mb-5 p-5 bg-[#1a1a2e] border border-purple-500/30 rounded-2xl">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-9 h-9 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0">
+                        <ExternalLink size={16} className="text-purple-400" />
+                      </div>
+                      <div>
+                        <p className="text-[14px] font-semibold text-text">Canva로 디자인하기</p>
+                        <p className="text-[11px] text-muted">전문 템플릿으로 빠르게 제작</p>
+                      </div>
+                      <a
+                        href="https://www.canva.com"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="ml-auto px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-[12px] font-medium transition-colors"
+                      >
+                        Canva 열기
+                      </a>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: '인스타 카드뉴스', url: 'https://www.canva.com/create/instagram-posts/' },
+                        { label: 'YouTube 썸네일', url: 'https://www.canva.com/create/youtube-thumbnails/' },
+                        { label: 'TikTok 커버', url: 'https://www.canva.com/create/tiktok-videos/' },
+                        { label: '마케팅 배너', url: 'https://www.canva.com/create/banners/' },
+                        { label: '피치덱 슬라이드', url: 'https://www.canva.com/create/presentations/' },
+                        { label: '브랜드 로고', url: 'https://www.canva.com/create/logos/' },
+                      ].map(item => (
+                        <a
+                          key={item.label}
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-2 bg-purple-500/10 border border-purple-500/20 rounded-xl text-[11px] text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/40 transition-colors"
+                        >
+                          <ExternalLink size={10} className="shrink-0" />
+                          {item.label}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* AI 이미지 생성 (보조) */}
+                  <div className="p-4 bg-surface border border-border rounded-xl">
+                    <p className="text-[11px] font-semibold text-muted mb-2">AI 이미지 생성 (Ideogram)</p>
+                    <p className="text-[10px] text-muted/60 mb-3">
+                      {ideogramKeySet ? '아래 채팅에서 원하는 이미지를 설명하세요' : 'Settings → Ideogram API 키 입력 후 사용 가능'}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {['인스타 제품 광고 배너', 'YouTube 썸네일 — 강의 커버', 'TikTok 세로 영상 커버', '마케팅 이벤트 배너'].map(ex => (
+                        <button key={ex}
+                          onClick={() => { setInput(ex); setChatOpen(true) }}
+                          className="px-3 py-1.5 bg-surface border border-border rounded-lg text-[11px] text-muted hover:text-text hover:border-pink-500/40 transition-colors">
+                          {ex}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ) : null}
@@ -606,17 +650,17 @@ export default function StudioBotPage() {
         </div>
       </div>
 
-      {/* ── 플로팅 채팅 (Cursor 스타일) ─────────────────────────────── */}
+      {/* ── 플로팅 채팅 (Cursor 스타일 — 작업영역 중앙) ─────────────── */}
       {chatOpen && (
         <div className={cn(
-          'absolute bottom-4 left-1/2 -translate-x-1/2 bg-surface border border-border rounded-2xl shadow-2xl shadow-black/40 flex flex-col transition-all z-30',
-          chatExpanded ? 'w-[700px] h-[500px]' : 'w-[600px] h-[280px]'
+          'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface border border-border rounded-2xl shadow-2xl shadow-black/40 flex flex-col transition-all z-30',
+          chatExpanded ? 'w-[640px] h-[380px]' : 'w-[560px] h-[200px]'
         )}>
           {/* 채팅 헤더 */}
-          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border shrink-0">
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-border shrink-0">
             <Bot size={13} className="text-primary" />
             <span className="text-[12px] font-medium text-text flex-1">
-              {mode === 'ui-proto' ? 'UI 프로토타입 생성' : mode === 'graphic' ? '그래픽 이미지 생성' : '코드 빌드 생성'}
+              {mode === 'ui-proto' ? 'UI 프로토타입 생성' : mode === 'graphic' ? 'Canva / 그래픽 생성' : '코드 빌드 생성'}
             </span>
             {isRunning && <Loader2 size={12} className="animate-spin text-primary" />}
             <button onClick={() => { setMsgs([]); setStreamOutput(''); setIframeHtml(''); setGraphicResults([]); setGraphicStatus('') }}
@@ -632,16 +676,8 @@ export default function StudioBotPage() {
           </div>
 
           {/* 메시지 영역 */}
-          <div className="flex-1 overflow-y-auto px-4 py-3 min-h-0">
-            {msgs.length === 0 ? (
-              <div className="h-full flex items-center justify-center">
-                <p className="text-[11px] text-muted/60 text-center">
-                  {'무엇을 만들고 싶으신가요?'}
-                </p>
-              </div>
-            ) : (
-              msgs.map(msg => <ChatBubble key={msg.id} msg={msg} />)
-            )}
+          <div className="flex-1 overflow-y-auto px-4 py-2 min-h-0">
+            {msgs.map(msg => <ChatBubble key={msg.id} msg={msg} />)}
             <div ref={messagesEndRef} />
           </div>
 

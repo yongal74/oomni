@@ -10,7 +10,6 @@ const DashboardPage = React.lazy(() => import('./pages/DashboardPage'))
 const ApprovalPage = React.lazy(() => import('./pages/ApprovalPage'))
 const CostPage = React.lazy(() => import('./pages/CostPage'))
 const UnifiedBotPage = React.lazy(() => import('./pages/UnifiedBotPage'))
-const PtyBotPage = React.lazy(() => import('./pages/PtyBotPage'))
 const PinPage = React.lazy(() => import('./pages/PinPage'))
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'))
 const MissionBoard = React.lazy(() => import('./pages/MissionBoard').then(m => ({ default: m.MissionBoard })))
@@ -20,11 +19,10 @@ const OpsCenter = React.lazy(() => import('./pages/OpsCenter'))
 const CDPView        = React.lazy(() => import('./pages/CDPView'))
 const SnsSettingsPage = React.lazy(() => import('./pages/SnsSettingsPage'))
 
-// PTY 봇 역할 목록
-const PTY_ROLES = new Set(['build', 'design', 'ops'])
-
-// 봇 역할에 따라 UnifiedBotPage 또는 PtyBotPage로 분기
-// key={id}로 봇 이동 시 컴포넌트 remount — 상태 초기화
+// 봇 역할에 따라 페이지 분기
+// - design/build → StudioBotPage로 통합
+// - ops → OpsCenter로 통합
+// - ceo → 대시보드로 리다이렉트 (제거)
 function BotPageRouter() {
   const { id } = useParams<{ id: string }>()
 
@@ -42,12 +40,15 @@ function BotPageRouter() {
     return <div className="p-8 text-base text-muted">봇을 찾을 수 없습니다</div>
   }
 
-  if (PTY_ROLES.has(agent.role)) {
-    return (
-      <React.Suspense fallback={<Loader />}>
-        <PtyBotPage key={id} />
-      </React.Suspense>
-    )
+  // 구버전 봇 → 신규 페이지로 리다이렉트
+  if (agent.role === 'design' || agent.role === 'build') {
+    return <Navigate to="/dashboard/design-studio" replace />
+  }
+  if (agent.role === 'ops') {
+    return <Navigate to="/dashboard/ops" replace />
+  }
+  if (agent.role === 'ceo') {
+    return <Navigate to="/dashboard" replace />
   }
 
   return (

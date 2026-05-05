@@ -928,7 +928,7 @@ export default function UnifiedBotPage() {
         centerContent={centerContent}
         rightChildren={rightChildren}
         rightTopSection={role === 'content' ? <ContentExportPanel agentId={agent.id} /> : undefined}
-        noTerminal={role === 'content'}
+        noTerminal={role === 'content' || role === 'research'}
         selectedModel={selectedModel}
         selectedMode={selectedMode}
         botRole={agent.role}

@@ -47,7 +47,7 @@ const NAV_ITEMS: NavIconItem[] = [
   { to: '/dashboard',                 icon: LayoutDashboard, label: '대시보드',     end: true },
   { to: '/dashboard/board',           icon: CheckSquare,     label: 'Mission Board' },
 { to: '/dashboard/growth',          icon: Rocket,          label: 'Growth Studio' },
-  { to: '/dashboard/design-studio',   icon: Palette,         label: 'Design Studio' },
+  { to: '/dashboard/design-studio',   icon: Palette,         label: 'Studio Bot' },
   { to: '/dashboard/ops',             icon: Workflow,        label: 'Ops Center' },
   { to: '/dashboard/cdp',            icon: Database,        label: 'CDP 뷰' },
   { to: '/dashboard/approvals',       icon: Bell,            label: '승인 인박스',  badge: true },
@@ -142,10 +142,10 @@ function BotSubPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
-        {agents.length > 0 && (
+        {agents.filter(a => !['ceo', 'design', 'build'].includes(a.role)).length > 0 && (
           <p className="text-[10px] text-[#52525b] uppercase tracking-widest px-2 pt-1 pb-0.5">팀 봇</p>
         )}
-        {agents.map(agent => {
+        {agents.filter(a => !['ceo', 'design', 'build'].includes(a.role)).map(agent => {
           const Icon  = BOT_ICON[agent.role]  ?? Settings2
           const color = BOT_COLOR[agent.role] ?? 'text-[#71717a]'
           return (
@@ -261,8 +261,8 @@ export function AppLayout() {
           </span>
         </div>
 
-        {/* 봇별 아이콘 (최대 6개 직접 노출) */}
-        {agents.slice(0, 6).map(agent => {
+        {/* 봇별 아이콘 (최대 6개 직접 노출, CEO·구버전 디자인/빌드 제외) */}
+        {agents.filter(a => !['ceo', 'design', 'build'].includes(a.role)).slice(0, 6).map(agent => {
           const Icon  = BOT_ICON[agent.role]  ?? Settings2
           const color = BOT_COLOR[agent.role] ?? 'text-[#666]'
           return (
@@ -276,10 +276,10 @@ export function AppLayout() {
           )
         })}
 
-        {agents.length > 6 && (
+        {agents.filter(a => !['ceo', 'design', 'build'].includes(a.role)).length > 6 && (
           <IconBtn
             icon={Plus}
-            label={`봇 더 보기 (${agents.length - 6}개)`}
+            label={`봇 더 보기 (${agents.filter(a => !['ceo', 'design', 'build'].includes(a.role)).length - 6}개)`}
             onClick={() => setBotPanelOpen(true)}
           />
         )}
