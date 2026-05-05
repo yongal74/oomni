@@ -1,16 +1,14 @@
 /**
- * OpsCenter.tsx — 자동화 지원 센터 v5.4.0
- * AX Clinic 스타일: Left(도메인별 프로세스) | Center(단계별 액션 카드) | Right(AI채팅 + n8n)
- * T1~T7 분류는 각 프로세스의 태그로 표시
+ * OpsCenter.tsx — 자동화 지원 센터 v5.5.0
+ * AX Clinic 스타일: Left(프로세스 카드) | Center(시나리오+STEP 가이드) | Right(AI채팅)
  */
 import {
   useState, useRef, useEffect, useCallback,
 } from 'react'
 import {
-  Workflow, Zap,
+  Workflow, Zap, Check, Play,
   MessageSquare, Send, RefreshCw,
-  ChevronRight, Copy, CheckCheck, Download,
-  CheckSquare, Square, ChevronDown, ChevronUp,
+  ChevronRight, ChevronDown, Copy, CheckCheck, Download,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useAppStore } from '../store/app.store'
@@ -234,6 +232,13 @@ const PROCESSES: AutoProcess[] = [
 
 const DOMAINS = ['재무', '세무', '인사', 'IT', '운영', '법률']
 
+const QUICK_PROMPTS = [
+  '카카오 주문을 구글 시트에 자동 기록하고 싶어요',
+  '매일 아침 매출 현황을 Slack으로 받고 싶어요',
+  '이메일 이력서를 노션 DB에 자동 정리하고 싶어요',
+  '지출 결의 Slack 승인 자동화를 만들어주세요',
+]
+
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function parseWorkflowFromText(text: string): { name: string; json: string } | null {
@@ -248,9 +253,50 @@ function parseWorkflowFromText(text: string): { name: string; json: string } | n
   }
 }
 
-// ─── sub-components ────────────────────────────────────────────────────────────
-
 interface ChatMessage { role: 'user' | 'assistant'; content: string }
+
+// ─── StepItem (AX Clinic 스타일) ─────────────────────────────────────────────
+
+function StepItem({ index, text, desc, done, onToggle }: {
+  index: number; text: string; desc: string; done: boolean; onToggle: () => void
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      className={cn(
+        'w-full flex items-start gap-3.5 text-left rounded-xl px-4 py-3.5 transition-all border-2',
+        done
+          ? 'bg-emerald-500/8 border-emerald-500/25'
+          : 'bg-white/2 border-white/8 hover:bg-white/5 hover:border-indigo-500/25'
+      )}
+    >
+      <div className={cn(
+        'flex-shrink-0 h-7 w-7 rounded-full border-2 flex items-center justify-center transition-all mt-0.5',
+        done ? 'bg-emerald-500 border-emerald-500' : 'border-indigo-500/40 bg-indigo-500/10'
+      )}>
+        {done
+          ? <Check className="h-3.5 w-3.5 text-white" />
+          : <span className="text-xs text-indigo-300 font-black">{index + 1}</span>
+        }
+      </div>
+      <div className="flex-1 min-w-0">
+        <span className={cn(
+          'text-sm leading-relaxed block',
+          done ? 'text-slate-500 line-through' : 'text-slate-200'
+        )}>
+          {text}
+        </span>
+        {desc && (
+          <p className={cn('text-xs mt-0.5 leading-relaxed', done ? 'text-slate-600' : 'text-[#71717a]')}>
+            {desc}
+          </p>
+        )}
+      </div>
+    </button>
+  )
+}
+
+// ─── GuideMd ──────────────────────────────────────────────────────────────────
 
 function GuideMd({ text, compact = false }: { text: string; compact?: boolean }) {
   const lines = text.split('\n')
@@ -275,6 +321,8 @@ function GuideMd({ text, compact = false }: { text: string; compact?: boolean })
   )
 }
 
+// ─── ChatBubble ───────────────────────────────────────────────────────────────
+
 function ChatBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user'
   return (
@@ -297,27 +345,18 @@ function ChatBubble({ message }: { message: ChatMessage }) {
   )
 }
 
-const QUICK_PROMPTS = [
-  '카카오 주문을 구글 시트에 자동 기록하고 싶어요',
-  '매일 아침 매출 현황을 Slack으로 받고 싶어요',
-  '이메일 이력서를 노션 DB에 자동 정리하고 싶어요',
-  '지출 결의 Slack 승인 자동화를 만들어주세요',
-]
-
 // ─── OpsCenter ────────────────────────────────────────────────────────────────
 
 export default function OpsCenter() {
   const { currentMission } = useAppStore()
   const currentMissionId = currentMission?.id
 
-  // 선택 상태
   const [selectedProcess, setSelectedProcess] = useState<AutoProcess | null>(null)
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set())
-  const [expandedDomains, setExpandedDomains] = useState<Set<string>>(new Set(['재무', '운영']))
+  const [showScenarios, setShowScenarios] = useState(true)
 
-  // 채팅 상태
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', content: '안녕하세요! 왼쪽에서 자동화할 업무를 선택하거나, 자동화하고 싶은 업무를 직접 설명해주세요.\n\nn8n 워크플로우 JSON을 생성해드립니다.' },
+    { role: 'assistant', content: '자동화할 업무 프로세스를 왼쪽에서 선택하거나, 원하는 자동화를 직접 설명해주세요.\n\nn8n 워크플로우 JSON을 생성해드립니다.' },
   ])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
@@ -447,14 +486,6 @@ export default function OpsCenter() {
     })
   }
 
-  const toggleDomain = (domain: string) => {
-    setExpandedDomains(prev => {
-      const next = new Set(prev)
-      if (next.has(domain)) next.delete(domain); else next.add(domain)
-      return next
-    })
-  }
-
   const selectProcess = (process: AutoProcess) => {
     setSelectedProcess(process)
     setCheckedSteps(new Set())
@@ -485,199 +516,181 @@ export default function OpsCenter() {
       {/* ── 3-panel 본문 ──────────────────────────────────────────────── */}
       <div className="flex flex-1 min-h-0">
 
-        {/* ── Left: 도메인별 프로세스 목록 ─────────────────────────────── */}
-        <div className="w-[240px] shrink-0 border-r border-[#1c1c20] flex flex-col overflow-y-auto">
-          <div className="px-3 py-2.5 border-b border-[#1c1c20] shrink-0">
-            <p className="text-[10px] font-semibold text-[#52525b] uppercase tracking-widest">자동화 프로세스</p>
+        {/* ── Left: 프로세스 카드 목록 (AX Clinic 추천 카드 스타일) ─── */}
+        <aside className="w-[260px] flex-shrink-0 border-r border-[#1c1c20] bg-[#0a0a10] flex flex-col overflow-hidden">
+          <div className="px-3 pt-3 pb-2 border-b border-white/6 shrink-0">
+            <p className="text-[10px] font-bold text-[#52525b] uppercase tracking-widest">자동화 프로세스</p>
           </div>
 
-          <div className="flex-1 overflow-y-auto py-1">
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-5">
             {DOMAINS.map(domain => {
               const domainProcesses = PROCESSES.filter(p => p.domain === domain)
-              const isExpanded = expandedDomains.has(domain)
               return (
                 <div key={domain}>
-                  {/* 도메인 헤더 */}
-                  <button
-                    onClick={() => toggleDomain(domain)}
-                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-[#111113] transition-colors group"
-                  >
-                    <span className="text-[11px] font-semibold text-[#a1a1aa] group-hover:text-[#e4e4e7] flex-1 text-left">
-                      {domain}
-                    </span>
-                    <span className="text-[9px] text-[#52525b] mr-1">{domainProcesses.length}</span>
-                    {isExpanded
-                      ? <ChevronUp size={11} className="text-[#52525b] shrink-0" />
-                      : <ChevronDown size={11} className="text-[#52525b] shrink-0" />}
-                  </button>
-
-                  {/* 프로세스 목록 */}
-                  {isExpanded && (
-                    <div className="pb-1">
-                      {domainProcesses.map(process => {
-                        const isSelected = selectedProcess?.id === process.id
-                        const tColor = T_COLOR[process.tCode] ?? '#888'
-                        return (
-                          <button
-                            key={process.id}
-                            onClick={() => selectProcess(process)}
-                            className={cn(
-                              'w-full text-left px-3 py-2 border-l-2 transition-all group',
-                              isSelected
-                                ? 'border-l-yellow-500 bg-yellow-500/8'
-                                : 'border-l-transparent hover:border-l-[#27272a] hover:bg-[#111113]'
-                            )}
-                          >
-                            <div className="flex items-start gap-2">
-                              <span
-                                className="text-[9px] font-bold px-1 py-0.5 rounded shrink-0 mt-0.5"
-                                style={{ color: tColor, background: `${tColor}20` }}
-                              >
-                                {process.tCode}
-                              </span>
-                              <div className="flex-1 min-w-0">
-                                <p className={cn(
-                                  'text-[11px] leading-snug',
-                                  isSelected ? 'text-yellow-300 font-medium' : 'text-[#a1a1aa] group-hover:text-[#e4e4e7]'
-                                )}>
-                                  {process.title}
-                                </p>
-                                <p className="text-[9px] text-[#52525b] mt-0.5 leading-snug">{process.desc}</p>
-                              </div>
-                              {isSelected && <ChevronRight size={11} className="text-yellow-400 shrink-0 mt-1" />}
-                            </div>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
+                  {/* 도메인 레이블 */}
+                  <p className="text-[10px] font-semibold text-[#52525b] uppercase tracking-widest mb-2 px-1">
+                    {domain}
+                  </p>
+                  <div className="space-y-1.5">
+                    {domainProcesses.map(process => {
+                      const isSelected = selectedProcess?.id === process.id
+                      const tColor = T_COLOR[process.tCode] ?? '#888'
+                      return (
+                        <button
+                          key={process.id}
+                          onClick={() => selectProcess(process)}
+                          className={cn(
+                            'w-full text-left rounded-xl px-3 py-3 transition-all border-2 text-xs',
+                            isSelected
+                              ? 'bg-indigo-500/15 border-indigo-500/50 shadow-md shadow-indigo-500/10'
+                              : 'bg-white/3 border-white/8 hover:bg-white/6 hover:border-white/15'
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <span className={cn(
+                              'font-bold leading-tight text-xs',
+                              isSelected ? 'text-white' : 'text-slate-300'
+                            )}>
+                              {process.title}
+                            </span>
+                            <ChevronRight className={cn(
+                              'h-3.5 w-3.5 flex-shrink-0 mt-0.5 transition-transform',
+                              isSelected ? 'rotate-90 text-indigo-400' : 'text-slate-600'
+                            )} />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                              style={{ color: tColor, background: `${tColor}20` }}
+                            >
+                              {process.tCode}
+                            </span>
+                            <span className={cn('text-[9px]', isSelected ? 'text-indigo-300' : 'text-slate-600')}>
+                              {process.steps.length}단계
+                            </span>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               )
             })}
           </div>
-        </div>
+        </aside>
 
-        {/* ── Center: 단계별 액션 카드 ─────────────────────────────────── */}
+        {/* ── Center: 시나리오 + STEP 가이드 ──────────────────────────── */}
         <div className="flex-1 flex flex-col border-r border-[#1c1c20] min-w-0">
-          {!selectedProcess ? (
-            /* 빈 상태 */
-            <div className="flex flex-col items-center justify-center h-full gap-4 text-[#3f3f46] p-8">
-              <Workflow size={40} />
-              <div className="text-center">
-                <p className="text-sm text-[#71717a] mb-1">왼쪽에서 자동화 프로세스를 선택하세요</p>
-                <p className="text-[11px] text-[#3f3f46]">도메인별로 대표적인 자동화 프로세스가 정리되어 있습니다</p>
+
+          {/* 빠른 시작 시나리오 아코디언 (TOP) */}
+          <div className="shrink-0 border-b border-[#1c1c20]">
+            <button
+              onClick={() => setShowScenarios(v => !v)}
+              className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-white/2 transition-colors group"
+            >
+              <div className="h-5 w-5 rounded-md bg-amber-500/15 border border-amber-500/25 flex items-center justify-center">
+                <Zap size={11} className="text-amber-400" />
               </div>
-              {/* 빠른 시작 예시 */}
-              <div className="mt-4 grid grid-cols-2 gap-2 w-full max-w-lg">
+              <span className="text-[11px] font-semibold text-[#a1a1aa] group-hover:text-[#e4e4e7]">
+                빠른 시작 시나리오
+              </span>
+              <ChevronDown size={12} className={cn(
+                'ml-auto text-[#52525b] transition-transform duration-200',
+                showScenarios && 'rotate-180'
+              )} />
+            </button>
+            {showScenarios && (
+              <div className="px-4 pb-3 grid grid-cols-2 gap-1.5">
                 {QUICK_PROMPTS.map(qp => (
                   <button
                     key={qp}
                     onClick={() => { setInput(qp); inputRef.current?.focus() }}
-                    className="text-left text-[10px] text-[#52525b] bg-[#111113] border border-[#1c1c20] rounded-xl px-3 py-2.5 hover:border-indigo-500/40 hover:text-[#a1a1aa] transition-colors leading-relaxed"
+                    className="text-left text-[10px] text-[#52525b] bg-[#111113] border border-[#1c1c20] rounded-lg px-2.5 py-2 hover:border-amber-500/30 hover:text-[#a1a1aa] transition-colors leading-relaxed"
                   >
                     {qp}
                   </button>
                 ))}
               </div>
-            </div>
-          ) : (
-            /* 선택된 프로세스 단계 카드 */
-            <div className="flex flex-col h-full">
-              {/* 프로세스 헤더 */}
-              <div className="px-5 py-3 border-b border-[#1c1c20] shrink-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span
-                    className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                    style={{ color: T_COLOR[selectedProcess.tCode], background: `${T_COLOR[selectedProcess.tCode]}20` }}
-                  >
-                    {selectedProcess.tCode}
-                  </span>
-                  <span className="text-[10px] text-[#52525b] bg-[#111113] border border-[#27272a] px-1.5 py-0.5 rounded">
-                    {selectedProcess.domain}
-                  </span>
-                  <span className="ml-auto text-[10px] text-[#52525b]">
-                    {checkedSteps.size}/{selectedProcess.steps.length} 완료
-                  </span>
+            )}
+          </div>
+
+          {/* STEP 가이드 영역 */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {!selectedProcess ? (
+              <div className="flex flex-col items-center justify-center h-full gap-3 text-[#3f3f46]">
+                <Workflow size={36} strokeWidth={1.5} />
+                <div className="text-center">
+                  <p className="text-sm text-[#71717a] mb-1">왼쪽에서 자동화 프로세스를 선택하세요</p>
+                  <p className="text-[11px] text-[#3f3f46]">단계별 구현 가이드를 확인할 수 있습니다</p>
                 </div>
-                <p className="text-[14px] font-semibold text-[#e4e4e7]">{selectedProcess.title}</p>
-                <p className="text-[11px] text-[#71717a] mt-0.5">{selectedProcess.desc}</p>
               </div>
+            ) : (
+              /* AX Clinic 스타일 STEP 카드 */
+              <div className="rounded-2xl border-2 border-indigo-500/30 bg-indigo-500/4 overflow-hidden">
 
-              {/* 단계 카드 */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {selectedProcess.steps.map((step, idx) => {
-                  const done = checkedSteps.has(idx)
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => toggleStep(idx)}
-                      className={cn(
-                        'w-full flex items-start gap-3 p-4 rounded-xl border text-left transition-all group',
-                        done
-                          ? 'border-green-500/30 bg-green-500/5'
-                          : 'border-[#1c1c20] bg-[#111113] hover:border-[#27272a]'
-                      )}
-                    >
-                      <div className={cn(
-                        'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 transition-colors',
-                        done
-                          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                          : 'bg-[#1c1c20] text-[#52525b] border border-[#27272a] group-hover:border-indigo-500/40 group-hover:text-indigo-400'
-                      )}>
-                        {done ? <CheckSquare size={13} /> : idx + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={cn('text-sm font-semibold mb-0.5', done ? 'text-green-400 line-through' : 'text-[#e4e4e7]')}>
-                          {step.title}
-                        </p>
-                        <p className="text-[11px] text-[#71717a] leading-relaxed">{step.desc}</p>
-                      </div>
-                      <div className={cn('text-[#3f3f46] shrink-0 mt-1', done ? 'text-green-500' : 'group-hover:text-indigo-400')}>
-                        {done ? <CheckCheck size={13} /> : <Square size={13} />}
-                      </div>
-                    </button>
-                  )
-                })}
-
-                {checkedSteps.size === selectedProcess.steps.length && selectedProcess.steps.length > 0 && (
-                  <div className="text-center py-4 text-green-400 text-sm font-medium border border-green-500/20 rounded-xl bg-green-500/5">
-                    ✓ 모든 단계 완료! 오른쪽 AI 채팅에서 n8n JSON을 생성해보세요.
+                {/* 카드 헤더 */}
+                <div className="flex items-center gap-3 px-4 py-3.5 border-b border-indigo-500/20 bg-indigo-500/8">
+                  <div className="h-8 w-8 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                    <Play className="h-4 w-4 text-indigo-400" />
                   </div>
-                )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">STEP 가이드</span>
+                      <span
+                        className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                        style={{ color: T_COLOR[selectedProcess.tCode], background: `${T_COLOR[selectedProcess.tCode]}20` }}
+                      >
+                        {selectedProcess.tCode}
+                      </span>
+                      <span className="text-[9px] text-[#52525b] bg-[#111113] border border-[#27272a] px-1.5 py-0.5 rounded">
+                        {selectedProcess.domain}
+                      </span>
+                    </div>
+                    <p className="text-sm font-bold text-white leading-tight">{selectedProcess.title}</p>
+                    <p className="text-[11px] text-[#71717a] mt-0.5 leading-snug">{selectedProcess.desc}</p>
+                  </div>
+                  <div className="text-xs text-indigo-400 font-semibold shrink-0">
+                    {checkedSteps.size}/{selectedProcess.steps.length}
+                  </div>
+                </div>
+
+                {/* 단계 목록 */}
+                <div className="p-4 space-y-2.5">
+                  {selectedProcess.steps.map((step, idx) => (
+                    <StepItem
+                      key={idx}
+                      index={idx}
+                      text={step.title}
+                      desc={step.desc}
+                      done={checkedSteps.has(idx)}
+                      onToggle={() => toggleStep(idx)}
+                    />
+                  ))}
+
+                  {checkedSteps.size === selectedProcess.steps.length && selectedProcess.steps.length > 0 && (
+                    <div className="mt-1 text-center py-3.5 text-emerald-400 text-sm font-medium border-2 border-emerald-500/25 rounded-xl bg-emerald-500/8">
+                      ✓ 모든 단계 완료! 오른쪽 AI 채팅에서 n8n JSON을 생성해보세요.
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* ── Right: AI 채팅 + n8n ─────────────────────────────────────── */}
-        <div className="w-[300px] shrink-0 flex flex-col">
-          <div className="px-4 py-2.5 border-b border-[#1c1c20] flex items-center gap-1.5 text-[10px] font-semibold text-[#52525b] uppercase tracking-widest shrink-0">
-            <MessageSquare size={10} className="text-purple-400" />
-            AI 자동화 설계
+        {/* ── Right: AI 채팅 ────────────────────────────────────────────── */}
+        <div className="w-[300px] shrink-0 flex flex-col bg-[#0a0a10]">
+
+          {/* 채팅 헤더 */}
+          <div className="px-4 py-2.5 border-b border-[#1c1c20] flex items-center gap-1.5 shrink-0">
+            <MessageSquare size={12} className="text-purple-400" />
+            <span className="text-[10px] font-semibold text-[#52525b] uppercase tracking-widest">AI 자동화 설계</span>
             {workflow && (
               <span className="ml-auto text-[10px] text-green-500 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded-full normal-case tracking-normal">
                 JSON 생성됨
               </span>
             )}
           </div>
-
-          {/* 빠른 시작 — 채팅 위에 */}
-          {messages.length <= 2 && (
-            <div className="px-3 pt-2 pb-1 shrink-0">
-              <div className="text-[9px] text-[#52525b] mb-1 uppercase tracking-widest">빠른 시작</div>
-              <div className="space-y-1">
-                {QUICK_PROMPTS.map(qp => (
-                  <button
-                    key={qp}
-                    onClick={() => { setInput(qp); inputRef.current?.focus() }}
-                    className="w-full text-left text-[10px] text-[#52525b] bg-[#111113] border border-[#1c1c20] rounded px-2.5 py-1.5 hover:border-indigo-500/40 hover:text-[#a1a1aa] transition-colors"
-                  >
-                    {qp}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* 채팅 메시지 */}
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
@@ -687,11 +700,11 @@ export default function OpsCenter() {
                 <div className="w-6 h-6 rounded-full bg-purple-600/30 shrink-0 flex items-center justify-center">
                   <Zap size={11} className="text-purple-400" />
                 </div>
-                <div className="bg-[#111113] border border-[#1c1c20] rounded-xl px-3 py-2 text-xs text-slate-400">
+                <div className="bg-[#111113] border border-[#1c1c20] rounded-xl px-3 py-2">
                   <span className="flex gap-1">
-                    <span className="animate-bounce [animation-delay:0ms]">·</span>
-                    <span className="animate-bounce [animation-delay:150ms]">·</span>
-                    <span className="animate-bounce [animation-delay:300ms]">·</span>
+                    <span className="animate-bounce text-slate-400 [animation-delay:0ms]">·</span>
+                    <span className="animate-bounce text-slate-400 [animation-delay:150ms]">·</span>
+                    <span className="animate-bounce text-slate-400 [animation-delay:300ms]">·</span>
                   </span>
                 </div>
               </div>
@@ -703,7 +716,7 @@ export default function OpsCenter() {
           {workflow && (
             <div className="px-3 pb-2 shrink-0 border-t border-[#1c1c20] pt-2">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] text-green-400 font-semibold">n8n JSON — {workflow.name}</span>
+                <span className="text-[10px] text-green-400 font-semibold truncate max-w-[180px]">n8n — {workflow.name}</span>
                 <div className="flex gap-1">
                   <button onClick={copyJson} className="p-1 text-[#52525b] hover:text-slate-300 transition-colors" title="JSON 복사">
                     {copied ? <CheckCheck size={12} className="text-green-400" /> : <Copy size={12} />}
@@ -713,8 +726,10 @@ export default function OpsCenter() {
                   </button>
                 </div>
               </div>
-              <div className="bg-[#111113] border border-green-500/20 rounded-lg px-2 py-1.5 max-h-24 overflow-y-auto">
-                <pre className="text-[9px] text-green-400/70 leading-relaxed whitespace-pre-wrap break-all">{workflow.json.slice(0, 300)}…</pre>
+              <div className="bg-[#111113] border border-green-500/20 rounded-lg px-2 py-1.5 max-h-20 overflow-y-auto">
+                <pre className="text-[9px] text-green-400/70 leading-relaxed whitespace-pre-wrap break-all">
+                  {workflow.json.slice(0, 300)}…
+                </pre>
               </div>
             </div>
           )}
@@ -728,7 +743,7 @@ export default function OpsCenter() {
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
                 placeholder={selectedProcess
-                  ? `"${selectedProcess.title}" 관련 질문이나 n8n JSON 생성을 요청하세요...`
+                  ? `"${selectedProcess.title}" n8n JSON을 생성해드립니다...`
                   : '자동화하고 싶은 업무를 설명하세요...'
                 }
                 rows={3}
@@ -739,7 +754,9 @@ export default function OpsCenter() {
                 disabled={!input.trim() || streaming}
                 className={cn(
                   'w-8 h-8 rounded-lg flex items-center justify-center transition-all shrink-0',
-                  input.trim() && !streaming ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-[#1c1c20] text-[#52525b]',
+                  input.trim() && !streaming
+                    ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                    : 'bg-[#1c1c20] text-[#52525b]',
                 )}
               >
                 {streaming ? <RefreshCw size={13} className="animate-spin" /> : <Send size={13} />}

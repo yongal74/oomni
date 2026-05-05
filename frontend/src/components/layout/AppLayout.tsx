@@ -261,8 +261,8 @@ export function AppLayout() {
           </span>
         </div>
 
-        {/* 봇별 아이콘 (최대 6개 직접 노출, CEO·구버전 디자인/빌드 제외) */}
-        {agents.filter(a => !['ceo', 'design', 'build'].includes(a.role)).slice(0, 6).map(agent => {
+        {/* 봇별 아이콘 (최대 6개 직접 노출, CEO·구버전 디자인/빌드/옵스 제외 — nav에 별도 항목 있음) */}
+        {agents.filter(a => !['ceo', 'design', 'build', 'ops'].includes(a.role)).slice(0, 6).map(agent => {
           const Icon  = BOT_ICON[agent.role]  ?? Settings2
           const color = BOT_COLOR[agent.role] ?? 'text-[#666]'
           return (

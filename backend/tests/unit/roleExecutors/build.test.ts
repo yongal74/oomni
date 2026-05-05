@@ -23,7 +23,7 @@ export default router
 
 jest.mock('../../../src/services/roleExecutors/base', () => ({
   ...jest.requireActual('../../../src/services/roleExecutors/base'),
-  streamClaude: jest.fn().mockResolvedValue(MOCK_CODE),
+  streamClaude: jest.fn(),
   saveFeedItem: jest.fn().mockResolvedValue('feed-id-1'),
 }))
 
@@ -48,7 +48,10 @@ function buildCtx(task: string): { ctx: ExecutorContext; events: Array<[string, 
 }
 
 describe('Build Bot executor', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (streamClaude as jest.Mock).mockResolvedValue(MOCK_CODE);
+  })
 
   it('stage 이벤트가 발행된다', async () => {
     const { ctx, events } = buildCtx('Express API 라우터 만들어줘')

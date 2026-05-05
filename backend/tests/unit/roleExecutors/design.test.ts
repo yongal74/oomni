@@ -17,7 +17,7 @@ const MOCK_RESULT = `\`\`\`html\n${MOCK_HTML}\n\`\`\`\n\n## 디자인 결정\n�
 
 jest.mock('../../../src/services/roleExecutors/base', () => ({
   ...jest.requireActual('../../../src/services/roleExecutors/base'),
-  streamClaude: jest.fn().mockResolvedValue(MOCK_RESULT),
+  streamClaude: jest.fn(),
   saveFeedItem: jest.fn().mockResolvedValue('feed-id-1'),
   DESIGN_MODEL: 'claude-opus-4-7',
 }))
@@ -43,7 +43,10 @@ function buildCtx(task: string): { ctx: ExecutorContext; events: Array<[string, 
 }
 
 describe('Design Bot executor', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (streamClaude as jest.Mock).mockResolvedValue(MOCK_RESULT);
+  })
 
   describe('기본 실행 흐름', () => {
     it('stage 이벤트: planning → designing → done', async () => {

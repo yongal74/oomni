@@ -75,6 +75,7 @@ export const SKILLS_DEST    = path.join(CLAUDE_DIR, 'commands');
 // ── 모델 라우팅 ─────────────────────────────────────────────
 const ROLE_MODELS: Record<string, string> = {
   research:    'claude-haiku-4-5-20251001',   // 대량 채점 → 저렴
+  growth:      'claude-haiku-4-5-20251001',   // 콘텐츠 대량 생성 → 저렴
   content:     'claude-sonnet-4-6',
   build:       'claude-sonnet-4-6',
   design:      'claude-opus-4-7',              // Claude Design — SDK 전용, opus-4-7 필수

@@ -75,7 +75,6 @@ describe('Ops Bot executor', () => {
       const { ctx } = buildCtx('에러 모니터링 상태 알려줘')
       await opsExecutor(ctx)
 
-      const done = events => events.find(([t]: [string]) => t === 'ops_done')
       expect(streamClaude).toHaveBeenCalledTimes(1)
     })
 

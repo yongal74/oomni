@@ -124,7 +124,7 @@ describe('URL 유효성', () => {
           expect(new URL(url).protocol).toBe('ftp:')
         }
       } catch (e) {
-        expect(e).toBeInstanceOf(TypeError)
+        expect((e as Error).name).toBe('TypeError')
       }
     })
   })

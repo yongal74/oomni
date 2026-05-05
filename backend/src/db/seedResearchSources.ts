@@ -9,8 +9,9 @@ import { getRawDb } from './client'
 interface SourceDef {
   name: string
   url: string
-  type: 'rss' | 'youtube' | 'x' | 'special'
+  type: 'rss' | 'youtube' | 'x' | 'special' | 'serp'
   category: string
+  is_active?: number
 }
 
 const DEFAULT_SOURCES: SourceDef[] = [
@@ -145,6 +146,9 @@ const DEFAULT_SOURCES: SourceDef[] = [
   { name: '🌐 Google뉴스 크립토 KR', url: 'https://news.google.com/rss/search?q=블록체인+스테이블코인&hl=ko&gl=KR&ceid=KR:ko', type: 'rss', category: 'google_news' },
   { name: '🌐 Google News AI US', url: 'https://news.google.com/rss/search?q=artificial+intelligence&hl=en-US&gl=US&ceid=US:en', type: 'rss', category: 'google_news' },
   { name: '🌐 Google News Stablecoin', url: 'https://news.google.com/rss/search?q=stablecoin+blockchain&hl=en-US&gl=US&ceid=US:en', type: 'rss', category: 'google_news' },
+
+  // ── 🔍 SerpAPI (기본 비활성 — API 키 설정 후 활성화) ──
+  { name: '🔍 SerpAPI Google 검색',  url: 'serp://google', type: 'serp', category: 'serp', is_active: 0 },
 ]
 
 export const CATEGORY_LABELS: Record<string, string> = {
@@ -162,6 +166,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   x_ai:          '🐦 X AI 인플루언서',
   x_crypto:      '🐦 X 크립토 인플루언서',
   google_news:   '🌐 Google News',
+  serp:          '🔍 SerpAPI (Google 검색)',
 }
 
 export function seedResearchSources(): void {
@@ -172,11 +177,11 @@ export function seedResearchSources(): void {
 
     const insert = db.prepare(
       `INSERT INTO research_sources (id, name, url, type, category, is_active, is_custom)
-       VALUES (?, ?, ?, ?, ?, 1, 0)`
+       VALUES (?, ?, ?, ?, ?, ?, 0)`
     )
     const insertMany = db.transaction((sources: SourceDef[]) => {
       for (const s of sources) {
-        insert.run(uuidv4(), s.name, s.url, s.type, s.category)
+        insert.run(uuidv4(), s.name, s.url, s.type, s.category, s.is_active ?? 1)
       }
     })
     insertMany(DEFAULT_SOURCES)

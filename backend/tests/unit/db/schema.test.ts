@@ -4,8 +4,8 @@
 import { SCHEMA_SQL, TABLES } from '../../../src/db/schema';
 
 describe('DB Schema', () => {
-  test('15개 테이블이 정의되어 있다', () => {
-    expect(TABLES).toHaveLength(15);
+  test('30개 테이블이 정의되어 있다', () => {
+    expect(TABLES).toHaveLength(30);
     expect(TABLES).toEqual(expect.arrayContaining([
       'missions', 'agents', 'heartbeat_runs',
       'issues', 'feed_items', 'cost_events', 'integrations', 'schedules',

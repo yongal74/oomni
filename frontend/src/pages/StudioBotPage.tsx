@@ -82,10 +82,21 @@ function parseCodeFiles(text: string): CodeFile[] {
   return files
 }
 
+// ── VS Code 테마 ──────────────────────────────────────────────────────────────
+const VS_THEMES = [
+  { id: 'dark',     label: 'Dark+',     bg: '#0d0d0f', text: '#d4d4d4', line: '#444' },
+  { id: 'onedark',  label: 'One Dark',  bg: '#282c34', text: '#abb2bf', line: '#3e4451' },
+  { id: 'dracula',  label: 'Dracula',   bg: '#282a36', text: '#f8f8f2', line: '#44475a' },
+  { id: 'monokai',  label: 'Monokai',   bg: '#272822', text: '#f8f8f2', line: '#3e3d32' },
+  { id: 'light',    label: 'Light',     bg: '#ffffff', text: '#24292e', line: '#e1e4e8' },
+]
+
 // ── VS Code 스타일 코드 뷰어 ─────────────────────────────────────────────────
 function VsCodeViewer({ text, isRunning }: { text: string; isRunning: boolean }) {
   const [activeFile, setActiveFile] = useState<string | null>(null)
+  const [themeId, setThemeId] = useState('dark')
   const files = parseCodeFiles(text)
+  const theme = VS_THEMES.find(t => t.id === themeId) ?? VS_THEMES[0]
 
   useEffect(() => {
     if (files.length > 0 && !activeFile) setActiveFile(files[0].path)
@@ -97,52 +108,63 @@ function VsCodeViewer({ text, isRunning }: { text: string; isRunning: boolean })
   if (!text && !isRunning) return null
 
   return (
-    <div className="h-full flex flex-col bg-[#0d0d0f] font-mono text-[12px]">
-      {/* 파일 탭 바 */}
-      {files.length > 0 && (
-        <div className="flex items-center gap-0 border-b border-[#222] shrink-0 overflow-x-auto bg-[#111]">
-          {files.map(f => {
-            const name = f.path.split('/').pop() ?? f.path
-            return (
-              <button
-                key={f.path}
-                onClick={() => setActiveFile(f.path)}
-                title={f.path}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 text-[11px] border-r border-[#222] whitespace-nowrap transition-colors shrink-0',
-                  activeFile === f.path
-                    ? 'bg-[#1e1e22] text-[#e4e4e7] border-t border-t-orange-500'
-                    : 'text-[#666] hover:text-[#aaa] hover:bg-[#161618]'
-                )}
-              >
-                <FileCode2 size={11} className="shrink-0 text-orange-400/70" />
-                {name}
-              </button>
-            )
-          })}
+    <div className="h-full flex flex-col font-mono text-[12px]" style={{ background: theme.bg }}>
+      {/* 파일 탭 바 + 테마 선택 */}
+      <div className="flex items-center border-b shrink-0 overflow-x-auto" style={{ borderColor: theme.line, background: theme.bg }}>
+        {files.map(f => {
+          const name = f.path.split('/').pop() ?? f.path
+          return (
+            <button
+              key={f.path}
+              onClick={() => setActiveFile(f.path)}
+              title={f.path}
+              style={{
+                borderColor: theme.line,
+                color: activeFile === f.path ? theme.text : '#666',
+                background: activeFile === f.path ? theme.bg : 'transparent',
+                borderTop: activeFile === f.path ? '2px solid #f97316' : '2px solid transparent',
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] border-r whitespace-nowrap transition-colors shrink-0 hover:opacity-80"
+            >
+              <FileCode2 size={11} className="shrink-0 text-orange-400/70" />
+              {name}
+            </button>
+          )
+        })}
+        <div className="ml-auto flex items-center px-2 gap-1 shrink-0">
+          {VS_THEMES.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setThemeId(t.id)}
+              title={t.label}
+              className={cn(
+                'text-[9px] px-1.5 py-0.5 rounded transition-colors',
+                themeId === t.id ? 'opacity-100 font-bold' : 'opacity-40 hover:opacity-70'
+              )}
+              style={{ color: theme.text }}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
       {/* 파일 경로 + 액션 */}
       {current && (
-        <div className="flex items-center gap-2 px-3 py-1 bg-[#111] border-b border-[#222] text-[10px] text-[#555] shrink-0">
+        <div className="flex items-center gap-2 px-3 py-1 border-b text-[10px] shrink-0"
+          style={{ borderColor: theme.line, color: '#666' }}>
           <span className="flex-1 truncate">{current.path}</span>
-          <button
-            onClick={() => navigator.clipboard.writeText(current.code)}
-            className="flex items-center gap-1 text-[#555] hover:text-[#aaa] transition-colors"
-          >
+          <button onClick={() => navigator.clipboard.writeText(current.code)}
+            className="flex items-center gap-1 hover:opacity-80 transition-opacity">
             <Copy size={10} />복사
           </button>
-          <button
-            onClick={() => {
-              const blob = new Blob([current.code], { type: 'text/plain' })
-              const a = document.createElement('a')
-              a.href = URL.createObjectURL(blob)
-              a.download = current.path.split('/').pop() ?? 'file.ts'
-              a.click()
-            }}
-            className="flex items-center gap-1 text-[#555] hover:text-[#aaa] transition-colors"
-          >
+          <button onClick={() => {
+            const blob = new Blob([current.code], { type: 'text/plain' })
+            const a = document.createElement('a')
+            a.href = URL.createObjectURL(blob)
+            a.download = current.path.split('/').pop() ?? 'file.ts'
+            a.click()
+          }} className="flex items-center gap-1 hover:opacity-80 transition-opacity">
             <Download size={10} />저장
           </button>
         </div>
@@ -154,15 +176,15 @@ function VsCodeViewer({ text, isRunning }: { text: string; isRunning: boolean })
           <table className="w-full border-collapse">
             <tbody>
               {lines.map((line, i) => (
-                <tr key={i} className="hover:bg-white/[0.02]">
-                  <td className="select-none text-right pr-3 pl-3 text-[#444] w-10 shrink-0 align-top leading-5">{i + 1}</td>
-                  <td className="pr-4 leading-5 text-[#d4d4d4] whitespace-pre">{line || ' '}</td>
+                <tr key={i} style={{ color: theme.text }} className="hover:bg-white/[0.02]">
+                  <td className="select-none text-right pr-3 pl-3 w-10 shrink-0 align-top leading-5 opacity-40">{i + 1}</td>
+                  <td className="pr-4 leading-5 whitespace-pre">{line || ' '}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : isRunning ? (
-          <div className="p-4 text-[#555]">
+          <div className="p-4" style={{ color: '#555' }}>
             <pre className="whitespace-pre-wrap text-[11px] leading-relaxed">{text}</pre>
           </div>
         ) : null}
@@ -378,7 +400,7 @@ export default function StudioBotPage() {
   const cats = mode === 'build' ? BUILD_CATS : mode === 'graphic' ? GRAPHIC_CATS : DESIGN_CATS
 
   return (
-    <div className="relative flex h-full bg-bg overflow-hidden">
+    <div className="flex h-full bg-bg overflow-hidden">
       {/* ── 왼쪽 패널 ──────────────────────────────────────────────── */}
       <div className="w-64 shrink-0 flex flex-col border-r border-border bg-surface overflow-y-auto">
         {/* 모드 탭 */}
@@ -506,7 +528,8 @@ export default function StudioBotPage() {
           )}
         </div>
 
-        {/* 결과 영역 */}
+        {/* 결과 영역 + 채팅 패널 (세로 분할) */}
+        <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-hidden">
           {mode === 'ui-proto' && iframeHtml ? (
             <iframe
@@ -648,90 +671,88 @@ export default function StudioBotPage() {
             </div>
           ) : null}
         </div>
-      </div>
 
-      {/* ── 플로팅 채팅 (Cursor 스타일 — 작업영역 중앙) ─────────────── */}
-      {chatOpen && (
-        <div className={cn(
-          'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface border border-border rounded-2xl shadow-2xl shadow-black/40 flex flex-col transition-all z-30',
-          chatExpanded ? 'w-[640px] h-[380px]' : 'w-[560px] h-[200px]'
-        )}>
-          {/* 채팅 헤더 */}
-          <div className="flex items-center gap-2 px-4 py-2 border-b border-border shrink-0">
-            <Bot size={13} className="text-primary" />
-            <span className="text-[12px] font-medium text-text flex-1">
-              {mode === 'ui-proto' ? 'UI 프로토타입 생성' : mode === 'graphic' ? 'Canva / 그래픽 생성' : '코드 빌드 생성'}
-            </span>
-            {isRunning && <Loader2 size={12} className="animate-spin text-primary" />}
-            <button onClick={() => { setMsgs([]); setStreamOutput(''); setIframeHtml(''); setGraphicResults([]); setGraphicStatus('') }}
-              className="text-muted hover:text-text transition-colors p-1"><RotateCcw size={12} /></button>
-            <button onClick={() => setChatExpanded(v => !v)}
-              className="text-muted hover:text-text transition-colors p-1">
-              {chatExpanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-            </button>
-            <button onClick={() => setChatOpen(false)}
-              className="text-muted hover:text-text transition-colors p-1">
-              <ChevronDown size={12} />
-            </button>
-          </div>
+        {/* ── 채팅 패널 — 결과영역 하단 고정 ─────────────────────────── */}
+        {chatOpen ? (
+          <div className={cn(
+            'shrink-0 border-t border-border bg-surface flex flex-col transition-all duration-200',
+            chatExpanded ? 'h-[300px]' : 'h-[160px]'
+          )}>
+            {/* 채팅 헤더 */}
+            <div className="flex items-center gap-2 px-4 py-1.5 border-b border-border shrink-0">
+              <Bot size={12} className="text-primary" />
+              <span className="text-[11px] font-medium text-text flex-1">
+                {mode === 'ui-proto' ? 'UI 프로토타입 생성' : mode === 'graphic' ? 'Canva / 그래픽 생성' : '코드 빌드 생성'}
+              </span>
+              {isRunning && <Loader2 size={11} className="animate-spin text-primary" />}
+              <button onClick={() => { setMsgs([]); setStreamOutput(''); setIframeHtml(''); setGraphicResults([]); setGraphicStatus('') }}
+                className="text-muted hover:text-text transition-colors p-1" title="초기화">
+                <RotateCcw size={11} />
+              </button>
+              <button onClick={() => setChatExpanded(v => !v)}
+                className="text-muted hover:text-text transition-colors p-1" title={chatExpanded ? '축소' : '확장'}>
+                {chatExpanded ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
+              </button>
+              <button onClick={() => setChatOpen(false)}
+                className="text-muted hover:text-text transition-colors p-1" title="닫기">
+                <ChevronDown size={11} />
+              </button>
+            </div>
 
-          {/* 메시지 영역 */}
-          <div className="flex-1 overflow-y-auto px-4 py-2 min-h-0">
-            {msgs.map(msg => <ChatBubble key={msg.id} msg={msg} />)}
-            <div ref={messagesEndRef} />
-          </div>
+            {/* 메시지 영역 */}
+            <div className="flex-1 overflow-y-auto px-3 py-2 min-h-0">
+              {msgs.map(msg => <ChatBubble key={msg.id} msg={msg} />)}
+              <div ref={messagesEndRef} />
+            </div>
 
-          {/* 입력 영역 */}
-          <div className="p-3 border-t border-border shrink-0">
-            <div className="flex flex-col gap-2 bg-bg border border-border rounded-xl px-3 py-2.5 focus-within:border-primary/50 transition-colors">
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="원하는 것을 설명하세요... (Enter 전송, Shift+Enter 줄바꿈)"
-                disabled={isRunning}
-                rows={2}
-                className="w-full bg-transparent text-[13px] text-text placeholder:text-muted/50 outline-none resize-none leading-relaxed disabled:opacity-50"
-              />
-              <div className="flex items-center gap-2">
-                <button className="text-muted/50 hover:text-muted transition-colors p-1 rounded" title="파일 첨부">
-                  <Paperclip size={13} />
-                </button>
-                <div className="flex items-center gap-1 px-2 py-0.5 bg-surface border border-border rounded-lg text-[10px] text-muted cursor-pointer hover:border-primary/40 hover:text-primary transition-colors">
-                  <span>{currentRole === 'design' ? 'claude-opus-4-7' : 'claude-sonnet-4-6'}</span>
-                  <ChevronDown size={9} />
+            {/* 입력 영역 — 최하단 고정 */}
+            <div className="px-3 pb-2.5 pt-1.5 border-t border-border shrink-0">
+              <div className="flex items-end gap-2 bg-bg border border-border rounded-xl px-3 py-2 focus-within:border-primary/50 transition-colors">
+                <textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="원하는 것을 설명하세요... (Enter 전송, Shift+Enter 줄바꿈)"
+                  disabled={isRunning}
+                  rows={1}
+                  className="flex-1 bg-transparent text-[12px] text-text placeholder:text-muted/50 outline-none resize-none leading-relaxed disabled:opacity-50"
+                />
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button className="text-muted/50 hover:text-muted transition-colors p-0.5" title="파일 첨부">
+                    <Paperclip size={12} />
+                  </button>
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 bg-surface border border-border rounded text-[9px] text-muted">
+                    <span>{currentRole === 'design' ? 'opus-4' : 'sonnet-4'}</span>
+                    <ChevronDown size={8} />
+                  </div>
+                  {isRunning ? (
+                    <button onClick={() => abortRef.current?.abort()}
+                      className="px-2.5 py-1 bg-red-900/20 border border-red-800/30 text-red-400 rounded-lg text-[10px] hover:bg-red-900/40 transition-colors">
+                      중단
+                    </button>
+                  ) : (
+                    <button onClick={() => sendMessage()} disabled={!input.trim()}
+                      className="flex items-center gap-1 px-2.5 py-1 bg-primary hover:bg-primary-hover text-white rounded-lg text-[10px] font-medium transition-colors disabled:opacity-40">
+                      <Send size={10} />전송
+                    </button>
+                  )}
                 </div>
-                <div className="flex-1" />
-                {isRunning ? (
-                  <button onClick={() => abortRef.current?.abort()}
-                    className="px-3 py-1.5 bg-red-900/20 border border-red-800/30 text-red-400 rounded-lg text-[11px] hover:bg-red-900/40 transition-colors">
-                    중단
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => sendMessage()}
-                    disabled={!input.trim()}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-[11px] font-medium transition-colors disabled:opacity-40"
-                  >
-                    <Send size={11} />전송
-                  </button>
-                )}
               </div>
             </div>
           </div>
+        ) : (
+          /* 채팅 최소화 버튼 */
+          <button
+            onClick={() => setChatOpen(true)}
+            className="shrink-0 flex items-center gap-2 px-4 py-2 border-t border-border bg-surface text-[11px] text-muted hover:text-text hover:bg-border/30 transition-colors"
+          >
+            <Bot size={12} className="text-primary" />AI 채팅 열기
+            <Maximize2 size={11} className="ml-auto" />
+          </button>
+        )}
         </div>
-      )}
-
-      {/* 채팅 토글 버튼 (닫혔을 때) */}
-      {!chatOpen && (
-        <button
-          onClick={() => setChatOpen(true)}
-          className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl shadow-lg text-[13px] font-medium transition-colors z-30"
-        >
-          <Bot size={14} />AI 채팅
-        </button>
-      )}
+      </div>
     </div>
   )
 }

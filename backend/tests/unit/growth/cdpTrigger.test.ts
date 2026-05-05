@@ -105,8 +105,6 @@ describe('트리거 조건 3: 세그먼트 급증', () => {
   })
 
   test('이전 churnCount=0이면 조건 3 무시 (ZeroDivisionError 방지)', () => {
-    const { triggered } = shouldTrigger(5, 0, 0, 0)
-    // churnCount=5 >= threshold=5 이므로 조건 1로 트리거
     // 여기서는 조건 3만 테스트
     const cfg = { ...DEFAULT_CONFIG, churnRiskThreshold: 100 } // 조건 1 비활성화
     const result = shouldTrigger(5, 0, 0, 0, cfg)

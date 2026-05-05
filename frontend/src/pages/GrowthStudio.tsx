@@ -5,17 +5,17 @@
 import { useState, useEffect } from 'react'
 import {
   Rocket, Link2, Sparkles, Send, BarChart2,
-  Settings, Loader2, CheckCircle, AlertTriangle,
+  Loader2, CheckCircle, AlertTriangle,
   Copy, RefreshCw, Twitter, Instagram, Youtube,
-  Linkedin, FileText, Music2, Zap, Package, Users, Download,
-  LogOut, Globe, Target,
+  Linkedin, FileText, Music2, Zap, Package, Users,
+  Target,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '../store/app.store'
-import { growthApi, snsApi, type GrowthContent, type LeadStats, type LeadRow, type SnsConnection, type AttributionReport } from '../lib/api'
+import { growthApi, type GrowthContent, type LeadStats, type LeadRow, type AttributionReport } from '../lib/api'
 import { cn } from '../lib/utils'
 
-type TabId = 'generate' | 'contents' | 'leads' | 'settings'
+type TabId = 'generate' | 'contents' | 'leads' | 'cdp'
 
 const CHANNELS = [
   { id: 'instagram', icon: Instagram, label: 'Instagram',    color: 'text-pink-400',    bg: 'bg-pink-500/10',    border: 'border-pink-500/20' },
@@ -42,10 +42,10 @@ export default function GrowthStudio() {
   const currentMissionId = currentMission?.id
 
   const TABS = [
-    { id: 'generate' as TabId, label: '콘텐츠 생성', icon: Sparkles },
-    { id: 'contents' as TabId, label: '생성 목록',   icon: Package },
-    { id: 'leads'    as TabId, label: '리드 현황',   icon: Users },
-    { id: 'settings' as TabId, label: '설정',        icon: Settings },
+    { id: 'generate' as TabId, label: '콘텐츠 생성',    icon: Sparkles },
+    { id: 'contents' as TabId, label: '콘텐츠 목록',    icon: Package },
+    { id: 'leads'    as TabId, label: '리드 현황',       icon: Users },
+    { id: 'cdp'      as TabId, label: 'CDP ID-Graph',  icon: Target },
   ]
 
   return (
@@ -84,7 +84,7 @@ export default function GrowthStudio() {
             {tab === 'generate' && <GenerateTab missionId={currentMissionId} />}
             {tab === 'contents' && <ContentsTab missionId={currentMissionId} />}
             {tab === 'leads'    && <LeadsTab    missionId={currentMissionId} />}
-            {tab === 'settings' && <SettingsTab missionId={currentMissionId} />}
+            {tab === 'cdp'      && <CdpIdGraphTab missionId={currentMissionId} />}
           </>
         )}
       </div>
@@ -544,8 +544,18 @@ function LeadsTab({ missionId }: { missionId: string }) {
     refetchInterval: 60_000,
   })
 
-  const stats: LeadStats  = data?.stats ?? { hot: 0, nurture: 0, cold: 0, total: 0, avgScore: 0 }
-  const leads: LeadRow[]  = data?.leads ?? []
+  const now = new Date().toISOString()
+  const DUMMY_LEADS: LeadRow[] = [
+    { id: 'd1', profile_id: 'prof-a1b2c3d4', tier: 'hot',     score: 88, signals: JSON.stringify([{ type: 'click' }, { type: 'view' }, { type: 'purchase_intent' }]), last_signal_at: new Date(Date.now() - 3600000).toISOString(),   created_at: now, updated_at: now, mission_id: missionId ?? '' },
+    { id: 'd2', profile_id: 'prof-e5f6a7b8', tier: 'hot',     score: 76, signals: JSON.stringify([{ type: 'click' }, { type: 'signup' }]),                                last_signal_at: new Date(Date.now() - 7200000).toISOString(),   created_at: now, updated_at: now, mission_id: missionId ?? '' },
+    { id: 'd3', profile_id: 'prof-c9d0e1f2', tier: 'nurture', score: 54, signals: JSON.stringify([{ type: 'view' }, { type: 'scroll' }]),                                  last_signal_at: new Date(Date.now() - 86400000).toISOString(),  created_at: now, updated_at: now, mission_id: missionId ?? '' },
+    { id: 'd4', profile_id: 'prof-g3h4i5j6', tier: 'nurture', score: 41, signals: JSON.stringify([{ type: 'view' }]),                                                        last_signal_at: new Date(Date.now() - 172800000).toISOString(), created_at: now, updated_at: now, mission_id: missionId ?? '' },
+    { id: 'd5', profile_id: 'prof-k7l8m9n0', tier: 'cold',    score: 18, signals: JSON.stringify([{ type: 'impression' }]),                                                  last_signal_at: new Date(Date.now() - 604800000).toISOString(), created_at: now, updated_at: now, mission_id: missionId ?? '' },
+  ]
+  const rawLeads: LeadRow[] = data?.leads ?? []
+  const leads: LeadRow[]    = rawLeads.length > 0 ? rawLeads : DUMMY_LEADS
+  const isDummy             = rawLeads.length === 0
+  const stats: LeadStats    = data?.stats ?? { hot: isDummy ? 2 : 0, nurture: isDummy ? 2 : 0, cold: isDummy ? 1 : 0, total: isDummy ? 5 : 0, avgScore: isDummy ? 55 : 0 }
 
   const handleTrigger = async () => {
     setTriggerLoading(true); setTriggerMsg('')
@@ -677,12 +687,14 @@ function LeadsTab({ missionId }: { missionId: string }) {
       </div>
 
       {/* 리드 목록 */}
+      {isDummy && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/8 border border-amber-500/20 rounded-lg text-[10px] text-amber-400">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+          실제 리드 없음 — 더미 데이터 표시 중. 콘텐츠를 발사하면 실제 시그널이 수집됩니다.
+        </div>
+      )}
       {isLoading ? (
         <div className="flex justify-center py-12"><Loader2 size={20} className="animate-spin text-primary" /></div>
-      ) : leads.length === 0 ? (
-        <div className="text-center py-12 text-[#52525b] text-[13px]">
-          리드 없음 — 콘텐츠를 생성하고 발사하면 시그널이 수집됩니다
-        </div>
       ) : (
         <div className="space-y-2">
           {leads.map(lead => {
@@ -731,260 +743,214 @@ function LeadsTab({ missionId }: { missionId: string }) {
   )
 }
 
-// ── n8n 워크플로우 템플릿 ─────────────────────────────────────────────────────
 
-const N8N_TEMPLATES = [
+// ── CDP ID-Graph 탭 ──────────────────────────────────────────────────────────
+
+const CDP_DUMMY_PROFILES = [
   {
-    id: 'oomni_01_x_post',
-    label: '#01 X 텍스트 자동 포스팅',
-    desc: '매일 06:00 OOMNI Growth Bot이 생성한 콘텐츠를 X에 자동 포스팅',
-    trigger: '스케줄 (매일 06:00)',
-    json: {
-      name: 'OOMNI #01 - X 텍스트 자동 포스팅',
-      nodes: [
-        { id: 'schedule', name: '매일 06:00 KST', type: 'n8n-nodes-base.scheduleTrigger', typeVersion: 1.1, position: [200, 300],
-          parameters: { rule: { interval: [{ field: 'cronExpression', expression: '0 6 * * *' }] } } },
-        { id: 'get_content', name: 'OOMNI: 최신 X 콘텐츠 조회', type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2, position: [400, 300],
-          parameters: { url: 'http://localhost:3001/api/growth/contents?channel=x&status=draft&limit=1', method: 'GET',
-            authentication: 'genericCredentialType', genericAuthType: 'httpHeaderAuth' } },
-        { id: 'post_x', name: 'X: 트윗 포스팅', type: 'n8n-nodes-base.twitter', typeVersion: 2, position: [600, 300],
-          parameters: { resource: 'tweet', text: '={{ $json.content.tweet }}' },
-          credentials: { twitterOAuth2Api: { id: 'x_cred', name: 'X API' } } },
-        { id: 'update_status', name: 'OOMNI: 발행 상태 업데이트', type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2, position: [800, 300],
-          parameters: { url: '=http://localhost:3001/api/growth/contents/{{ $json.id }}/publish', method: 'POST',
-            body: { mode: 'json', json: { platform: 'x', post_id: '={{ $json.id }}' } } } },
-      ],
-      connections: { schedule: { main: [[{ node: 'get_content', type: 'main', index: 0 }]] },
-        get_content: { main: [[{ node: 'post_x', type: 'main', index: 0 }]] },
-        post_x: { main: [[{ node: 'update_status', type: 'main', index: 0 }]] } },
-      settings: { executionOrder: 'v1' },
-    },
+    id: 'cdp-U001',
+    name: '김 마케터',
+    score: 88,
+    tier: 'hot' as const,
+    identifiers: [
+      { type: 'email',     value: 'marketer.kim@company.kr',  icon: '✉️' },
+      { type: 'instagram', value: '@kim_biz_growth',           icon: '📸' },
+      { type: 'phone',     value: '010-****-1234',             icon: '📱' },
+      { type: 'cookie',    value: 'ck_ab12cd34ef56',           icon: '🍪' },
+    ],
+    touchpoints: ['인스타 광고 클릭', '랜딩페이지 방문', '이메일 오픈', '가격 페이지 2회'],
+    firstSeen: '2026-04-20', lastSeen: '2026-05-05',
   },
   {
-    id: 'oomni_02_instagram',
-    label: '#02 Instagram 자동 포스팅',
-    desc: 'OOMNI n8n 웹훅 수신 → Instagram 이미지+캡션 자동 업로드',
-    trigger: 'OOMNI 웹훅 트리거',
-    json: {
-      name: 'OOMNI #02 - Instagram 자동 포스팅',
-      nodes: [
-        { id: 'webhook', name: 'OOMNI 웹훅 수신', type: 'n8n-nodes-base.webhook', typeVersion: 1.1, position: [200, 300],
-          parameters: { path: 'oomni-ig-post', httpMethod: 'POST' } },
-        { id: 'ig_upload', name: 'Instagram: 미디어 업로드', type: 'n8n-nodes-base.instagram', typeVersion: 1, position: [400, 300],
-          parameters: { resource: 'media', operation: 'createPhoto',
-            caption: '={{ $json.body.content.caption }}\n\n{{ $json.body.content.hashtags }}',
-            imageUrl: '={{ $json.body.content.imageUrl }}' },
-          credentials: { instagramOAuth2Api: { id: 'ig_cred', name: 'Instagram API' } } },
-      ],
-      connections: { webhook: { main: [[{ node: 'ig_upload', type: 'main', index: 0 }]] } },
-      settings: { executionOrder: 'v1' },
-    },
+    id: 'cdp-U002',
+    name: '이 창업자',
+    score: 76,
+    tier: 'hot' as const,
+    identifiers: [
+      { type: 'email',    value: 'ceo@startup.io',             icon: '✉️' },
+      { type: 'x',        value: '@lee_founder_kr',             icon: '𝕏' },
+      { type: 'linkedin', value: 'linkedin/in/lee-startup',     icon: '💼' },
+    ],
+    touchpoints: ['X 게시물 클릭', '데모 신청', 'Calendly 예약'],
+    firstSeen: '2026-04-28', lastSeen: '2026-05-04',
   },
   {
-    id: 'oomni_03_lead_signal',
-    label: '#03 리드 시그널 수집',
-    desc: '웹사이트 클릭/방문 이벤트를 OOMNI CDP에 자동 기록',
-    trigger: '웹훅 (클라이언트 JS 호출)',
-    json: {
-      name: 'OOMNI #03 - 리드 시그널 수집',
-      nodes: [
-        { id: 'webhook', name: '리드 이벤트 수신', type: 'n8n-nodes-base.webhook', typeVersion: 1.1, position: [200, 300],
-          parameters: { path: 'oomni-lead-signal', httpMethod: 'POST' } },
-        { id: 'score_lead', name: 'OOMNI: 리드 스코어 기록', type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2, position: [400, 300],
-          parameters: { url: 'http://localhost:3001/api/growth/leads/signal', method: 'POST',
-            body: { mode: 'json', json: { mission_id: '={{ $json.body.mission_id }}',
-              profile_id: '={{ $json.body.profile_id }}', signal: '={{ $json.body.signal }}' } } } },
-      ],
-      connections: { webhook: { main: [[{ node: 'score_lead', type: 'main', index: 0 }]] } },
-      settings: { executionOrder: 'v1' },
-    },
+    id: 'cdp-U003',
+    name: 'Anonymous 003',
+    score: 54,
+    tier: 'nurture' as const,
+    identifiers: [
+      { type: 'cookie',   value: 'ck_gh78ij90kl12',             icon: '🍪' },
+      { type: 'instagram', value: '@marketing.pro.kr',           icon: '📸' },
+    ],
+    touchpoints: ['YouTube 광고 시청', '블로그 포스트 2건', '뉴스레터 구독'],
+    firstSeen: '2026-05-01', lastSeen: '2026-05-03',
   },
   {
-    id: 'oomni_04_daily_report',
-    label: '#04 일일 성과 리포트',
-    desc: '매일 23:30 리드 현황 + 콘텐츠 성과를 Slack에 자동 보고',
-    trigger: '스케줄 (매일 23:30)',
-    json: {
-      name: 'OOMNI #04 - 일일 성과 리포트',
-      nodes: [
-        { id: 'schedule', name: '매일 23:30', type: 'n8n-nodes-base.scheduleTrigger', typeVersion: 1.1, position: [200, 300],
-          parameters: { rule: { interval: [{ field: 'cronExpression', expression: '30 23 * * *' }] } } },
-        { id: 'get_leads', name: 'OOMNI: 리드 통계 조회', type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2, position: [400, 300],
-          parameters: { url: 'http://localhost:3001/api/growth/leads/stats', method: 'GET' } },
-        { id: 'slack_report', name: 'Slack: 일일 리포트 발송', type: 'n8n-nodes-base.slack', typeVersion: 2.1, position: [600, 300],
-          parameters: { operation: 'post', channel: '#growth-report',
-            text: '=📊 OOMNI 일일 리포트\nHot: {{ $json.hot }} | Nurture: {{ $json.nurture }} | Cold: {{ $json.cold }}\n평균 스코어: {{ $json.avgScore }}' },
-          credentials: { slackApi: { id: 'slack_cred', name: 'Slack' } } },
-      ],
-      connections: { schedule: { main: [[{ node: 'get_leads', type: 'main', index: 0 }]] },
-        get_leads: { main: [[{ node: 'slack_report', type: 'main', index: 0 }]] } },
-      settings: { executionOrder: 'v1' },
-    },
+    id: 'cdp-U004',
+    name: 'Anonymous 004',
+    score: 41,
+    tier: 'nurture' as const,
+    identifiers: [
+      { type: 'email',   value: 'buyer@brand.kr',               icon: '✉️' },
+      { type: 'cookie',  value: 'ck_mn34op56qr78',              icon: '🍪' },
+    ],
+    touchpoints: ['이메일 오픈', '페이지 방문 1회'],
+    firstSeen: '2026-05-02', lastSeen: '2026-05-02',
+  },
+  {
+    id: 'cdp-U005',
+    name: 'Anonymous 005',
+    score: 18,
+    tier: 'cold' as const,
+    identifiers: [
+      { type: 'cookie', value: 'ck_st90uv12wx34',               icon: '🍪' },
+    ],
+    touchpoints: ['광고 노출 1회'],
+    firstSeen: '2026-04-15', lastSeen: '2026-04-15',
   },
 ]
 
-// ── 설정 탭 ──────────────────────────────────────────────────────────────────
-
-function SettingsTab({ missionId }: { missionId?: string }) {
-  const qc = useQueryClient()
-
-  const { data: connections = [], refetch: refetchConn } = useQuery({
-    queryKey: ['sns-connections', missionId],
-    queryFn: () => missionId ? snsApi.getConnections(missionId) : Promise.resolve([] as SnsConnection[]),
-    enabled: !!missionId,
-    refetchInterval: 15_000,
-  })
-
-  const connMap = Object.fromEntries(connections.map(c => [c.platform, c]))
-
-  const handleConnect = async (platform: string) => {
-    if (!missionId) return
-    try {
-      const authUrl = await snsApi.getConnectUrl(platform, missionId)
-      window.open(authUrl, '_blank', 'width=600,height=700')
-      // 5초 후 재조회 (OAuth 완료 대기)
-      setTimeout(() => refetchConn(), 5000)
-    } catch { /* ignore */ }
-  }
-
-  const handleDisconnect = async (platform: string) => {
-    if (!missionId) return
-    await snsApi.disconnect(platform, missionId)
-    qc.invalidateQueries({ queryKey: ['sns-connections', missionId] })
-  }
-
-  const downloadTemplate = (template: typeof N8N_TEMPLATES[0]) => {
-    const blob = new Blob([JSON.stringify(template.json, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${template.id}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
+function CdpIdGraphTab({ missionId: _missionId }: { missionId: string }) {
+  const [selected, setSelected] = useState<string | null>(null)
+  const selectedProfile = CDP_DUMMY_PROFILES.find(p => p.id === selected)
 
   return (
-    <div className="space-y-4 max-w-2xl">
-      <div className="bg-[#111113] border border-primary/20 rounded-xl p-5">
-        <p className="text-[13px] font-medium text-[#e4e4e7] mb-2">SNS & AI 설정</p>
-        <p className="text-[11px] text-[#52525b] mb-4">
-          Ideogram API 키, Gemini API 키, n8n 웹훅 URL, SNS OAuth 자격증명을 관리합니다.
-        </p>
-        <button
-          onClick={() => { window.location.hash = '/sns-settings' }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-primary/20 text-primary border border-primary/30 rounded-lg text-[13px] font-medium hover:bg-primary/30 transition-colors"
-        >
-          <Settings size={14} />SNS &amp; AI 설정 열기
-        </button>
+    <div className="space-y-4 max-w-3xl">
+      {/* 헤더 */}
+      <div className="flex items-center gap-3">
+        <div>
+          <p className="text-[13px] font-semibold text-[#e4e4e7]">CDP ID Graph</p>
+          <p className="text-[11px] text-[#52525b]">동일 사용자의 여러 식별자를 하나의 통합 프로파일로 연결합니다</p>
+        </div>
+        <div className="ml-auto flex items-center gap-2 text-[10px] text-amber-400 bg-amber-500/8 border border-amber-500/20 px-2.5 py-1.5 rounded-lg">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+          더미 데이터 표시 중
+        </div>
       </div>
 
-      {/* SNS 채널 연결 현황 */}
-      <div className="bg-[#111113] border border-[#1c1c20] rounded-xl p-4">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-[11px] text-[#52525b] uppercase tracking-widest">SNS 채널 연결 ({connections.length}/6)</p>
-          <button onClick={() => refetchConn()} className="text-[#52525b] hover:text-[#a1a1aa]">
-            <RefreshCw size={12} />
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          {CHANNELS.map(c => {
-            const conn = connMap[c.id]
-            return (
-              <div key={c.id} className={cn(
-                'flex items-center gap-2 p-2.5 rounded-lg border',
-                conn ? `${c.bg} ${c.border}` : 'bg-[#0d0d0f] border-[#27272a]'
-              )}>
-                <c.icon size={12} className={conn ? c.color : 'text-[#52525b]'} />
-                <div className="flex-1 min-w-0">
-                  <p className={cn('text-[11px] font-medium truncate', conn ? c.color : 'text-[#52525b]')}>{c.label}</p>
-                  {conn?.account_name && (
-                    <p className="text-[9px] text-[#52525b] truncate">{conn.account_name}</p>
-                  )}
+      {/* 요약 카드 */}
+      <div className="grid grid-cols-4 gap-3">
+        {[
+          { label: '통합 프로파일', value: '5',  color: 'text-[#e4e4e7]', bg: 'bg-[#111113]', border: 'border-[#1c1c20]' },
+          { label: '🔥 Hot',        value: '2',  color: 'text-red-400',    bg: 'bg-red-500/10', border: 'border-red-500/20' },
+          { label: '🌱 Nurture',    value: '2',  color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20' },
+          { label: '식별자 수',     value: '12', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+        ].map(s => (
+          <div key={s.label} className={cn('rounded-xl p-3 border text-center', s.bg, s.border)}>
+            <p className={cn('text-[22px] font-bold leading-none', s.color)}>{s.value}</p>
+            <p className="text-[10px] text-[#52525b] mt-1">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* 2-panel: profile list + detail */}
+      <div className="flex gap-3 min-h-[320px]">
+        {/* 프로파일 목록 */}
+        <div className="w-[260px] shrink-0 space-y-1.5">
+          {CDP_DUMMY_PROFILES.map(profile => (
+            <button
+              key={profile.id}
+              onClick={() => setSelected(profile.id === selected ? null : profile.id)}
+              className={cn(
+                'w-full text-left rounded-xl p-3 border transition-all',
+                selected === profile.id
+                  ? 'bg-indigo-500/15 border-indigo-500/50'
+                  : 'bg-[#111113] border-[#1c1c20] hover:border-[#27272a]'
+              )}
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className={cn(
+                  'w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0',
+                  profile.tier === 'hot'     ? 'bg-red-500/20 text-red-400' :
+                  profile.tier === 'nurture' ? 'bg-yellow-500/20 text-yellow-400' :
+                                               'bg-slate-500/20 text-slate-400'
+                )}>
+                  {profile.score}
                 </div>
-                {conn ? (
-                  <button onClick={() => handleDisconnect(c.id)}
-                    className="text-[#52525b] hover:text-red-400 transition-colors shrink-0" title="연결 해제">
-                    <LogOut size={11} />
-                  </button>
-                ) : (
-                  <button onClick={() => handleConnect(c.id)}
-                    className={cn('flex items-center gap-1 px-2 py-0.5 rounded text-[10px] border transition-colors shrink-0',
-                      'text-[#52525b] border-[#27272a] hover:text-primary hover:border-primary/40'
-                    )}>
-                    <Globe size={9} />연결
-                  </button>
-                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] text-[#e4e4e7] font-medium truncate">{profile.name}</p>
+                  <p className="text-[9px] text-[#52525b]">{profile.identifiers.length}개 식별자</p>
+                </div>
+                <span className={cn(
+                  'text-[8px] px-1.5 py-0.5 rounded border shrink-0',
+                  profile.tier === 'hot'     ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                  profile.tier === 'nurture' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                               'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                )}>
+                  {profile.tier.toUpperCase()}
+                </span>
               </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* API 키 연결 가이드 */}
-      <div className="bg-[#111113] border border-[#1c1c20] rounded-xl p-4">
-        <p className="text-[11px] text-[#52525b] uppercase tracking-widest mb-3">API 키 연결 구조</p>
-        <div className="space-y-2 text-[11px]">
-          {[
-            { key: 'ANTHROPIC_API_KEY',   desc: '텍스트 콘텐츠 생성 (필수)',     status: 'required' },
-            { key: 'IDEOGRAM_API_KEY',    desc: '이미지 생성 (OOMNI 내장)',       status: 'optional' },
-            { key: 'KLING_API_KEY',       desc: '영상 생성 Kling 3.0 (OOMNI 내장)', status: 'optional' },
-            { key: 'X_CLIENT_ID + SECRET',           desc: 'X(트위터) 채널 발행', status: 'publish' },
-            { key: 'YOUTUBE_CLIENT_ID + SECRET',     desc: 'YouTube 채널 발행',   status: 'publish' },
-            { key: 'LINKEDIN_CLIENT_ID + SECRET',    desc: 'LinkedIn 채널 발행',  status: 'publish' },
-            { key: 'INSTAGRAM_CLIENT_ID + SECRET',   desc: 'Instagram 채널 발행', status: 'publish' },
-            { key: 'NAVER_CLIENT_ID + SECRET',       desc: '네이버 블로그 발행',  status: 'publish' },
-          ].map(item => (
-            <div key={item.key} className="flex items-center gap-2">
-              <span className={cn(
-                'w-1.5 h-1.5 rounded-full shrink-0',
-                item.status === 'required' ? 'bg-primary' :
-                item.status === 'optional' ? 'bg-purple-500' : 'bg-[#3f3f46]'
-              )} />
-              <code className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">{item.key}</code>
-              <span className="text-[#52525b]">{item.desc}</span>
-            </div>
+              {/* ID badges */}
+              <div className="flex gap-1 flex-wrap">
+                {profile.identifiers.map((id, i) => (
+                  <span key={i} className="text-[9px] bg-[#1c1c20] px-1.5 py-0.5 rounded text-[#71717a]">
+                    {id.icon} {id.type}
+                  </span>
+                ))}
+              </div>
+            </button>
           ))}
         </div>
-        <div className="mt-3 pt-3 border-t border-[#27272a] flex gap-3 text-[10px] text-[#52525b]">
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />필수</span>
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-purple-500 inline-block" />미디어 내장 생성</span>
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#3f3f46] inline-block" />채널 발행 (선택)</span>
-        </div>
-      </div>
 
-      {/* n8n 워크플로우 템플릿 — 고급: 채널 자동 발행 */}
-      <div className="bg-[#111113] border border-[#1c1c20] rounded-xl p-4">
-        <div className="flex items-center gap-2 mb-1">
-          <p className="text-[11px] text-[#52525b] uppercase tracking-widest">n8n 채널 발행 자동화 (고급·선택)</p>
-          <span className="text-[9px] text-[#3f3f46] bg-[#1c1c20] px-1.5 py-0.5 rounded">Optional</span>
-        </div>
-        <p className="text-[10px] text-[#3f3f46] mb-3">이미지/영상 생성은 OOMNI 자체 API로 처리됩니다. n8n은 SNS 채널 발행 자동화 용도로만 사용 가능합니다.</p>
-        <div className="space-y-2">
-          {N8N_TEMPLATES.map(t => (
-            <div key={t.id} className="flex items-center gap-3 p-2.5 rounded-lg border border-[#27272a] bg-[#0d0d0f]">
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-medium text-[#e4e4e7]">{t.label}</p>
-                <p className="text-[10px] text-[#52525b] mt-0.5">{t.desc}</p>
-                <p className="text-[10px] text-primary/60 mt-0.5">트리거: {t.trigger}</p>
+        {/* 프로파일 상세 */}
+        <div className="flex-1 bg-[#111113] border border-[#1c1c20] rounded-xl overflow-hidden">
+          {selectedProfile ? (
+            <div className="p-4 h-full overflow-y-auto">
+              {/* 헤더 */}
+              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-[#1c1c20]">
+                <div className={cn(
+                  'w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0',
+                  selectedProfile.tier === 'hot'     ? 'bg-red-500/20 text-red-400' :
+                  selectedProfile.tier === 'nurture' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                       'bg-slate-500/20 text-slate-400'
+                )}>
+                  {selectedProfile.score}
+                </div>
+                <div>
+                  <p className="text-[14px] font-semibold text-[#e4e4e7]">{selectedProfile.name}</p>
+                  <p className="text-[10px] text-[#52525b]">
+                    첫 방문: {selectedProfile.firstSeen} · 최근: {selectedProfile.lastSeen}
+                  </p>
+                </div>
               </div>
-              <button
-                onClick={() => downloadTemplate(t)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#1c1c20] hover:bg-[#27272a] text-[#a1a1aa] hover:text-[#e4e4e7] text-[11px] transition-colors shrink-0 border border-[#27272a]"
-              >
-                <Download size={11} />
-                .json
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      <div className="bg-[#111113] border border-[#1c1c20] rounded-xl p-4">
-        <p className="text-[11px] text-[#52525b] uppercase tracking-widest mb-3">n8n 자동화 현황</p>
-        <div className="space-y-2 text-[12px] text-[#666]">
-          <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />Instagram → n8n webhook 자동 업로드</div>
-          <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />TikTok → n8n webhook 자동 업로드</div>
-          <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />X / LinkedIn / Naver Blog → OAuth 직접 연결</div>
+              {/* 연결된 식별자 (ID Graph) */}
+              <div className="mb-4">
+                <p className="text-[10px] font-semibold text-[#52525b] uppercase tracking-widest mb-2">연결된 식별자 (ID Graph)</p>
+                <div className="space-y-1.5">
+                  {selectedProfile.identifiers.map((id, i) => (
+                    <div key={i} className="flex items-center gap-2 px-3 py-2 bg-[#0d0d0f] border border-[#27272a] rounded-lg">
+                      <span className="text-sm shrink-0">{id.icon}</span>
+                      <span className="text-[10px] text-[#52525b] w-16 shrink-0 uppercase">{id.type}</span>
+                      <code className="text-[11px] text-emerald-400 flex-1 truncate">{id.value}</code>
+                      {i > 0 && (
+                        <span className="text-[9px] text-indigo-400 shrink-0">→ 동일 사용자</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 터치포인트 */}
+              <div>
+                <p className="text-[10px] font-semibold text-[#52525b] uppercase tracking-widest mb-2">터치포인트 히스토리</p>
+                <div className="space-y-1">
+                  {selectedProfile.touchpoints.map((tp, i) => (
+                    <div key={i} className="flex items-center gap-2 text-[11px] text-[#71717a]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/60 shrink-0" />
+                      {tp}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-[#3f3f46] p-8">
+              <Target size={32} strokeWidth={1.5} />
+              <p className="text-sm text-[#71717a]">왼쪽에서 프로파일을 선택하면<br />연결된 식별자와 터치포인트를 확인할 수 있습니다</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

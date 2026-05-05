@@ -414,9 +414,33 @@ export interface DbSource {
   id: string
   name: string
   url: string
-  type: 'rss' | 'youtube' | 'x' | 'special'
+  type: 'rss' | 'youtube' | 'x' | 'special' | 'serp'
   category: string
   is_active: number
+}
+
+// ── SerpAPI (Google 검색 결과) ───────────────────────────
+async function fetchSerpApi(query: string, days: number): Promise<FetchedItem[]> {
+  const apiKey = process.env.SERP_API_KEY
+  if (!apiKey) return []
+  try {
+    const cutoff = cutoffDate(days)
+    const dateRange = `d${days}` // SerpAPI tbs: d1=1일, d7=7일
+    const url = `https://serpapi.com/search.json?engine=google&q=${encodeURIComponent(query)}&tbs=qdr:${dateRange}&num=10&api_key=${apiKey}`
+    const res = await fetch(url, { signal: AbortSignal.timeout(12000) })
+    if (!res.ok) return []
+    const data = await res.json() as {
+      organic_results?: Array<{ title: string; link: string; snippet: string; date?: string }>
+    }
+    const cutoffTime = cutoff.getTime()
+    return (data.organic_results ?? []).map(r => ({
+      title: r.title,
+      summary: r.snippet ?? '',
+      url: r.link,
+      source: '🔍 SerpAPI',
+      published_at: r.date ? new Date(r.date).toISOString() : new Date().toISOString(),
+    })).filter(item => new Date(item.published_at).getTime() >= cutoffTime)
+  } catch { return [] }
 }
 
 export async function fetchRealSources(
@@ -438,6 +462,8 @@ export async function fetchRealSources(
         if (src.url === 'special://arxiv')           fetchTasks.push(fetchArxiv(query, days))
         else if (src.url === 'special://hackernews') fetchTasks.push(fetchHackerNews(days))
         else if (src.url === 'special://github_trending') fetchTasks.push(fetchGithubTrending(days))
+      } else if (src.type === 'serp') {
+        fetchTasks.push(fetchSerpApi(query, days))
       }
     }
   } else {

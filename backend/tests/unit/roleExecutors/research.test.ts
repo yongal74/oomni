@@ -32,7 +32,7 @@ ITEM_END`
 
 jest.mock('../../../src/services/roleExecutors/base', () => ({
   ...jest.requireActual('../../../src/services/roleExecutors/base'),
-  streamClaude: jest.fn().mockResolvedValue(MOCK_ITEMS),
+  streamClaude: jest.fn(),
   saveFeedItem: jest.fn().mockResolvedValue('feed-id-1'),
   HAIKU_MODEL: 'claude-haiku-4-5-20251001',
 }))
@@ -52,7 +52,10 @@ function buildCtx(task: string): { ctx: ExecutorContext; events: Array<[string, 
 }
 
 describe('Research Bot executor', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (streamClaude as jest.Mock).mockResolvedValue(MOCK_ITEMS);
+  })
 
   describe('기본 실행 흐름', () => {
     it('stage 이벤트가 발행된다', async () => {

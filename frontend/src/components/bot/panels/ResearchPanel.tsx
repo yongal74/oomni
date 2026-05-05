@@ -48,13 +48,13 @@ function loadFromStorage<T>(key: string, defaultVal: T): T {
 // ── 스킬 버튼 데이터 ────────────────────────────────────────────────────────
 const SKILLS_BUSINESS = [
   { label: '시장 기회 분석', prompt: '시장 규모·성장성·수익화 가능성 중심으로 사업성 리서치 수행해줘', highlight: false },
-  { label: '🔴 경쟁사 동향', prompt: '주요 경쟁사 움직임과 M&A 트렌드 분석해줘', highlight: true },
+  { label: '경쟁사 동향', prompt: '주요 경쟁사 움직임과 M&A 트렌드 분석해줘', highlight: false },
   { label: '투자 트렌드', prompt: '최근 AI/스타트업 투자 트렌드와 주목받는 카테고리 분석해줘', highlight: false },
   { label: '수익성 신호', prompt: 'SaaS·플랫폼 수익화 성공 사례와 수익성 신호 수집해줘', highlight: false },
 ]
 const SKILLS_INFORMATIONAL = [
   { label: 'AI 기술 트렌드', prompt: '최신 AI/ML 기술 트렌드와 연구 동향 수집해줘', highlight: false },
-  { label: '🔴 논문 요약', prompt: '최신 arXiv·학술 논문 요약하고 정보성 리서치 수행해줘', highlight: true },
+  { label: '논문 요약', prompt: '최신 arXiv·학술 논문 요약하고 정보성 리서치 수행해줘', highlight: false },
   { label: '오픈소스 동향', prompt: 'GitHub 트렌딩·오픈소스 프로젝트 동향 분석해줘', highlight: false },
   { label: '커뮤니티 인사이트', prompt: 'Reddit·Hacker News·DEV.to 커뮤니티 핫 토픽 수집해줘', highlight: false },
 ]
@@ -69,6 +69,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   youtube_tech: '📺 YouTube 테크', x_ai: '🐦 X AI',
   x_crypto: '🐦 X 크립토', google_news: '🌐 Google News',
   custom: '⚙️ 사용자 추가',
+  serp:   '🔍 SerpAPI',
 }
 
 function SourceManager() {

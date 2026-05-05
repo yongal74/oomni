@@ -211,7 +211,7 @@ describe('ClaudeCodeService', () => {
       ['research', 'haiku'],
       ['growth', 'haiku'],
       ['build', 'sonnet'],
-      ['design', 'sonnet'],
+      ['design', 'opus'],
       ['content', 'sonnet'],
       ['ops', 'sonnet'],
       ['ceo', 'opus'],

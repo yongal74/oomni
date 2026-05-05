@@ -730,63 +730,123 @@ export function ContentRightPanel({ agentId, onSkillSelect, currentRole = 'conte
 
 // ── SNS 채널 설정 ─────────────────────────────────────────────────────────────
 const SNS_CHANNELS = [
-  { key: 'x',          label: 'X (트위터)',      emoji: '🐦', maxChars: 280,   style: '간결하고 임팩트 있는 문체',     tips: '해시태그 2~3개, 스레드 연결 가능' },
-  { key: 'thread',     label: '스레드',          emoji: '🧵', maxChars: 500,   style: '대화체, 친근한 문체',           tips: '짧은 포스트 연결, 이미지 첨부 권장' },
-  { key: 'linkedin',   label: 'LinkedIn',        emoji: '💼', maxChars: 3000,  style: '전문가적 통찰 중심',             tips: '첫 줄 훅 중요, 단락 나누기' },
-  { key: 'instagram',  label: '인스타그램',      emoji: '📷', maxChars: 2200,  style: '감성적, 시각적 묘사 중심',       tips: '해시태그 10~15개, 줄바꿈 활용' },
-  { key: 'youtube',    label: '유튜브 스크립트', emoji: '🎬', maxChars: 5000,  style: '구어체, 자연스러운 흐름',        tips: '훅→본론→CTA 구조, 자막 고려' },
-  { key: 'naver_blog', label: '네이버 블로그',   emoji: '🟢', maxChars: 10000, style: 'SEO 중심, 정보성 중심',          tips: '키워드 5~7개, 목차 구성 필수' },
-  { key: 'blog',       label: '블로그 포스트',   emoji: '📝', maxChars: 5000,  style: '최진석 교수체, 논리적',          tips: '1800~2200자 권장, 4단계 구조' },
-  { key: 'newsletter', label: '뉴스레터',        emoji: '📧', maxChars: 3000,  style: '큐레이션형, 신뢰감 있는 문체',  tips: '제목 중요, TL;DR 포함, 링크 최소화' },
+  { key: 'x',          label: 'X (트위터)',      emoji: '🐦', maxChars: 280,   tips: '해시태그 2~3개, 스레드 연결 가능' },
+  { key: 'thread',     label: '스레드',          emoji: '🧵', maxChars: 500,   tips: '짧은 포스트 연결, 이미지 첨부 권장' },
+  { key: 'linkedin',   label: 'LinkedIn',        emoji: '💼', maxChars: 3000,  tips: '첫 줄 훅 중요, 단락 나누기' },
+  { key: 'instagram',  label: '인스타그램',      emoji: '📷', maxChars: 2200,  tips: '해시태그 10~15개, 줄바꿈 활용' },
+  { key: 'youtube',    label: '유튜브 스크립트', emoji: '🎬', maxChars: 5000,  tips: '훅→본론→CTA 구조, 자막 고려' },
+  { key: 'naver_blog', label: '네이버 블로그',   emoji: '🟢', maxChars: 10000, tips: '키워드 5~7개, 목차 구성 필수' },
+  { key: 'blog',       label: '블로그 포스트',   emoji: '📝', maxChars: 5000,  tips: '1800~2200자 권장, 4단계 구조' },
+  { key: 'newsletter', label: '뉴스레터',        emoji: '📧', maxChars: 3000,  tips: '제목 중요, TL;DR 포함, 링크 최소화' },
+]
+
+const TONE_OPTIONS = [
+  { key: 'casual',    label: '캐주얼',  desc: '친근하고 일상적인 표현' },
+  { key: 'formal',    label: '격식체',  desc: '전문적이고 공식적인 문체' },
+  { key: 'authority', label: '권위형',  desc: '전문가적 통찰과 확신' },
+  { key: 'empathy',   label: '공감형',  desc: '독자의 감정에 공명하는 문체' },
+  { key: 'humor',     label: '유머',    desc: '가볍고 재치있는 톤' },
 ]
 
 export function ContentChannelPanel({ onSkillSelect }: { onSkillSelect?: (prompt: string) => void }) {
   const [selected, setSelected] = useState<string | null>(null)
-  const [styles, setStyles] = useState<Record<string, string>>(
-    Object.fromEntries(SNS_CHANNELS.map(c => [c.key, c.style]))
+  const [tones, setTones] = useState<Record<string, string>>(
+    Object.fromEntries(SNS_CHANNELS.map(c => [c.key, 'casual']))
   )
+  const [charCounts, setCharCounts] = useState<Record<string, number>>(
+    Object.fromEntries(SNS_CHANNELS.map(c => [c.key, c.maxChars]))
+  )
+
   return (
     <div className="p-3 space-y-1">
       <p className="text-[10px] text-muted uppercase tracking-widest mb-2">채널 선택</p>
-      {SNS_CHANNELS.map(ch => (
-        <div key={ch.key}>
-          <button
-            onClick={() => setSelected(prev => prev === ch.key ? null : ch.key)}
-            className={cn(
-              'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs transition-colors',
-              selected === ch.key
-                ? 'bg-primary/10 border border-primary/40 text-text'
-                : 'hover:bg-surface text-dim border border-transparent'
-            )}
-          >
-            <span>{ch.emoji}</span>
-            <span className="flex-1">{ch.label}</span>
-            <span className="text-[10px] text-muted">{ch.maxChars.toLocaleString()}자</span>
-            {selected === ch.key ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-          </button>
-          {selected === ch.key && (
-            <div className="mt-1 mx-1 p-2.5 rounded-lg bg-bg border border-border space-y-2">
-              <div>
-                <label className="text-[10px] text-muted block mb-1">글쓰기 스타일</label>
-                <input
-                  value={styles[ch.key]}
-                  onChange={e => setStyles(prev => ({ ...prev, [ch.key]: e.target.value }))}
-                  className="w-full text-xs bg-surface border border-border rounded px-2 py-1.5 text-text focus:outline-none focus:border-primary/60"
-                />
+      {SNS_CHANNELS.map(ch => {
+        const toneObj = TONE_OPTIONS.find(t => t.key === tones[ch.key]) ?? TONE_OPTIONS[0]
+        const customCount = charCounts[ch.key]
+        return (
+          <div key={ch.key}>
+            <button
+              onClick={() => setSelected(prev => prev === ch.key ? null : ch.key)}
+              className={cn(
+                'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs transition-colors',
+                selected === ch.key
+                  ? 'bg-primary/10 border border-primary/40 text-text'
+                  : 'hover:bg-surface text-dim border border-transparent'
+              )}
+            >
+              <span>{ch.emoji}</span>
+              <span className="flex-1">{ch.label}</span>
+              <span className="text-[10px] text-muted">{customCount.toLocaleString()}자</span>
+              {selected === ch.key ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+            </button>
+            {selected === ch.key && (
+              <div className="mt-1 mx-1 p-2.5 rounded-lg bg-bg border border-border space-y-2.5">
+                {/* 문체/톤 선택 */}
+                <div>
+                  <label className="text-[10px] text-muted block mb-1.5">문체 / 톤</label>
+                  <div className="flex flex-wrap gap-1">
+                    {TONE_OPTIONS.map(t => (
+                      <button
+                        key={t.key}
+                        onClick={() => setTones(prev => ({ ...prev, [ch.key]: t.key }))}
+                        className={cn(
+                          'px-2 py-1 rounded text-[10px] font-medium border transition-colors',
+                          tones[ch.key] === t.key
+                            ? 'bg-primary/15 border-primary/50 text-primary'
+                            : 'bg-surface border-border text-muted hover:text-text hover:border-primary/30'
+                        )}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted/60 mt-1">{toneObj.desc}</p>
+                </div>
+
+                {/* 글자 수 조절 */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[10px] text-muted">글자 수 제한</label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setCharCounts(prev => ({ ...prev, [ch.key]: Math.max(50, prev[ch.key] - 100) }))}
+                        className="w-5 h-5 rounded bg-surface border border-border text-muted hover:text-text text-xs flex items-center justify-center transition-colors"
+                      >−</button>
+                      <span className="text-xs text-text w-14 text-center tabular-nums">{customCount.toLocaleString()}자</span>
+                      <button
+                        onClick={() => setCharCounts(prev => ({ ...prev, [ch.key]: Math.min(ch.maxChars * 2, prev[ch.key] + 100) }))}
+                        className="w-5 h-5 rounded bg-surface border border-border text-muted hover:text-text text-xs flex items-center justify-center transition-colors"
+                      >+</button>
+                    </div>
+                  </div>
+                  <input
+                    type="range"
+                    min={50}
+                    max={ch.maxChars}
+                    step={50}
+                    value={customCount}
+                    onChange={e => setCharCounts(prev => ({ ...prev, [ch.key]: Number(e.target.value) }))}
+                    className="w-full h-1 accent-primary"
+                  />
+                  <div className="flex justify-between text-[9px] text-muted/50 mt-0.5">
+                    <span>50</span><span>{ch.maxChars.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-muted/70 leading-relaxed">{ch.tips}</p>
+                <button
+                  onClick={() => onSkillSelect?.(
+                    `[channel:${ch.key}] ${ch.label}에 최적화된 콘텐츠를 작성해줘. 문체: ${toneObj.label}(${toneObj.desc}). 글자 수 제한: ${customCount}자 이내.`
+                  )}
+                  className="w-full py-1.5 rounded-lg bg-primary/15 hover:bg-primary/25 text-primary text-xs font-medium transition-colors border border-primary/30"
+                >
+                  {ch.emoji} {ch.label}로 작성하기
+                </button>
               </div>
-              <p className="text-[10px] text-muted/70 leading-relaxed">{ch.tips}</p>
-              <button
-                onClick={() => onSkillSelect?.(
-                  `[channel:${ch.key}] ${ch.label}에 최적화된 콘텐츠를 작성해줘. 글쓰기 스타일: ${styles[ch.key]}. 글자 수 제한: ${ch.maxChars}자 이내.`
-                )}
-                className="w-full py-1.5 rounded-lg bg-primary/15 hover:bg-primary/25 text-primary text-xs font-medium transition-colors border border-primary/30"
-              >
-                {ch.emoji} {ch.label}로 작성하기
-              </button>
-            </div>
-          )}
-        </div>
-      ))}
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

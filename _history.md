@@ -8,18 +8,28 @@
 
 | 항목 | 내용 |
 |------|------|
-| **최신 버전** | v5.1.0 |
-| **다음 버전** | v5.2.0 (UI 리디자인 완료, 릴리즈 미완) |
+| **최신 버전** | v5.5.0 |
+| **다음 버전** | v5.6.0 (미정) |
 | **tsc --noEmit** | ✅ 0 errors (백엔드 + 프론트엔드) |
-| **GitHub Release** | ✅ v5.1.0 정상 |
-| **랜딩페이지** | ✅ v5.1.0 다운로드 정상 |
+| **GitHub Release** | ✅ v5.5.0 정상 |
+| **랜딩페이지** | ✅ v5.5.0 다운로드 정상 |
 | **IDE** | VS Code + Claude Code 익스텐션 |
 | **마지막 작업일** | 2026-05-05 |
 
+### v5.5.0 변경 내역
+- **Stage 1 ✅**: OpsCenter 전면 재작성 — AX Clinic GuideClient 패턴 (3패널: 좌=도메인 카드, 중=StepItem 토글+시나리오, 우=AI 채팅)
+- **Stage 2 ✅**: Studio Bot — 플로팅 챗 → 결과영역 하단 고정 패널, VS Code 5개 테마 추가 (Dark+/One Dark/Dracula/Monokai/Light)
+- **Stage 3 ✅**: Growth Bot — 4탭 (콘텐츠 생성/콘텐츠 목록/리드 현황/CDP ID-Graph), 더미 데이터 5건, SettingsTab 삭제
+- **Stage 4 ✅**: Research Bot — 경쟁사동향·논문 버튼 🔴 이모지 제거 + highlight:false, SerpAPI 소스 추가 (비활성 기본값)
+- **Stage 5 ✅**: Content Bot — 채널별 문체/톤 선택 버튼 (캐주얼/격식체/권위형/공감형/유머), 글자 수 슬라이더+조절 버튼
+
 ### 즉시 처리 잔여 작업
 ```
+[ ] npm run build (프론트+백엔드 빌드 검증)
+[ ] npm run package → 새 인스톨러 생성
+[ ] gh release create v5.5.0
+[ ] 랜딩페이지 다운로드 링크 업데이트
 [ ] gh release delete v5.2.0 --repo yongal74/oomni  ← 빈 릴리즈 삭제
-[ ] Phase 3: Design Bot + Build Bot 리디자인 + Onboarding UI (미착수, 논의 필요)
 ```
 
 ---
