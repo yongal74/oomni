@@ -35,12 +35,15 @@ const WORKSPACE_ROOT = path.join(DATA_ROOT, 'workspaces');
 
 
 // ── PTY 세션 ──────────────────────────────────────────────
+const OUTPUT_BUF_MAX = 200_000; // 200KB 상한
+
 interface PtySession {
   pty: pty.IPty;
   clients: Set<WebSocket>;
   agentId: string;
   cols: number;
   rows: number;
+  outputBuffer: string;
 }
 
 const sessions = new Map<string, PtySession>();
@@ -106,6 +109,7 @@ function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = 
     agentId,
     cols,
     rows,
+    outputBuffer: '',
   };
 
   // shellMode가 아닌 경우 PowerShell 준비 후 Claude Code 자동 실행
@@ -121,8 +125,13 @@ function getOrCreateSession(agentId: string, cols = 120, rows = 35, shellMode = 
     }, 500);
   }
 
-  // PTY 출력 → 모든 WebSocket 클라이언트에 브로드캐스트
+  // PTY 출력 → 버퍼 누적 + 모든 WebSocket 클라이언트에 브로드캐스트
   ptyProcess.onData((data: string) => {
+    // 출력 버퍼 누적 (상한 초과 시 앞 절반 버림)
+    session.outputBuffer += data;
+    if (session.outputBuffer.length > OUTPUT_BUF_MAX) {
+      session.outputBuffer = session.outputBuffer.slice(session.outputBuffer.length - OUTPUT_BUF_MAX / 2);
+    }
     const msg = JSON.stringify({ type: 'output', data });
     for (const ws of session.clients) {
       if (ws.readyState === WebSocket.OPEN) {
@@ -189,11 +198,18 @@ export function attachPtyWebSocket(server: import('http').Server): void {
       const shellMode = qs.get('mode') === 'shell';
       const role = qs.get('role') ?? '';
 
+      const isExisting = sessions.has(agentId);
       const session = getOrCreateSession(agentId, cols, rows, shellMode, role);
       session.clients.add(ws);
 
-      // 접속 확인 메시지 (role 포함)
-      ws.send(JSON.stringify({ type: 'connected', agentId, role }));
+      if (isExisting && session.outputBuffer.length > 0) {
+        // 기존 세션 재연결: 버퍼 리플레이 후 reconnected 이벤트
+        ws.send(JSON.stringify({ type: 'replay', data: session.outputBuffer }));
+        ws.send(JSON.stringify({ type: 'reconnected', agentId, role }));
+      } else {
+        // 신규 세션: connected 이벤트
+        ws.send(JSON.stringify({ type: 'connected', agentId, role }));
+      }
 
       ws.on('message', (data) => {
         handleWsMessage(session, data.toString());

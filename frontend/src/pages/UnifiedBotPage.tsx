@@ -12,7 +12,7 @@ import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
 import { ModelSwitcher, type ModelId, type ModeId } from '../components/bot/ModelSwitcher'
 import { XTerminal, type XTerminalRef } from '../components/bot/XTerminal'
 import { ResearchLeftPanel, ResearchCenterPanel, ResearchRightPanel } from '../components/bot/panels/ResearchPanel'
-import { ContentLeftPanel, ContentCenterPanel, ContentRightPanel } from '../components/bot/panels/ContentPanel'
+import { ContentCenterPanel, ContentChannelPanel, ContentExportPanel } from '../components/bot/panels/ContentPanel'
 import { DesignLeftPanel, DesignCenterPanel, DesignRightPanel } from '../components/bot/panels/DesignPanel'
 import { OpsLeftPanel, OpsCenterPanel, OpsRightPanel } from '../components/bot/panels/OpsPanel'
 import { CeoLeftPanel, CeoCenterPanel, CeoRightPanel } from '../components/bot/panels/CeoPanel'
@@ -165,6 +165,7 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
   agentId: string
   placeholder: string
   children?: React.ReactNode
+  topSection?: React.ReactNode
   selectedModel: ModelId
   selectedMode: ModeId
   botRole: string
@@ -175,7 +176,7 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
   onChatDone?: () => void
   onStageChange?: (stage: string) => void
 }>(function AntigravityRightPanel(
-  { agentId, placeholder, children, selectedModel, selectedMode, botRole, onModelChange, onModeChange, onOutputCapture, onChatStart, onChatDone, onStageChange },
+  { agentId, placeholder, children, topSection, selectedModel, selectedMode, botRole, onModelChange, onModeChange, onOutputCapture, onChatStart, onChatDone, onStageChange },
   ref
 ) {
   const [task, setTask] = useState('')
@@ -325,6 +326,9 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
   return (
     <div className="h-full flex flex-col bg-surface/30 overflow-hidden">
 
+      {/* ── 상단 고정 영역 (내보내기 등) ─────────────────────── */}
+      {topSection}
+
       {/* ── 채팅 메시지 영역 ─────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 min-h-0">
 
@@ -414,7 +418,7 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
 
       {/* ── 스킬 빠른실행 버튼 (children) ───────────────────── */}
       {children && (
-        <div className="shrink-0 border-t border-border overflow-y-auto max-h-40">
+        <div className="shrink-0 border-t border-border overflow-y-auto max-h-64">
           {children}
         </div>
       )}
@@ -491,9 +495,9 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
 function UnifiedTerminalLayout({
   agentId, placeholder, termRef, onTerminalExit,
   onChatOutputCapture,
-  centerContent, rightChildren,
+  centerContent, rightChildren, rightTopSection,
   selectedModel, selectedMode, botRole, onModelChange, onModeChange,
-  rightPanelRef, onChatStart, onChatDone, onStageChange,
+  rightPanelRef, onChatStart, onChatDone, onStageChange, noTerminal,
 }: {
   agentId: string
   placeholder: string
@@ -502,6 +506,8 @@ function UnifiedTerminalLayout({
   onChatOutputCapture: (text: string) => void
   centerContent: React.ReactNode
   rightChildren?: React.ReactNode
+  rightTopSection?: React.ReactNode
+  noTerminal?: boolean
   selectedModel: ModelId
   selectedMode: ModeId
   botRole: string
@@ -512,16 +518,14 @@ function UnifiedTerminalLayout({
   onChatDone?: () => void
   onStageChange?: (stage: string) => void
 }) {
-  const leftArea = (
+  const leftArea = noTerminal ? (
+    <div className="h-full overflow-hidden">{centerContent}</div>
+  ) : (
     <ResizableSplit
       initialTopPercent={50}
       minTopPx={100}
       minBottomPx={80}
-      top={
-        <div className="h-full overflow-hidden">
-          {centerContent}
-        </div>
-      }
+      top={<div className="h-full overflow-hidden">{centerContent}</div>}
       bottom={
         <XTerminal
           ref={termRef}
@@ -547,6 +551,7 @@ function UnifiedTerminalLayout({
           ref={rightPanelRef}
           agentId={agentId}
           placeholder={placeholder}
+          topSection={rightTopSection}
           selectedModel={selectedModel}
           selectedMode={selectedMode}
           botRole={botRole}
@@ -586,7 +591,7 @@ export default function UnifiedBotPage() {
   const [currentStage, setCurrentStage] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [selectedResearchItem, setSelectedResearchItem] = useState<ResearchItem | null>(null)
-  const [contentType, setContentType] = useState('blog')
+  const [contentType] = useState('blog')
   const [streamOutput, setStreamOutput] = useState('')
   const [lastOutput, setLastOutput] = useState('')  // 다음봇 전달용 최신 결과물
   const esRef = useRef<EventSource | null>(null)
@@ -860,12 +865,7 @@ export default function UnifiedBotPage() {
         onTrackChange={setActiveResearchTrack}
         onRunWithTrack={(_track: string, prompt: string) => handleSkillRun(prompt)}
       />
-      if (role === 'content') return <ContentLeftPanel
-        missionId={missionId ?? ''}
-        selectedType={contentType}
-        onTypeChange={(type) => { setContentType(type); handleSkillRun(`${type} 형식으로 콘텐츠 초안을 작성해줘`) }}
-        onItemSelect={(item) => handleSkillRun(`"${item.title}" 리서치 내용을 ${contentType} 형식으로 변환해서 콘텐츠 초안을 작성해줘\n\n=== 리서치 원문 ===\n${item.content ?? item.summary ?? ''}`)}
-      />
+      if (role === 'content') return null
       if (role === 'design') return <DesignLeftPanel
         selectedTemplate={selectedDesignTemplate}
         onTemplateChange={setSelectedDesignTemplate}
@@ -906,7 +906,7 @@ export default function UnifiedBotPage() {
         onSkillSelect={(s: string) => handleSkillRun(s)}
         onFileUpload={(content, filename) => handleSkillRun(`__track:${activeResearchTrack}__ 다음 파일(${filename}) 내용을 분석하고 리서치 인사이트를 추출해줘:\n\n${content}`)}
       /></div>
-      if (role === 'content') return <div className="p-3"><ContentRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={handleSkillRun} currentRole="content" content={lastOutput} /></div>
+      if (role === 'content') return <ContentChannelPanel onSkillSelect={handleSkillRun} />
       if (role === 'design') return <div className="p-3"><DesignRightPanel
         agentId={agent.id}
         onSkillSelect={handleSkillRun}
@@ -927,6 +927,8 @@ export default function UnifiedBotPage() {
         onChatOutputCapture={handleChatOutputCapture}
         centerContent={centerContent}
         rightChildren={rightChildren}
+        rightTopSection={role === 'content' ? <ContentExportPanel agentId={agent.id} /> : undefined}
+        noTerminal={role === 'content'}
         selectedModel={selectedModel}
         selectedMode={selectedMode}
         botRole={agent.role}

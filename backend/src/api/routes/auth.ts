@@ -437,8 +437,9 @@ export function authRouter(): Router {
 
       // 무료 플랜
       res.json({ valid: true, reason: 'free_plan', plan: 'free', unlimited: false });
-    } catch {
-      // DB 오류 시 fallback
+    } catch (err) {
+      // DB 오류 시 안전하게 free 처리 (결제 우회 방지: unlimited=false)
+      console.error('[auth/quota] DB error during license check:', err)
       res.json({ valid: true, reason: 'fallback', plan: 'free', unlimited: false });
     }
   });

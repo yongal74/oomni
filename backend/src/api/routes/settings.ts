@@ -184,6 +184,29 @@ export function settingsRouter(): Router {
     res.json({ success: true, message: 'Gemini(Veo) API 키가 저장되었습니다' });
   });
 
+  // POST /api/settings/v0-key — Vercel v0 API 키 저장
+  router.post('/v0-key', (req: Request, res: Response) => {
+    const { key } = req.body as { key?: string };
+    if (!key || key.length < 8) {
+      res.status(400).json({ error: 'v0 API 키를 입력하세요' });
+      return;
+    }
+    saveSettings({ v0_api_key: key });
+    res.json({ success: true, message: 'v0 API 키가 저장되었습니다' });
+  });
+
+  // POST /api/settings/kling-key — Kling 3.0 API 키 저장
+  router.post('/kling-key', (req: Request, res: Response) => {
+    const { key } = req.body as { key?: string };
+    if (!key || key.length < 8) {
+      res.status(400).json({ error: 'Kling API 키를 입력하세요' });
+      return;
+    }
+    saveSettings({ kling_api_key: key });
+    process.env.KLING_API_KEY = key;
+    res.json({ success: true, message: 'Kling API 키가 저장되었습니다' });
+  });
+
   // POST /api/settings/n8n-webhooks — n8n 웹훅 URL 저장
   router.post('/n8n-webhooks', (req: Request, res: Response) => {
     const { instagram, tiktok } = req.body as { instagram?: string; tiktok?: string };

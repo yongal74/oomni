@@ -42,6 +42,10 @@ interface Props {
 
 const WS_URL = 'ws://localhost:3001'
 
+// 모듈 레벨 Terminal 캐시 — 컴포넌트 언마운트 후에도 scrollback 버퍼 유지
+const _termCache = new Map<string, Terminal>()
+const _fitCache = new Map<string, FitAddon>()
+
 export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
   { agentId, isRunning, alwaysOn, role, shellMode, taskHint, onExit, onOutputCapture, className }: Props,
   ref
@@ -66,71 +70,68 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
     },
   }))
 
-  // 터미널 초기화
+  // 터미널 초기화 — agentId 기준으로 인스턴스 캐시 (언마운트 후 재방문 시 scrollback 유지)
   useEffect(() => {
     if (!containerRef.current) return
 
-    const term = new Terminal({
-      cursorBlink: true,
-      fontSize: 13,
-      fontFamily: '"Cascadia Code", "JetBrains Mono", "Fira Code", Menlo, monospace',
-      theme: {
-        background: '#0d0d0d',
-        foreground: '#e8e8e8',
-        cursor: '#D4763B',
-        cursorAccent: '#0d0d0d',
-        black: '#000000',
-        red: '#ff5555',
-        green: '#50fa7b',
-        yellow: '#f1fa8c',
-        blue: '#6272a4',
-        magenta: '#ff79c6',
-        cyan: '#8be9fd',
-        white: '#f8f8f2',
-        brightBlack: '#44475a',
-        brightRed: '#ff6e6e',
-        brightGreen: '#69ff94',
-        brightYellow: '#ffffa5',
-        brightBlue: '#d6acff',
-        brightMagenta: '#ff92df',
-        brightCyan: '#a4ffff',
-        brightWhite: '#ffffff',
-        selectionBackground: '#D4763B40',
-      },
-      allowTransparency: false,
-      scrollback: 5000,
-      convertEol: true,
-    })
+    let term = _termCache.get(agentId)
+    let fitAddon = _fitCache.get(agentId)
+    const isReused = !!term
 
-    const fitAddon = new FitAddon()
-    const webLinksAddon = new WebLinksAddon()
-    term.loadAddon(fitAddon)
-    term.loadAddon(webLinksAddon)
+    if (!term) {
+      term = new Terminal({
+        cursorBlink: true,
+        fontSize: 13,
+        fontFamily: '"Cascadia Code", "JetBrains Mono", "Fira Code", Menlo, monospace',
+        theme: {
+          background: '#0d0d0d',
+          foreground: '#e8e8e8',
+          cursor: '#D4763B',
+          cursorAccent: '#0d0d0d',
+          black: '#000000', red: '#ff5555', green: '#50fa7b', yellow: '#f1fa8c',
+          blue: '#6272a4', magenta: '#ff79c6', cyan: '#8be9fd', white: '#f8f8f2',
+          brightBlack: '#44475a', brightRed: '#ff6e6e', brightGreen: '#69ff94',
+          brightYellow: '#ffffa5', brightBlue: '#d6acff', brightMagenta: '#ff92df',
+          brightCyan: '#a4ffff', brightWhite: '#ffffff', selectionBackground: '#D4763B40',
+        },
+        allowTransparency: false,
+        scrollback: 5000,
+        convertEol: true,
+      })
+
+      fitAddon = new FitAddon()
+      term.loadAddon(fitAddon)
+      term.loadAddon(new WebLinksAddon())
+      _termCache.set(agentId, term)
+      _fitCache.set(agentId, fitAddon)
+    }
+
     term.open(containerRef.current)
-    fitAddon.fit()
-
+    fitAddon?.fit()
     termRef.current = term
-    fitAddonRef.current = fitAddon
+    fitAddonRef.current = fitAddon ?? null
 
-    if (alwaysOn) {
-      term.writeln('\x1b[1;32mOOMNI Terminal\x1b[0m — 워크스페이스 셸')
-      term.writeln('\x1b[90m연결 중...\x1b[0m\r\n')
-    } else {
-      term.writeln('\x1b[1;32mOOMNI Build Terminal\x1b[0m — Claude Code 인터랙티브 모드')
-      term.writeln('\x1b[90m봇을 실행하면 연결됩니다...\x1b[0m\r\n')
+    if (!isReused) {
+      if (alwaysOn) {
+        term.writeln('\x1b[1;32mOOMNI Terminal\x1b[0m — 워크스페이스 셸')
+        term.writeln('\x1b[90m연결 중...\x1b[0m\r\n')
+      } else {
+        term.writeln('\x1b[1;32mOOMNI Build Terminal\x1b[0m — Claude Code 인터랙티브 모드')
+        term.writeln('\x1b[90m봇을 실행하면 연결됩니다...\x1b[0m\r\n')
+      }
     }
 
     const observer = new ResizeObserver(() => {
-      try { fitAddon.fit() } catch { /* ignore */ }
+      try { fitAddon?.fit() } catch { /* ignore */ }
     })
-    if (containerRef.current) observer.observe(containerRef.current)
+    observer.observe(containerRef.current)
 
     return () => {
       observer.disconnect()
-      term.dispose()
+      // 캐시된 Terminal은 dispose하지 않음 — scrollback 유지 목적
       termRef.current = null
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [agentId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // isRunning 또는 alwaysOn 변경 시 WebSocket 연결/해제
   useEffect(() => {
@@ -166,7 +167,13 @@ export const XTerminal = forwardRef<XTerminalRef, Props>(function XTerminal(
     ws.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data as string) as { type: string; data?: string; exitCode?: number }
-        if (msg.type === 'output' && msg.data) {
+        if (msg.type === 'replay' && msg.data) {
+          // 재연결 시 백엔드 버퍼 리플레이 (새 Terminal 인스턴스인 경우만 의미있음)
+          term.write(msg.data)
+        } else if (msg.type === 'reconnected') {
+          term.writeln('\r\n\x1b[90m[세션 재연결됨 — 이전 작업 계속]\x1b[0m\r\n')
+          setConnected(true)
+        } else if (msg.type === 'output' && msg.data) {
           term.write(msg.data)
           const plain = msg.data.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/\x1b\][^\x07]*\x07/g, '')
           outputBufRef.current += plain

@@ -30,6 +30,9 @@ import { growthRouter } from './routes/growth';
 import { designRouter } from './routes/design';
 import { identityRouter } from './routes/identity';
 import { opsRouter } from './routes/ops';
+import { studioRouter } from './routes/studio';
+import { snsRouter } from './routes/sns';
+import { VIDEOS_DIR } from '../services/klingService';
 import { logger } from '../logger';
 
 interface AppOptions {
@@ -130,6 +133,9 @@ export function createApp(options: AppOptions): Application {
       req.path === '/health' ||
       req.path.startsWith('/auth') ||
       req.path.startsWith('/settings') ||
+      req.path.startsWith('/studio') ||
+      req.path.startsWith('/video/local') ||
+      req.path.startsWith('/sns/callback') ||
       /^\/agents\/[^/]+\/stream/.test(req.path) ||
       /^\/agents\/[^/]+\/chat$/.test(req.path);
 
@@ -142,8 +148,8 @@ export function createApp(options: AppOptions): Application {
 
   // ── 라우터 ───────────────────────────────────────────────
   app.use('/api/missions', missionsRouter(options.db));
+  app.use('/api/agents', triggerLimiter);        // rate limit 먼저
   app.use('/api/agents', agentsRouter(options.db));
-  app.use('/api/agents', triggerLimiter);
   app.use('/api/feed', feedRouter(options.db));
   app.use('/api/integrations', integrationsRouter(options.db));
   app.use('/api/cost', costRouter(options.db));
@@ -161,6 +167,11 @@ export function createApp(options: AppOptions): Application {
   app.use('/api/design', designRouter(options.db));
   app.use('/api/identity', identityRouter(options.db));
   app.use('/api/ops', opsRouter(options.db));
+  app.use('/api/studio', studioRouter());
+  app.use('/api/sns', snsRouter(options.db));
+
+  // Kling 체인 영상 로컬 서빙 (VIDEOS_DIR → /api/video/local/:filename)
+  app.use('/api/video/local', express.static(VIDEOS_DIR));
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });

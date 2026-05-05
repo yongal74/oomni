@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { agentsApi, researchApi, type FeedItem, type ResearchItem } from '../../../lib/api'
-import { Copy, Check, FileText, Download, Upload, X, ArrowUpDown, ExternalLink, Newspaper, Briefcase } from 'lucide-react'
+import { Copy, Check, FileText, Download, Upload, X, ArrowUpDown, ExternalLink, Newspaper, Briefcase, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { ArchiveButton } from '../shared/ArchiveButton'
 import { NextBotDropdown } from '../shared/NextBotDropdown'
@@ -724,6 +724,123 @@ export function ContentRightPanel({ agentId, onSkillSelect, currentRole = 'conte
       />
 
       <NextBotDropdown currentAgentId={agentId} currentRole={currentRole} content={content} />
+    </div>
+  )
+}
+
+// ── SNS 채널 설정 ─────────────────────────────────────────────────────────────
+const SNS_CHANNELS = [
+  { key: 'x',          label: 'X (트위터)',      emoji: '🐦', maxChars: 280,   style: '간결하고 임팩트 있는 문체',     tips: '해시태그 2~3개, 스레드 연결 가능' },
+  { key: 'thread',     label: '스레드',          emoji: '🧵', maxChars: 500,   style: '대화체, 친근한 문체',           tips: '짧은 포스트 연결, 이미지 첨부 권장' },
+  { key: 'linkedin',   label: 'LinkedIn',        emoji: '💼', maxChars: 3000,  style: '전문가적 통찰 중심',             tips: '첫 줄 훅 중요, 단락 나누기' },
+  { key: 'instagram',  label: '인스타그램',      emoji: '📷', maxChars: 2200,  style: '감성적, 시각적 묘사 중심',       tips: '해시태그 10~15개, 줄바꿈 활용' },
+  { key: 'youtube',    label: '유튜브 스크립트', emoji: '🎬', maxChars: 5000,  style: '구어체, 자연스러운 흐름',        tips: '훅→본론→CTA 구조, 자막 고려' },
+  { key: 'naver_blog', label: '네이버 블로그',   emoji: '🟢', maxChars: 10000, style: 'SEO 중심, 정보성 중심',          tips: '키워드 5~7개, 목차 구성 필수' },
+  { key: 'blog',       label: '블로그 포스트',   emoji: '📝', maxChars: 5000,  style: '최진석 교수체, 논리적',          tips: '1800~2200자 권장, 4단계 구조' },
+  { key: 'newsletter', label: '뉴스레터',        emoji: '📧', maxChars: 3000,  style: '큐레이션형, 신뢰감 있는 문체',  tips: '제목 중요, TL;DR 포함, 링크 최소화' },
+]
+
+export function ContentChannelPanel({ onSkillSelect }: { onSkillSelect?: (prompt: string) => void }) {
+  const [selected, setSelected] = useState<string | null>(null)
+  const [styles, setStyles] = useState<Record<string, string>>(
+    Object.fromEntries(SNS_CHANNELS.map(c => [c.key, c.style]))
+  )
+  return (
+    <div className="p-3 space-y-1">
+      <p className="text-[10px] text-muted uppercase tracking-widest mb-2">채널 선택</p>
+      {SNS_CHANNELS.map(ch => (
+        <div key={ch.key}>
+          <button
+            onClick={() => setSelected(prev => prev === ch.key ? null : ch.key)}
+            className={cn(
+              'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs transition-colors',
+              selected === ch.key
+                ? 'bg-primary/10 border border-primary/40 text-text'
+                : 'hover:bg-surface text-dim border border-transparent'
+            )}
+          >
+            <span>{ch.emoji}</span>
+            <span className="flex-1">{ch.label}</span>
+            <span className="text-[10px] text-muted">{ch.maxChars.toLocaleString()}자</span>
+            {selected === ch.key ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+          </button>
+          {selected === ch.key && (
+            <div className="mt-1 mx-1 p-2.5 rounded-lg bg-bg border border-border space-y-2">
+              <div>
+                <label className="text-[10px] text-muted block mb-1">글쓰기 스타일</label>
+                <input
+                  value={styles[ch.key]}
+                  onChange={e => setStyles(prev => ({ ...prev, [ch.key]: e.target.value }))}
+                  className="w-full text-xs bg-surface border border-border rounded px-2 py-1.5 text-text focus:outline-none focus:border-primary/60"
+                />
+              </div>
+              <p className="text-[10px] text-muted/70 leading-relaxed">{ch.tips}</p>
+              <button
+                onClick={() => onSkillSelect?.(
+                  `[channel:${ch.key}] ${ch.label}에 최적화된 콘텐츠를 작성해줘. 글쓰기 스타일: ${styles[ch.key]}. 글자 수 제한: ${ch.maxChars}자 이내.`
+                )}
+                className="w-full py-1.5 rounded-lg bg-primary/15 hover:bg-primary/25 text-primary text-xs font-medium transition-colors border border-primary/30"
+              >
+                {ch.emoji} {ch.label}로 작성하기
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function ContentExportPanel({ agentId }: { agentId: string }) {
+  const [copied, setCopied] = useState(false)
+  const { data: feed = [] } = useQuery({
+    queryKey: ['bot-feed', agentId],
+    queryFn: () => agentsApi.runs(agentId),
+    select: (data: FeedItem[]) => data.filter(f => f.type === 'result'),
+  })
+  const latest = feed[0]
+
+  const handleCopy = async () => {
+    if (!latest) return
+    await navigator.clipboard.writeText(latest.content)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  const handleDownload = () => {
+    if (!latest) return
+    const dateStr = new Date().toISOString().slice(0, 10)
+    const safeTitle = latest.content.slice(0, 40).replace(/[\\/:*?"<>|\n]/g, '_').trim()
+    const blob = new Blob([latest.content], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${dateStr}_${safeTitle}.md`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 px-3 py-2 shrink-0">
+      <button
+        onClick={handleCopy}
+        disabled={!latest}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-surface hover:bg-border text-dim hover:text-text text-xs transition-colors disabled:opacity-40 border border-border"
+      >
+        {copied ? <Check size={11} className="text-green-400" /> : <Copy size={11} />}
+        {copied ? '복사됨' : '복사'}
+      </button>
+      <button
+        onClick={handleDownload}
+        disabled={!latest}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-surface hover:bg-border text-dim hover:text-text text-xs transition-colors disabled:opacity-40 border border-border"
+      >
+        <Download size={11} />
+        .md 저장
+      </button>
+      <span className="text-[10px] text-muted ml-auto">
+        {feed.length > 0 ? `결과 ${feed.length}개` : '결과 없음'}
+      </span>
     </div>
   )
 }

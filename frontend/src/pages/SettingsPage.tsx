@@ -1,10 +1,24 @@
 import { useState, useRef, useEffect } from 'react'
 import {
   Download, Upload, AlertTriangle, CheckCircle, Loader2,
-  User, CreditCard, Key, Database, ExternalLink, X, Bot, Eye, EyeOff, FolderOpen, Info, RefreshCw, MessageSquare
+  User, CreditCard, Key, Database, ExternalLink, X, Bot, Eye, EyeOff, FolderOpen, Info, RefreshCw, MessageSquare,
+  Monitor, Zap, TrendingUp
 } from 'lucide-react'
 import { backupApi, profileApi, paymentsApi, integrationsSettingsApi, settingsApi, obsidianSettingsApi, type Subscription } from '../lib/api'
 import { BACKEND_URL } from '../config'
+
+const ZOOM_LEVELS = [
+  { value: '0.85', label: '작게 (85%)' },
+  { value: '0.92', label: '보통 (92%)' },
+  { value: '1.0', label: '기본 (100%)' },
+  { value: '1.1', label: '크게 (110%)' },
+  { value: '1.2', label: '매우 크게 (120%)' },
+]
+
+function applyZoom(zoom: string) {
+  document.documentElement.style.setProperty('--ui-zoom', zoom)
+  localStorage.setItem('oomni-ui-zoom', zoom)
+}
 
 interface MsgState {
   type: 'success' | 'error'
@@ -110,6 +124,34 @@ export default function SettingsPage() {
   const [vaultSaved, setVaultSaved] = useState(false)
   const [vaultSaving, setVaultSaving] = useState(false)
 
+  // 화면 설정
+  const [uiZoom, setUiZoom] = useState(() => localStorage.getItem('oomni-ui-zoom') ?? '1.0')
+
+  // AI API 키
+  const [klingApiKey, setKlingApiKey] = useState('')
+  const [klingKeySet, setKlingKeySet] = useState(false)
+  const [showKlingKey, setShowKlingKey] = useState(false)
+  const [klingMsg, setKlingMsg] = useState<MsgState | null>(null)
+  const [klingSaving, setKlingSaving] = useState(false)
+
+  const [geminiApiKey, setGeminiApiKey] = useState('')
+  const [geminiKeySet, setGeminiKeySet] = useState(false)
+  const [showGeminiKey, setShowGeminiKey] = useState(false)
+  const [geminiMsg, setGeminiMsg] = useState<MsgState | null>(null)
+  const [geminiSaving, setGeminiSaving] = useState(false)
+
+  const [v0ApiKey, setV0ApiKey] = useState('')
+  const [v0KeySet, setV0KeySet] = useState(false)
+  const [showV0Key, setShowV0Key] = useState(false)
+  const [v0Msg, setV0Msg] = useState<MsgState | null>(null)
+  const [v0Saving, setV0Saving] = useState(false)
+
+  // Growth 연동
+  const [n8nWebhookUrl, setN8nWebhookUrl] = useState('')
+  const [ga4MeasurementId, setGa4MeasurementId] = useState('')
+  const [growthMsg, setGrowthMsg] = useState<MsgState | null>(null)
+  const [growthSaving, setGrowthSaving] = useState(false)
+
   // ── 구독 정보 로드 ──────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -126,8 +168,18 @@ export default function SettingsPage() {
       .finally(() => setSubLoading(false))
     integrationsSettingsApi.get().then(setIntegrations).catch(() => {})
     settingsApi.getGoogleOAuth().then(setGoogleOAuth).catch(() => {})
-    settingsApi.getStatus().then(s => setClaudeApiKeySet(s.api_key_set)).catch(() => {})
+    settingsApi.getExtendedStatus().then(s => {
+      setClaudeApiKeySet(s.api_key_set)
+      setKlingKeySet(!!s.kling_key_set)
+      setGeminiKeySet(!!s.gemini_key_set)
+      setV0KeySet(!!s.v0_key_set)
+      if (s.n8n_webhook_url) setN8nWebhookUrl(s.n8n_webhook_url)
+      if (s.ga4_measurement_id) setGa4MeasurementId(s.ga4_measurement_id)
+    }).catch(() => {})
     obsidianSettingsApi.get().then(d => { if (d.vault_path) setVaultPath(d.vault_path) }).catch(() => {})
+    // 저장된 zoom 적용
+    const savedZoom = localStorage.getItem('oomni-ui-zoom')
+    if (savedZoom) applyZoom(savedZoom)
   }, [])
 
   // ── 프로필 저장 ──────────────────────────────────────────────────────────
@@ -347,6 +399,30 @@ export default function SettingsPage() {
     <div className="p-6 max-w-2xl">
       <h1 className="text-xl font-semibold text-text mb-6">설정</h1>
 
+      {/* ── 0. 화면 설정 ────────────────────────────────────────────── */}
+      <SectionCard>
+        <SectionTitle icon={<Monitor size={16} />} title="화면 설정" />
+        <p className="text-muted text-sm mb-4">UI 크기와 폰트를 조정합니다.</p>
+        <div>
+          <label className="block text-[12px] text-muted mb-2">UI 크기 (현재: {ZOOM_LEVELS.find(z => z.value === uiZoom)?.label ?? '기본'})</label>
+          <div className="flex gap-2 flex-wrap">
+            {ZOOM_LEVELS.map(z => (
+              <button
+                key={z.value}
+                onClick={() => { setUiZoom(z.value); applyZoom(z.value) }}
+                className={`px-3 py-1.5 rounded-lg text-[13px] border transition-colors ${
+                  uiZoom === z.value
+                    ? 'bg-primary text-white border-primary'
+                    : 'bg-bg border-border text-muted hover:border-primary/40 hover:text-text'
+                }`}
+              >
+                {z.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </SectionCard>
+
       {/* ── 1. 프로필 섹션 ──────────────────────────────────────────── */}
       <SectionCard>
         <SectionTitle icon={<User size={16} />} title="프로필" />
@@ -535,6 +611,137 @@ export default function SettingsPage() {
         </div>
 
         {claudeMsg && <MsgBox msg={claudeMsg} />}
+      </SectionCard>
+
+      {/* ── 3-b. AI 서비스 API 키 ───────────────────────────────────── */}
+      <SectionCard>
+        <SectionTitle icon={<Zap size={16} />} title="AI 서비스 API 키" />
+        <p className="text-muted text-sm mb-5">영상 생성, UI 디자인, 이미지 생성에 사용되는 AI 서비스 키를 설정합니다.</p>
+
+        {/* Kling API */}
+        <div className="mb-5 pb-5 border-b border-border">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[13px] font-medium text-text">Kling 3.0 API</span>
+            <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">영상 자동 생성 (ModelsLab)</span>
+            {klingKeySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+          </div>
+          <p className="text-[12px] text-muted mb-3">쇼츠 영상 자동 생성 (20초/60초/5분). modelslab.com에서 발급.</p>
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <input type={showKlingKey ? 'text' : 'password'} value={klingApiKey} onChange={e => setKlingApiKey(e.target.value)}
+                placeholder="ml-..." className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
+              <button onClick={() => setShowKlingKey(v => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text" tabIndex={-1}>
+                {showKlingKey ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            <button onClick={async () => { setKlingSaving(true); setKlingMsg(null); try { await settingsApi.setKlingKey(klingApiKey.trim()); setKlingKeySet(true); setKlingApiKey(''); setKlingMsg({ type: 'success', text: 'Kling API 키가 저장되었습니다' }); } catch { setKlingMsg({ type: 'error', text: '저장 실패' }); } setKlingSaving(false); }} disabled={klingSaving || !klingApiKey.trim()}
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0">
+              {klingSaving ? <Loader2 size={13} className="animate-spin" /> : null}저장
+            </button>
+          </div>
+          {klingMsg && <MsgBox msg={klingMsg} />}
+        </div>
+
+        {/* Gemini API */}
+        <div className="mb-5 pb-5 border-b border-border">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[13px] font-medium text-text">Gemini API</span>
+            <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">이미지 생성 (Imagen 4)</span>
+            {geminiKeySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+          </div>
+          <p className="text-[12px] text-muted mb-3">마케팅 이미지 자동 생성. aistudio.google.com에서 발급.</p>
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <input type={showGeminiKey ? 'text' : 'password'} value={geminiApiKey} onChange={e => setGeminiApiKey(e.target.value)}
+                placeholder="AIza..." className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
+              <button onClick={() => setShowGeminiKey(v => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text" tabIndex={-1}>
+                {showGeminiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            <button onClick={async () => { setGeminiSaving(true); setGeminiMsg(null); try { await settingsApi.setGeminiKey(geminiApiKey.trim()); setGeminiKeySet(true); setGeminiApiKey(''); setGeminiMsg({ type: 'success', text: 'Gemini API 키가 저장되었습니다' }); } catch { setGeminiMsg({ type: 'error', text: '저장 실패' }); } setGeminiSaving(false); }} disabled={geminiSaving || !geminiApiKey.trim()}
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0">
+              {geminiSaving ? <Loader2 size={13} className="animate-spin" /> : null}저장
+            </button>
+          </div>
+          {geminiMsg && <MsgBox msg={geminiMsg} />}
+        </div>
+
+        {/* v0 API */}
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[13px] font-medium text-text">v0 Platform API</span>
+            <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">Studio Bot UI 디자인</span>
+            {v0KeySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+          </div>
+          <p className="text-[12px] text-muted mb-3">React + shadcn/ui 프로토타입 생성 (Studio Bot). v0.dev에서 발급.</p>
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <input type={showV0Key ? 'text' : 'password'} value={v0ApiKey} onChange={e => setV0ApiKey(e.target.value)}
+                placeholder="v0_..." className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
+              <button onClick={() => setShowV0Key(v => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text" tabIndex={-1}>
+                {showV0Key ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            <button onClick={async () => { setV0Saving(true); setV0Msg(null); try { await settingsApi.setV0Key(v0ApiKey.trim()); setV0KeySet(true); setV0ApiKey(''); setV0Msg({ type: 'success', text: 'v0 API 키가 저장되었습니다' }); } catch { setV0Msg({ type: 'error', text: '저장 실패' }); } setV0Saving(false); }} disabled={v0Saving || !v0ApiKey.trim()}
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0">
+              {v0Saving ? <Loader2 size={13} className="animate-spin" /> : null}저장
+            </button>
+          </div>
+          {v0Msg && <MsgBox msg={v0Msg} />}
+        </div>
+      </SectionCard>
+
+      {/* ── 3-c. Growth 마케팅 연동 ─────────────────────────────────── */}
+      <SectionCard>
+        <SectionTitle icon={<TrendingUp size={16} />} title="Growth 마케팅 연동" />
+        <p className="text-muted text-sm mb-5">n8n 자동화, 분석 도구, 채널 API를 연결합니다.</p>
+
+        <div className="space-y-4">
+          {/* n8n 웹훅 */}
+          <div>
+            <label className="block text-[12px] text-muted mb-1">n8n 웹훅 URL</label>
+            <p className="text-[11px] text-muted/70 mb-2">콘텐츠 발행 이벤트를 n8n으로 전달합니다. 없으면 OOMNI 내장 플로우 사용.</p>
+            <input value={n8nWebhookUrl} onChange={e => setN8nWebhookUrl(e.target.value)}
+              placeholder="https://your-n8n.app/webhook/xxxxxx"
+              className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-text placeholder:text-muted/50 focus:outline-none focus:border-primary/60" />
+          </div>
+
+          {/* GA4 */}
+          <div>
+            <label className="block text-[12px] text-muted mb-1">GA4 Measurement ID</label>
+            <p className="text-[11px] text-muted/70 mb-2">웹사이트 방문자 분석 + 퍼포먼스 마케팅 지표 수집.</p>
+            <input value={ga4MeasurementId} onChange={e => setGa4MeasurementId(e.target.value)}
+              placeholder="G-XXXXXXXXXX"
+              className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-text placeholder:text-muted/50 focus:outline-none focus:border-primary/60" />
+          </div>
+
+          <button
+            onClick={async () => {
+              setGrowthSaving(true); setGrowthMsg(null)
+              try {
+                await settingsApi.setGrowthConfig({ n8n_webhook_url: n8nWebhookUrl, ga4_measurement_id: ga4MeasurementId })
+                setGrowthMsg({ type: 'success', text: 'Growth 연동 설정이 저장되었습니다' })
+              } catch { setGrowthMsg({ type: 'error', text: '저장 실패' }) }
+              setGrowthSaving(false)
+            }}
+            disabled={growthSaving}
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50"
+          >
+            {growthSaving ? <Loader2 size={13} className="animate-spin" /> : null}저장
+          </button>
+
+          {growthMsg && <MsgBox msg={growthMsg} />}
+
+          {/* 채널 API 키 안내 */}
+          <div className="p-3 bg-bg border border-border rounded-lg">
+            <p className="text-[12px] text-muted mb-2">채널별 API 키 (GrowthStudio 설정 탭에서 관리)</p>
+            <div className="flex flex-wrap gap-2">
+              {['Instagram', 'X (Twitter)', 'YouTube', 'TikTok', 'LinkedIn', 'Naver', 'Reddit'].map(ch => (
+                <span key={ch} className="px-2 py-0.5 bg-surface border border-border text-[11px] text-muted rounded-full">{ch}</span>
+              ))}
+            </div>
+          </div>
+        </div>
       </SectionCard>
 
       {/* ── 4. 라이선스 섹션 ────────────────────────────────────────── */}

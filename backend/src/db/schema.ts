@@ -418,6 +418,22 @@ export const SCHEMA_SQL = `
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- ── v5.2.0 구독 / 결제 ──────────────────────────────────────────────────────
+
+  CREATE TABLE IF NOT EXISTS subscriptions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    plan TEXT NOT NULL CHECK(plan IN ('free','personal','pro','team')),
+    status TEXT NOT NULL CHECK(status IN ('active','canceled','past_due','trialing')) DEFAULT 'active',
+    payment_provider TEXT,
+    external_subscription_id TEXT,
+    current_period_start TEXT,
+    current_period_end TEXT,
+    cancel_at_period_end INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   -- ── v5.0.1 인덱스 ────────────────────────────────────────────────────────
 
   CREATE INDEX IF NOT EXISTS idx_tasks_mission_status ON tasks(mission_id, status);
@@ -442,7 +458,8 @@ export const TABLES = [
   'projects', 'tasks', 'task_blockers', 'task_results', 'recipes',
   'cdp_profiles', 'cdp_identity_index', 'cdp_events', 'cdp_merge_log', 'cdp_segment_history',
   'growth_content', 'growth_leads', 'sns_connections', 'ax_clinic_log',
+  'subscriptions',
 ];
 
-// v2.x 감지용 — v2.x DB는 agents_v5 또는 agents_v6 잔재 혹은 subscriptions 테이블 보유
-export const V2_DETECTION_TABLES = ['agents_v5', 'agents_v6', 'subscriptions', 'payment_logs'];
+// v2.x 감지용 — v2.x DB는 agents_v5 또는 agents_v6 잔재 보유
+export const V2_DETECTION_TABLES = ['agents_v5', 'agents_v6', 'payment_logs'];

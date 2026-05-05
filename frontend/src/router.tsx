@@ -14,9 +14,8 @@ const PtyBotPage = React.lazy(() => import('./pages/PtyBotPage'))
 const PinPage = React.lazy(() => import('./pages/PinPage'))
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'))
 const MissionBoard = React.lazy(() => import('./pages/MissionBoard').then(m => ({ default: m.MissionBoard })))
-const ResearchHub = React.lazy(() => import('./pages/ResearchHub'))
 const GrowthStudio = React.lazy(() => import('./pages/GrowthStudio'))
-const DesignStudio = React.lazy(() => import('./pages/DesignStudio'))
+const StudioBotPage = React.lazy(() => import('./pages/StudioBotPage'))
 const OpsCenter = React.lazy(() => import('./pages/OpsCenter'))
 const CDPView        = React.lazy(() => import('./pages/CDPView'))
 const SnsSettingsPage = React.lazy(() => import('./pages/SnsSettingsPage'))
@@ -140,9 +139,8 @@ export const router = createHashRouter([
     children: [
       { index: true, element: <PageWrap><DashboardPage /></PageWrap> },
       { path: 'board',          element: <PageWrap><MissionBoard /></PageWrap> },
-      { path: 'research',       element: <PageWrap><ResearchHub /></PageWrap> },
       { path: 'growth',         element: <PageWrap><GrowthStudio /></PageWrap> },
-      { path: 'design-studio',  element: <PageWrap><DesignStudio /></PageWrap> },
+      { path: 'design-studio',  element: <PageWrap><StudioBotPage /></PageWrap> },
       { path: 'ops',            element: <PageWrap><OpsCenter /></PageWrap> },
       { path: 'cdp',            element: <PageWrap><CDPView /></PageWrap> },
       { path: 'approvals',      element: <PageWrap><ApprovalPage /></PageWrap> },

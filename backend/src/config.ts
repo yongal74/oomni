@@ -35,6 +35,10 @@ interface Settings {
   // v5.2.0 Lead Gen
   gemini_api_key?: string;
   ideogram_api_key?: string;
+  // Studio
+  v0_api_key?: string;
+  // Kling AI (format: "access_key_id:access_key_secret" or raw JWT)
+  kling_api_key?: string;
   n8n_instagram_webhook?: string;
   n8n_tiktok_webhook?: string;
   instagram_app_id?: string;
@@ -100,6 +104,8 @@ const SENSITIVE_FIELDS: (keyof Settings)[] = [
   'video_api_key',
   'gemini_api_key',
   'ideogram_api_key',
+  'v0_api_key',
+  'kling_api_key',
   'instagram_app_secret',
   'youtube_client_secret',
   'tiktok_client_secret',

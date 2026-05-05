@@ -189,6 +189,14 @@ export const settingsApi = {
     api.post('/api/settings/n8n-webhooks', data).then(r => r.data),
   setSnsOAuth: (data: Record<string, string | undefined>): Promise<{ success: boolean }> =>
     api.post('/api/settings/sns-oauth', data).then(r => r.data),
+  setKlingKey: (key: string): Promise<{ success: boolean; message: string }> =>
+    api.post('/api/settings/kling-key', { key }).then(r => r.data),
+  setV0Key: (key: string): Promise<{ success: boolean; message: string }> =>
+    api.post('/api/settings/v0-key', { key }).then(r => r.data),
+  setGrowthConfig: (data: { n8n_webhook_url?: string; ga4_measurement_id?: string }): Promise<{ success: boolean }> =>
+    api.post('/api/settings/growth-config', data).then(r => r.data),
+  getExtendedStatus: (): Promise<{ api_key_set: boolean; kling_key_set?: boolean; gemini_key_set?: boolean; v0_key_set?: boolean; n8n_webhook_url?: string; ga4_measurement_id?: string }> =>
+    settingsAxios.get('/api/settings/api-key/status').then(r => r.data),
 }
 
 // 통합 연동 설정
@@ -524,6 +532,47 @@ export interface SnsStatus {
   naver_configured: boolean
 }
 
+export interface SnsConnection {
+  id: string
+  mission_id: string
+  platform: string
+  account_name: string | null
+  account_id: string | null
+  expires_at: string | null
+}
+
+export interface ChannelAttribution {
+  channel: string
+  contentCount: number
+  publishCount: number
+  leadsAttr: number
+  hotAttr: number
+  attributionPct: number
+  engagementRate: number
+}
+
+export interface AttributionReport {
+  channels: ChannelAttribution[]
+  totalLeads: number
+  totalContent: number
+  topChannel: string
+  kpis: {
+    totalReach: number
+    totalLeads: number
+    hotLeads: number
+    conversionRate: number
+    avgScore: number
+    engagementRate: number
+    topChannel: string
+  }
+}
+
+export interface IdGraphStats {
+  totalLinks: number
+  uniqueProfiles: number
+  byType: Record<string, number>
+}
+
 export const growthApi = {
   ingest: (data: { url?: string; name?: string; description?: string; image_urls?: string[] }) =>
     api.post<ApiResponse<unknown>>('/api/growth/ingest', data).then(r => r.data.data),
@@ -536,6 +585,7 @@ export const growthApi = {
     segment?: string
     with_image?: boolean
     with_video?: boolean
+    video_duration?: '5' | '10' | '20' | '60'
   }) => api.post<ApiResponse<GrowthContent>>('/api/growth/generate', data).then(r => r.data.data),
 
   listContent: (missionId: string, channel?: string, segment?: string) =>
@@ -566,7 +616,27 @@ export const growthApi = {
     api.post<ApiResponse<unknown>>('/api/growth/trigger', { mission_id: missionId, reason }).then(r => r.data.data),
 
   status: () =>
-    api.get<ApiResponse<{ gemini_configured: boolean; active_triggers: string[] }>>('/api/growth/status').then(r => r.data.data),
+    api.get<ApiResponse<{ kling_configured: boolean; active_triggers: string[] }>>('/api/growth/status').then(r => r.data.data),
+
+  attribution: (missionId: string) =>
+    api.get<ApiResponse<AttributionReport>>('/api/growth/attribution', { params: { mission_id: missionId } }).then(r => r.data.data),
+
+  idGraph: (missionId: string) =>
+    api.get<ApiResponse<IdGraphStats>>('/api/growth/id-graph', { params: { mission_id: missionId } }).then(r => r.data.data),
+
+  retarget: (missionId: string) =>
+    api.post<ApiResponse<{ targeted: number; segments: Record<string, number> }>>('/api/growth/retarget', { mission_id: missionId }).then(r => r.data.data),
+}
+
+export const snsApi = {
+  getConnections: (missionId: string) =>
+    api.get<ApiResponse<SnsConnection[]>>('/api/sns/connections', { params: { mission_id: missionId } }).then(r => r.data.data),
+
+  getConnectUrl: (platform: string, missionId: string) =>
+    api.post<ApiResponse<{ auth_url: string }>>(`/api/sns/connect/${platform}`, { mission_id: missionId }).then(r => r.data.data.auth_url),
+
+  disconnect: (platform: string, missionId: string) =>
+    api.delete(`/api/sns/connections/${platform}`, { params: { mission_id: missionId } }),
 }
 
 export const buildTodosApi = {

@@ -12,12 +12,12 @@ import { oomniWs } from '../lib/ws'
 import {
   Play, Plus, X, Check, XCircle, Loader2,
   Layers, Archive,
-  Telescope, Code2, Palette, BookOpen, Workflow, Crown, Bot,
+  Telescope, Code2, Palette, BookOpen, Workflow, Bot,
 } from 'lucide-react'
 
 const BOT_ICONS: Record<string, React.ElementType> = {
   research: Telescope, build: Code2, design: Palette, content: BookOpen,
-  ops: Workflow, ceo: Crown,
+  ops: Workflow,
 }
 function BotRoleIcon({ role, size = 14 }: { role?: string; size?: number }) {
   const Icon = (role && BOT_ICONS[role]) || Bot
@@ -34,7 +34,6 @@ const BOT_TEMPLATES = [
   { role: 'design', name: 'Design Bot', emoji: '🎨', desc: 'UI/UX 디자인, 컴포넌트 생성' },
   { role: 'content', name: 'Content Bot', emoji: '✍️', desc: '블로그, 뉴스레터, SNS 콘텐츠 · SEO · 마케팅' },
   { role: 'ops', name: 'Ops Bot', emoji: '⚙️', desc: '운영 모니터링, 세무/재무, 리포트 및 자동화 워크플로우 생성' },
-  { role: 'ceo', name: 'CEO Bot', emoji: '👔', desc: '전체 봇 결과 종합, 일일/주간 보고서 자동 생성' },
   { role: 'project_setup', name: 'ProjectSetup Bot', emoji: '🚀', desc: '5가지 질문으로 프로젝트 완전 초기화' },
   { role: 'env', name: 'Env Bot', emoji: '🔑', desc: '환경변수 통합 관리 · NEXT_PUBLIC_ 오용 탐지' },
   { role: 'security_audit', name: 'SecurityAudit Bot', emoji: '🔒', desc: 'OWASP · RLS · 의존성 취약점 자동 점검' },
@@ -49,7 +48,7 @@ const ROLE_SYSTEM_PROMPTS: Record<string, string> = {
   design: '너는 UI/UX 디자인 AI 봇이다. 사용자 친화적인 디자인을 생성해라.',
   content: '너는 콘텐츠 및 마케팅 AI 봇이다. SEO 최적화된 고품질 콘텐츠를 작성하고 그로스 마케팅 전략을 실행해라.',
   ops: '너는 운영/재무 AI 봇이다. 비용, 수익, 세무 데이터를 자동으로 정리하고 리포트를 생성해라.',
-  ceo: '너는 CEO AI 봇이다. 모든 봇의 활동을 종합하고 전략적 보고서를 생성해라.',
+
 }
 
 const STATUS_COLORS: Record<Issue['status'], string> = {
@@ -489,20 +488,20 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* CEO 브리핑 위젯 */}
+      {/* AI 브리핑 위젯 (기존 CEO 봇 운용자 전용) */}
       {ceoAgent && (
         <div className="bg-surface border border-border rounded-lg p-4 mb-6">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className="text-base">👔</span>
-              <h3 className="text-[13px] font-medium text-text">CEO 브리핑</h3>
+              <span className="text-base">📊</span>
+              <h3 className="text-[13px] font-medium text-text">AI 브리핑</h3>
               {latestCeoRun?.status === 'completed' && (
                 <span className="text-[10px] text-muted">
                   {new Date(latestCeoRun.started_at).toLocaleString('ko-KR')}
                 </span>
               )}
             </div>
-            <Link to="/dashboard/ceo" className="text-[12px] text-primary hover:underline">
+            <Link to={`/dashboard/bots/${ceoAgent.id}`} className="text-[12px] text-primary hover:underline">
               전체 보기 →
             </Link>
           </div>
@@ -513,9 +512,9 @@ export default function DashboardPage() {
           ) : (
             <div className="flex items-center gap-2 text-[12px] text-muted py-2">
               <Link to={`/dashboard/bots/${ceoAgent.id}`} className="text-primary hover:underline">
-                CEO Bot 실행하기
+                브리핑 실행하기
               </Link>
-              <span>— 전체 봇 현황 브리핑을 생성합니다</span>
+              <span>— 전체 봇 현황 요약을 생성합니다</span>
             </div>
           )}
         </div>
@@ -689,7 +688,7 @@ export default function DashboardPage() {
               </div>
             )}
             <div className="p-4 grid grid-cols-2 gap-3">
-              {BOT_TEMPLATES.filter(tmpl => ['research', 'design', 'build', 'ops', 'content', 'ceo'].includes(tmpl.role)).map(tmpl => {
+              {BOT_TEMPLATES.filter(tmpl => ['research', 'design', 'build', 'ops', 'content'].includes(tmpl.role)).map(tmpl => {
                 const existingAgent = agents.find(a => a.role === tmpl.role)
                 return (
                   <button

@@ -5,7 +5,7 @@ import { useAppStore } from '../../store/app.store'
 import { agentsApi } from '../../lib/api'
 import {
   Bell, BookOpen,
-  ChevronLeft, Code2, Crown, DollarSign,
+  ChevronLeft, Code2, DollarSign,
   LayoutDashboard, Palette, Plus,
   Settings2, Telescope, Workflow,
   CheckSquare, Rocket, Database,
@@ -32,7 +32,6 @@ const BOT_ICON: Record<string, AnyIcon> = {
   design:   Palette,
   content:  BookOpen,
   ops:      Workflow,
-  ceo:      Crown,
 }
 
 const BOT_COLOR: Record<string, string> = {
@@ -41,15 +40,13 @@ const BOT_COLOR: Record<string, string> = {
   design:   'text-purple-400',
   content:  'text-emerald-400',
   ops:      'text-yellow-400',
-  ceo:      'text-amber-400',
 }
 
 // ─── 네비게이션 그룹 ──────────────────────────────────────────────────────────
 const NAV_ITEMS: NavIconItem[] = [
   { to: '/dashboard',                 icon: LayoutDashboard, label: '대시보드',     end: true },
   { to: '/dashboard/board',           icon: CheckSquare,     label: 'Mission Board' },
-  { to: '/dashboard/research',        icon: Telescope,       label: 'Research Hub' },
-  { to: '/dashboard/growth',          icon: Rocket,          label: 'Growth Studio' },
+{ to: '/dashboard/growth',          icon: Rocket,          label: 'Growth Studio' },
   { to: '/dashboard/design-studio',   icon: Palette,         label: 'Design Studio' },
   { to: '/dashboard/ops',             icon: Workflow,        label: 'Ops Center' },
   { to: '/dashboard/cdp',            icon: Database,        label: 'CDP 뷰' },
@@ -131,9 +128,6 @@ function BotSubPanel({
   pendingApprovals: number
 }) {
   const navigate = useNavigate()
-  const ceoList   = agents.filter(a => a.role === 'ceo')
-  const otherList = agents.filter(a => a.role !== 'ceo')
-
   return (
     <div className="flex flex-col h-full w-52 bg-[#111113] border-r border-[#1c1c20] shrink-0">
       {/* 헤더 */}
@@ -148,60 +142,10 @@ function BotSubPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
-        {/* CEO */}
-        {ceoList.length > 0 ? (
-          <>
-            {ceoList.map(agent => {
-              const Icon = BOT_ICON[agent.role] ?? Crown
-              return (
-                <NavLink
-                  key={agent.id}
-                  to={`/dashboard/bots/${agent.id}`}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[12px] border transition-colors',
-                      isActive
-                        ? 'bg-primary/10 border-primary/40 text-primary'
-                        : 'border-amber-500/20 text-amber-400/70 hover:bg-amber-500/5 hover:text-amber-400 hover:border-amber-500/30'
-                    )
-                  }
-                >
-                  <Icon size={12} className="shrink-0 text-amber-400" />
-                  <span className="truncate font-semibold">{agent.name}</span>
-                  <div className={cn('ml-auto w-1.5 h-1.5 rounded-full shrink-0', agent.is_active ? 'bg-green-500' : 'bg-[#333]')} />
-                </NavLink>
-              )
-            })}
-            <NavLink
-              to="/dashboard/ceo"
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-2 px-3 py-1 rounded text-[11px] transition-colors',
-                  isActive ? 'text-primary' : 'text-[#52525b] hover:text-amber-400/70'
-                )
-              }
-            >
-              <Crown size={10} className="shrink-0" />
-              <span>CEO 대시보드</span>
-            </NavLink>
-            <div className="border-t border-[#1c1c20] my-1" />
-          </>
-        ) : (
-          <button
-            onClick={() => { navigate('/dashboard?addBot=true&role=ceo'); onClose() }}
-            className="flex items-center gap-2 px-2.5 py-2 rounded-xl text-[11px] border border-dashed border-[#27272a] text-[#52525b] hover:border-primary/30 hover:text-primary/70 w-full transition-colors"
-          >
-            <Crown size={11} className="shrink-0" />
-            <span className="truncate">CEO 추가</span>
-            <Plus size={10} className="ml-auto shrink-0" />
-          </button>
-        )}
-
-        {/* 팀 봇 */}
-        {otherList.length > 0 && (
+        {agents.length > 0 && (
           <p className="text-[10px] text-[#52525b] uppercase tracking-widest px-2 pt-1 pb-0.5">팀 봇</p>
         )}
-        {otherList.map(agent => {
+        {agents.map(agent => {
           const Icon  = BOT_ICON[agent.role]  ?? Settings2
           const color = BOT_COLOR[agent.role] ?? 'text-[#71717a]'
           return (

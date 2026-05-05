@@ -7,10 +7,13 @@ import { z } from 'zod';
 import { ApiError } from '../../middleware/apiError';
 import { generateGrowthContent, type GrowthChannel } from '../../services/growthService';
 import { ingestUrl, ingestManual } from '../../services/growthIngestionService';
-import { generateImage, generateVideo, isGeminiConfigured } from '../../services/geminiService';
+import { generateImage } from '../../services/geminiService';
+import { generateVideoKling, isKlingConfigured, type KlingDuration, type KlingAspect } from '../../services/klingService';
 import { publishContent, type Platform } from '../../services/snsPublisherService';
 import { scoreLead, getLeads, getLeadStats, type SignalType } from '../../services/leadScoringService';
 import { manualTrigger, getActiveTriggers } from '../../services/cdpTriggerService';
+import { getAttributionReport } from '../../services/attributionService';
+import { linkIdentity, getIdGraphStats, detectAndRetarget, type IdType } from '../../services/cdpIdGraphService';
 import { v4 as uuidv4 } from 'uuid';
 
 type Db = { query: (sql: string, params?: unknown[]) => Promise<{ rows: unknown[] }> };
@@ -23,8 +26,9 @@ const GenerateSchema = z.object({
   seed_content: z.string().min(1).max(2000),
   tone:         z.enum(['humor', 'authority', 'empathy', 'contrarian', 'proof']).optional(),
   segment:      z.enum(['new_visitor', 're_purchase', 'churn_risk', 'vip']).optional(),
-  with_image:   z.boolean().optional().default(false),
-  with_video:   z.boolean().optional().default(false),
+  with_image:      z.boolean().optional().default(false),
+  with_video:      z.boolean().optional().default(false),
+  video_duration:  z.enum(['5', '10', '20', '60']).optional().default('5'),
 });
 
 const IngestSchema = z.object({
@@ -78,37 +82,37 @@ export function growthRouter(db: Db) {
     const parse = GenerateSchema.safeParse(req.body);
     if (!parse.success) throw new ApiError(400, parse.error.issues[0].message, 'VALIDATION_ERROR');
 
-    const { mission_id, channel, seed_content, tone, segment, with_image, with_video } = parse.data;
+    const { mission_id, channel, seed_content, tone, segment, with_image, with_video, video_duration } = parse.data;
 
     // 텍스트 생성
     const textResult = await generateGrowthContent(
       db, mission_id, channel as GrowthChannel, seed_content, tone,
     );
 
-    let imageUrl: string | null = null;
-    let videoUrl: string | null = null;
+    // 이미지·영상 병렬 생성 (non-fatal)
+    const imagePromise = with_image
+      ? generateImage(`Product marketing image for: "${seed_content.slice(0, 100)}". Channel: ${channel}. Style: professional, eye-catching.`, channel)
+          .catch(() => null)
+      : Promise.resolve(null);
 
-    // 이미지 생성 (요청 시)
-    if (with_image) {
-      try {
-        const prompt = `Product marketing image for: "${seed_content.slice(0, 100)}". Channel: ${channel}. Style: professional, eye-catching.`;
-        imageUrl = await generateImage(prompt, channel);
-      } catch { /* non-fatal */ }
-    }
+    const videoPromise = with_video
+      ? generateVideoKling(
+          `${channel} video about: ${seed_content.slice(0, 200)}`,
+          (channel === 'youtube' ? '16:9' : '9:16') as KlingAspect,
+          video_duration as KlingDuration,
+        ).catch(() => null)
+      : Promise.resolve(null);
 
-    // 영상 생성 (요청 시)
-    if (with_video) {
-      try {
-        const script = `30-second ${channel} video about: ${seed_content.slice(0, 150)}`;
-        const aspect = channel === 'youtube' ? '16:9' : '9:16';
-        videoUrl = await generateVideo(script, aspect);
-      } catch { /* non-fatal */ }
-    }
+    const [imageUrl, videoUrl] = await Promise.all([imagePromise, videoPromise]);
 
-    // segment, video_url 업데이트
+    // segment / 미디어 URL 업데이트 (COALESCE로 기존 값 보호)
     if (segment || imageUrl || videoUrl) {
       await db.query(
-        `UPDATE growth_content SET segment=$1, image_url=COALESCE($2,image_url), video_url=$3 WHERE id=$4`,
+        `UPDATE growth_content
+         SET segment=$1,
+             image_url=COALESCE($2, image_url),
+             video_url=COALESCE($3, video_url)
+         WHERE id=$4`,
         [segment ?? null, imageUrl, videoUrl, textResult.id],
       );
     }
@@ -220,14 +224,56 @@ export function growthRouter(db: Db) {
     res.json({ data: { triggered: true, mission_id, reason } });
   });
 
-  // ── GET /api/growth/status — Gemini 설정 여부 확인 ───────────────────
+  // ── GET /api/growth/status ────────────────────────────────────────────
   router.get('/status', (_req: Request, res: Response) => {
     res.json({
       data: {
-        gemini_configured: isGeminiConfigured(),
+        kling_configured: isKlingConfigured(),
         active_triggers:   getActiveTriggers(),
       },
     });
+  });
+
+  // ── GET /api/growth/attribution — AI 기여도 분석 ─────────────────────
+  router.get('/attribution', async (req: Request, res: Response) => {
+    const missionId = req.query.mission_id as string;
+    if (!missionId) throw new ApiError(400, 'mission_id required', 'VALIDATION_ERROR');
+    const report = await getAttributionReport(db, missionId);
+    res.json({ data: report });
+  });
+
+  // ── POST /api/growth/identity-link — CDP ID Graph 연결 ───────────────
+  router.post('/identity-link', async (req: Request, res: Response) => {
+    const schema = z.object({
+      mission_id:  z.string().uuid(),
+      hash:        z.string().min(1).max(512),
+      type:        z.enum(['anonymous_id', 'email', 'phone', 'cookie', 'device']),
+      profile_id:  z.string().uuid(),
+      confidence:  z.number().min(0).max(1).optional().default(1.0),
+    });
+    const parse = schema.safeParse(req.body);
+    if (!parse.success) throw new ApiError(400, parse.error.issues[0].message, 'VALIDATION_ERROR');
+
+    const { mission_id, hash, type, profile_id, confidence } = parse.data;
+    await linkIdentity(db, mission_id, hash, type as IdType, profile_id, confidence);
+
+    const stats = await getIdGraphStats(db, mission_id);
+    res.json({ data: { linked: true, stats } });
+  });
+
+  // ── GET /api/growth/id-graph — ID Graph 통계 ─────────────────────────
+  router.get('/id-graph', async (req: Request, res: Response) => {
+    const missionId = req.query.mission_id as string;
+    if (!missionId) throw new ApiError(400, 'mission_id required', 'VALIDATION_ERROR');
+    const stats = await getIdGraphStats(db, missionId);
+    res.json({ data: stats });
+  });
+
+  // ── POST /api/growth/retarget — CDP 리타겟팅 실행 ────────────────────
+  router.post('/retarget', async (req: Request, res: Response) => {
+    const { mission_id } = z.object({ mission_id: z.string().uuid() }).parse(req.body);
+    const result = await detectAndRetarget(db, mission_id);
+    res.json({ data: result });
   });
 
   return router;
