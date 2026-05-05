@@ -2,6 +2,41 @@
 
 ---
 
+## 2026-05-05 — v5.3.0 Growth Video Chain · SNS · Attribution · CDP ID Graph
+
+### 작업 범위
+Phase 5-1 ~ 5-4 전체 구현 + 단위 테스트 18개 + 보안 강화 + 빌드/배포
+
+### 신규 파일
+| 파일 | 역할 |
+|---|---|
+| `backend/src/services/klingService.ts` | Kling AI 영상 생성 (단일 클립 + 멀티클립 체인) |
+| `backend/src/services/attributionService.ts` | 시간 감쇠 MTA Attribution Engine |
+| `backend/src/services/cdpIdGraphService.ts` | CDP ID Graph + 리타겟 루프 |
+| `backend/src/api/routes/sns.ts` | SNS OAuth 2.0 연결 (7채널) |
+| `backend/src/api/routes/studio.ts` | Studio Bot 라우터 |
+| `frontend/src/pages/StudioBotPage.tsx` | 2패널 Studio Bot UI |
+| `backend/src/services/__tests__/*.test.ts` | 단위 테스트 3개 파일 (18 테스트) |
+
+### 주요 버그 수정
+- `triggerLimiter` 등록 순서 — rate limiter를 라우터보다 뒤에 붙여서 무효화되던 문제
+- `video_url = COALESCE($3, video_url)` — with_video=false 시 기존 URL을 null로 덮어쓰던 문제
+- SSRF: `generateSingleClip` 반환 URL도 검증 (이전엔 `downloadToFile`에만 있었음)
+
+### 테스트 이슈 해결
+- better-sqlite3 네이티브 바인딩 → Jest 인메모리 mock DB로 교체
+- Fake Timer + UnhandledPromiseRejection → `.catch()` 즉시 attach 패턴으로 수정
+
+### 배포
+- `npm run package` → `OOMNI Setup 5.3.0.exe` (142MB)
+- GitHub Release v5.3.0: https://github.com/yongal74/oomni/releases/tag/v5.3.0
+- 랜딩페이지 `docs/index.html` 다운로드 링크 v5.3.0으로 업데이트
+
+### 상세 기록
+→ [docs/dev-log/v5.3.0-dev-log.md](../dev-log/v5.3.0-dev-log.md)
+
+---
+
 ## 2026-05-05 — 랜딩페이지 v5.1.0 다운로드 404 수정
 
 ### 문제
