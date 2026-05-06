@@ -225,6 +225,10 @@ export default function StudioBotPage() {
   const [graphicStatus, setGraphicStatus] = useState('')
   const [graphicChannel, setGraphicChannel] = useState('banner')
 
+  // 화면 설정
+  const [fontSize, setFontSize] = useState(13)
+  const [bgColor, setBgColor] = useState('')
+
   // 플로팅 채팅 상태
   const [chatOpen, setChatOpen] = useState(true)
   const [chatExpanded, setChatExpanded] = useState(false)
@@ -400,7 +404,7 @@ export default function StudioBotPage() {
   const cats = mode === 'build' ? BUILD_CATS : mode === 'graphic' ? GRAPHIC_CATS : DESIGN_CATS
 
   return (
-    <div className="flex h-full bg-bg overflow-hidden">
+    <div className="flex h-full bg-bg overflow-hidden" style={bgColor ? { background: bgColor } : undefined}>
       {/* ── 왼쪽 패널 ──────────────────────────────────────────────── */}
       <div className="w-64 shrink-0 flex flex-col border-r border-border bg-surface overflow-y-auto">
         {/* 모드 탭 */}
@@ -455,8 +459,57 @@ export default function StudioBotPage() {
           </div>
         </div>
 
-        {/* 엔진 상태 */}
-        <div className="p-3 border-t border-border">
+        {/* 화면 설정 */}
+        <div className="p-3 border-t border-border space-y-3">
+          {/* 폰트 크기 */}
+          <div>
+            <p className="text-[10px] text-muted uppercase tracking-widest mb-1.5 px-1">폰트 크기</p>
+            <div className="flex items-center gap-1">
+              {([11, 13, 15, 17] as const).map(sz => (
+                <button
+                  key={sz}
+                  onClick={() => setFontSize(sz)}
+                  className={cn(
+                    'flex-1 py-1 rounded text-[10px] border transition-colors',
+                    fontSize === sz
+                      ? 'bg-primary/20 border-primary/40 text-primary'
+                      : 'bg-surface border-border text-muted hover:text-text',
+                  )}
+                >
+                  {sz === 11 ? 'S' : sz === 13 ? 'M' : sz === 15 ? 'L' : 'XL'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 배경색 */}
+          <div>
+            <p className="text-[10px] text-muted uppercase tracking-widest mb-1.5 px-1">배경색</p>
+            <div className="flex items-center gap-1.5">
+              {[
+                { id: '',        color: '#0d0d0f', label: 'Dark'    },
+                { id: 'navy',    color: '#070d1a', label: 'Navy'    },
+                { id: 'slate',   color: '#1e1e2e', label: 'Slate'   },
+                { id: 'carbon',  color: '#1a1a1a', label: 'Carbon'  },
+                { id: 'forest',  color: '#0a1a10', label: 'Forest'  },
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setBgColor(opt.id === '' ? '' : opt.color)}
+                  title={opt.label}
+                  style={{ background: opt.color }}
+                  className={cn(
+                    'w-6 h-6 rounded-full border-2 transition-all',
+                    (bgColor === opt.color || (opt.id === '' && bgColor === ''))
+                      ? 'border-primary scale-110'
+                      : 'border-border hover:border-muted',
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* 엔진 상태 */}
           <div className="px-2 py-1.5 bg-green-900/10 border border-green-800/20 rounded-lg">
             <p className="text-[11px] text-green-400/80">
               {mode === 'ui-proto' ? (v0KeySet ? 'v0 API' : 'Claude HTML') :
@@ -528,9 +581,9 @@ export default function StudioBotPage() {
           )}
         </div>
 
-        {/* 결과 영역 + 채팅 패널 (세로 분할) */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-hidden">
+        {/* 결과 영역 (플로팅 채팅 기준 relative) */}
+        <div className="flex-1 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-y-auto" style={{ fontSize: `${fontSize}px` }}>
           {mode === 'ui-proto' && iframeHtml ? (
             <iframe
               srcDoc={iframeHtml}
@@ -672,14 +725,17 @@ export default function StudioBotPage() {
           ) : null}
         </div>
 
-        {/* ── 채팅 패널 — 결과영역 하단 고정 ─────────────────────────── */}
+
+        {/* ── 플로팅 채팅 패널 — 결과영역 위 하단 중앙 ───────────────── */}
         {chatOpen ? (
           <div className={cn(
-            'shrink-0 border-t border-border bg-surface flex flex-col transition-all duration-200',
-            chatExpanded ? 'h-[300px]' : 'h-[160px]'
+            'absolute bottom-6 left-1/2 -translate-x-1/2 z-20',
+            'border border-border bg-surface/95 backdrop-blur-sm rounded-2xl shadow-2xl shadow-black/40 flex flex-col transition-all duration-200',
+            chatExpanded ? 'w-[660px] h-[340px]' : 'w-[600px] h-[180px]',
+            'max-w-[calc(100%-32px)]',
           )}>
             {/* 채팅 헤더 */}
-            <div className="flex items-center gap-2 px-4 py-1.5 border-b border-border shrink-0">
+            <div className="flex items-center gap-2 px-4 py-1.5 border-b border-border shrink-0 rounded-t-2xl">
               <Bot size={12} className="text-primary" />
               <span className="text-[11px] font-medium text-text flex-1">
                 {mode === 'ui-proto' ? 'UI 프로토타입 생성' : mode === 'graphic' ? 'Canva / 그래픽 생성' : '코드 빌드 생성'}
@@ -705,7 +761,7 @@ export default function StudioBotPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* 입력 영역 — 최하단 고정 */}
+            {/* 입력 영역 */}
             <div className="px-3 pb-2.5 pt-1.5 border-t border-border shrink-0">
               <div className="flex items-end gap-2 bg-bg border border-border rounded-xl px-3 py-2 focus-within:border-primary/50 transition-colors">
                 <textarea
@@ -742,13 +798,13 @@ export default function StudioBotPage() {
             </div>
           </div>
         ) : (
-          /* 채팅 최소화 버튼 */
+          /* 채팅 최소화 버튼 — 하단 중앙 플로팅 */
           <button
             onClick={() => setChatOpen(true)}
-            className="shrink-0 flex items-center gap-2 px-4 py-2 border-t border-border bg-surface text-[11px] text-muted hover:text-text hover:bg-border/30 transition-colors"
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 bg-surface/95 backdrop-blur-sm border border-border rounded-full shadow-lg text-[11px] text-muted hover:text-text hover:border-primary/40 transition-all"
           >
             <Bot size={12} className="text-primary" />AI 채팅 열기
-            <Maximize2 size={11} className="ml-auto" />
+            <Maximize2 size={11} />
           </button>
         )}
         </div>

@@ -8,29 +8,66 @@
 
 | 항목 | 내용 |
 |------|------|
-| **최신 버전** | v5.5.0 |
-| **다음 버전** | v5.6.0 (미정) |
+| **최신 버전** | v5.6.0 |
+| **다음 버전** | v5.7.0 (미정) |
 | **tsc --noEmit** | ✅ 0 errors (백엔드 + 프론트엔드) |
-| **GitHub Release** | ✅ v5.5.0 정상 |
-| **랜딩페이지** | ✅ v5.5.0 다운로드 정상 |
+| **GitHub Release** | 🔄 v5.6.0 빌드 중 |
+| **랜딩페이지** | 🔄 v5.6.0 업데이트 필요 |
 | **IDE** | VS Code + Claude Code 익스텐션 |
-| **마지막 작업일** | 2026-05-05 |
+| **마지막 작업일** | 2026-05-06 |
+
+---
+
+## 2026-05-06 — v5.6.0 OpsCenter 완전 재설계 + Studio Bot 플로팅 채팅
+
+### 변경 파일
+| 파일 | 변경 내용 |
+|---|---|
+| `frontend/src/pages/OpsCenter.tsx` | 3패널 구조 완전 재설계 |
+| `frontend/src/pages/StudioBotPage.tsx` | 채팅 플로팅, 폰트 크기 설정, 배경색 설정 |
+| `package.json` | v5.5.0 → v5.6.0 |
+
+### OpsCenter v5.6.0 — 구조 완전 재설계
+
+**상단 바** (새로 추가):
+- 도메인별(재무/세무/인사/IT/운영/법률) 작은 버튼 → 클릭 시 드롭다운으로 프로세스 목록 표시
+- 빠른 실행 프롬프트 4개 버튼
+- 둘 다 클릭 시 우측 AI 채팅 입력창에 프롬프트 자동 주입
+
+**Left 패널** (역할 완전 변경):
+- 기본 빈 상태 ("오른쪽 채팅에서 자동화를 요청하면 카드가 생성됩니다")
+- AI 응답 완료 후 → `process-cards` JSON 파싱 → 번호+제목+역할설명+단계수 카드 자동 표시
+- 카드 클릭 → Center 패널에 상세 내용 표시
+
+**Center 패널** (역할 완전 변경):
+- 기본 빈 상태
+- Left 카드 선택 시 → 실행순서(체크리스트) + FIELD/설정값 테이블 + 주의사항 + 상세 가이드 표시
+
+**Right 패널** (AI 채팅, 개선):
+- 시스템 프롬프트에 `process-cards` JSON 형식 요청 추가
+- AI 응답에서 n8n JSON + process-cards JSON 동시 파싱
+
+### Studio Bot v5.6.0 — 3가지 변경
+
+1. **채팅창 플로팅**: 하단 고정 → `absolute bottom-6 left-1/2 -translate-x-1/2` 플로팅 패널 (backdrop-blur, shadow)
+2. **폰트 크기 설정**: 좌측 패널에 S/M/L/XL(11/13/15/17px) 버튼 추가, 결과 영역 전체에 적용
+3. **배경색 설정**: Dark/Navy/Slate/Carbon/Forest 5가지 색상 스와치 추가
+
+### 다음 할 일
+- OpsCenter: AI 응답에서 실제로 process-cards JSON이 정상 파싱되는지 실사용 테스트
+- Studio Bot: 플로팅 채팅 위치가 모든 모드(ui-proto/graphic/build)에서 자연스러운지 확인
+- v5.2.0 빈 릴리즈 삭제: `gh release delete v5.2.0 --repo yongal74/oomni`
+
+---
+
+## 2026-05-05 — v5.5.0 5-Stage UI/UX 전면 개선
 
 ### v5.5.0 변경 내역
-- **Stage 1 ✅**: OpsCenter 전면 재작성 — AX Clinic GuideClient 패턴 (3패널: 좌=도메인 카드, 중=StepItem 토글+시나리오, 우=AI 채팅)
-- **Stage 2 ✅**: Studio Bot — 플로팅 챗 → 결과영역 하단 고정 패널, VS Code 5개 테마 추가 (Dark+/One Dark/Dracula/Monokai/Light)
-- **Stage 3 ✅**: Growth Bot — 4탭 (콘텐츠 생성/콘텐츠 목록/리드 현황/CDP ID-Graph), 더미 데이터 5건, SettingsTab 삭제
-- **Stage 4 ✅**: Research Bot — 경쟁사동향·논문 버튼 🔴 이모지 제거 + highlight:false, SerpAPI 소스 추가 (비활성 기본값)
-- **Stage 5 ✅**: Content Bot — 채널별 문체/톤 선택 버튼 (캐주얼/격식체/권위형/공감형/유머), 글자 수 슬라이더+조절 버튼
-
-### 즉시 처리 잔여 작업
-```
-[ ] npm run build (프론트+백엔드 빌드 검증)
-[ ] npm run package → 새 인스톨러 생성
-[ ] gh release create v5.5.0
-[ ] 랜딩페이지 다운로드 링크 업데이트
-[ ] gh release delete v5.2.0 --repo yongal74/oomni  ← 빈 릴리즈 삭제
-```
+- **Stage 1 ✅**: OpsCenter 재작성 — AX Clinic GuideClient 패턴 (3패널: 좌=도메인 카드, 중=StepItem 토글+시나리오, 우=AI 채팅)
+- **Stage 2 ✅**: Studio Bot — 플로팅 챗 → 결과영역 하단 고정 패널, VS Code 5개 테마 추가
+- **Stage 3 ✅**: Growth Bot — 4탭 (콘텐츠 생성/콘텐츠 목록/리드 현황/CDP ID-Graph)
+- **Stage 4 ✅**: Research Bot — 경쟁사동향·논문 버튼 이모지 제거 + SerpAPI 소스 추가
+- **Stage 5 ✅**: Content Bot — 채널별 문체/톤 선택, 글자 수 슬라이더+조절 버튼
 
 ---
 

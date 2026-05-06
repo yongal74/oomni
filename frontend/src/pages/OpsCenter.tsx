@@ -1,14 +1,16 @@
 /**
- * OpsCenter.tsx — 자동화 지원 센터 v5.5.0
- * AX Clinic 스타일: Left(프로세스 카드) | Center(시나리오+STEP 가이드) | Right(AI채팅)
+ * OpsCenter.tsx — 자동화 지원 센터 v5.6.0
+ * Top: 도메인 드롭다운 + 빠른실행 → Right 채팅에 프롬프트 주입
+ * Left: AI 생성 프로세스 카드 (기본 빈 상태)
+ * Center: 선택된 카드 상세 (실행순서·FIELD·주의사항·가이드)
+ * Right: AI 채팅
  */
+import { useState, useRef, useEffect, useCallback } from 'react'
 import {
-  useState, useRef, useEffect, useCallback,
-} from 'react'
-import {
-  Workflow, Zap, Check, Play,
+  Workflow, Zap, Check,
   MessageSquare, Send, RefreshCw,
-  ChevronRight, ChevronDown, Copy, CheckCheck, Download,
+  ChevronDown, Copy, CheckCheck, Download,
+  AlertTriangle, Info, Layers,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useAppStore } from '../store/app.store'
@@ -16,11 +18,7 @@ import { useAppStore } from '../store/app.store'
 // ─── 자동화 프로세스 데이터 ────────────────────────────────────────────────────
 
 interface AutoProcess {
-  id: string
-  title: string
-  desc: string
-  tCode: string
-  domain: string
+  id: string; title: string; desc: string; tCode: string; domain: string
   steps: Array<{ title: string; desc: string }>
 }
 
@@ -239,7 +237,7 @@ const QUICK_PROMPTS = [
   '지출 결의 Slack 승인 자동화를 만들어주세요',
 ]
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
+// ─── n8n JSON 파서 ────────────────────────────────────────────────────────────
 
 function parseWorkflowFromText(text: string): { name: string; json: string } | null {
   try {
@@ -253,85 +251,72 @@ function parseWorkflowFromText(text: string): { name: string; json: string } | n
   }
 }
 
-interface ChatMessage { role: 'user' | 'assistant'; content: string }
+// ─── AI 생성 프로세스 카드 타입 ────────────────────────────────────────────────
 
-// ─── StepItem (AX Clinic 스타일) ─────────────────────────────────────────────
-
-function StepItem({ index, text, desc, done, onToggle }: {
-  index: number; text: string; desc: string; done: boolean; onToggle: () => void
-}) {
-  return (
-    <button
-      onClick={onToggle}
-      className={cn(
-        'w-full flex items-start gap-3.5 text-left rounded-xl px-4 py-3.5 transition-all border-2',
-        done
-          ? 'bg-emerald-500/8 border-emerald-500/25'
-          : 'bg-white/2 border-white/8 hover:bg-white/5 hover:border-indigo-500/25'
-      )}
-    >
-      <div className={cn(
-        'flex-shrink-0 h-7 w-7 rounded-full border-2 flex items-center justify-center transition-all mt-0.5',
-        done ? 'bg-emerald-500 border-emerald-500' : 'border-indigo-500/40 bg-indigo-500/10'
-      )}>
-        {done
-          ? <Check className="h-3.5 w-3.5 text-white" />
-          : <span className="text-xs text-indigo-300 font-black">{index + 1}</span>
-        }
-      </div>
-      <div className="flex-1 min-w-0">
-        <span className={cn(
-          'text-sm leading-relaxed block',
-          done ? 'text-slate-500 line-through' : 'text-slate-200'
-        )}>
-          {text}
-        </span>
-        {desc && (
-          <p className={cn('text-xs mt-0.5 leading-relaxed', done ? 'text-slate-600' : 'text-[#71717a]')}>
-            {desc}
-          </p>
-        )}
-      </div>
-    </button>
-  )
+interface AiProcessCard {
+  id: string
+  title: string
+  role: string
+  steps: string[]
+  fields: Array<{ name: string; value: string; note?: string }>
+  warnings: string[]
+  guide: string
 }
 
-// ─── GuideMd ──────────────────────────────────────────────────────────────────
+function parseAiProcessCards(text: string): AiProcessCard[] {
+  try {
+    const m = text.match(/```process-cards\s*([\s\S]*?)```/)
+    if (!m) return []
+    const arr = JSON.parse(m[1])
+    if (!Array.isArray(arr)) return []
+    return arr.map((p, i) => ({
+      id: `card-${Date.now()}-${i}`,
+      title: p.title ?? '프로세스',
+      role: p.role ?? '',
+      steps: Array.isArray(p.steps) ? p.steps : [],
+      fields: Array.isArray(p.fields) ? p.fields : [],
+      warnings: Array.isArray(p.warnings) ? p.warnings : [],
+      guide: p.guide ?? '',
+    }))
+  } catch {
+    return []
+  }
+}
 
-function GuideMd({ text, compact = false }: { text: string; compact?: boolean }) {
-  const lines = text.split('\n')
+// ─── 헬퍼 컴포넌트 ────────────────────────────────────────────────────────────
+
+interface ChatMessage { role: 'user' | 'assistant'; content: string }
+
+function GuideMd({ text }: { text: string }) {
   return (
-    <div className={compact ? 'space-y-0.5' : 'space-y-1.5'}>
-      {lines.map((line, i) => {
-        if (line.startsWith('### ')) return <div key={i} className="font-semibold text-[#e4e4e7] text-[11px] mt-2">{line.slice(4)}</div>
-        if (line.startsWith('## '))  return <div key={i} className="font-bold text-[#e4e4e7] text-xs mt-3">{line.slice(3)}</div>
+    <div className="space-y-1.5 text-xs text-[#e4e4e7] leading-relaxed">
+      {text.split('\n').map((line, i) => {
+        if (line.startsWith('### ')) return <div key={i} className="font-semibold text-[#e4e4e7] mt-2">{line.slice(4)}</div>
+        if (line.startsWith('## '))  return <div key={i} className="font-bold text-white mt-3">{line.slice(3)}</div>
         if (line.startsWith('# '))   return <div key={i} className="font-bold text-white text-sm mt-3">{line.slice(2)}</div>
-        if (line.startsWith('- ') || line.startsWith('* ')) {
+        if (line.startsWith('- ') || line.startsWith('* '))
           return <div key={i} className="flex gap-1.5"><span className="text-indigo-400 shrink-0">·</span><span>{line.slice(2)}</span></div>
-        }
         if (/^\d+\./.test(line)) {
           const num = line.match(/^(\d+)\./)?.[1]
           return <div key={i} className="flex gap-1.5"><span className="text-indigo-400 shrink-0 w-4">{num}.</span><span>{line.replace(/^\d+\.\s*/, '')}</span></div>
         }
         if (line.startsWith('```')) return null
-        if (!line.trim()) return compact ? null : <div key={i} className="h-1" />
+        if (!line.trim()) return <div key={i} className="h-1" />
         return <div key={i}>{line}</div>
       })}
     </div>
   )
 }
 
-// ─── ChatBubble ───────────────────────────────────────────────────────────────
-
 function ChatBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user'
   return (
     <div className={cn('flex gap-2', isUser && 'flex-row-reverse')}>
       <div className={cn(
-        'w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold',
-        isUser ? 'bg-indigo-600/30 text-indigo-400' : 'bg-purple-600/30 text-purple-400',
+        'flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold',
+        isUser ? 'bg-indigo-600/30 text-indigo-300' : 'bg-purple-600/30 text-purple-300',
       )}>
-        {isUser ? 'U' : <Zap size={11} />}
+        {isUser ? 'U' : 'AI'}
       </div>
       <div className={cn(
         'max-w-[82%] rounded-xl px-3 py-2 text-xs leading-relaxed',
@@ -339,7 +324,7 @@ function ChatBubble({ message }: { message: ChatMessage }) {
           ? 'bg-indigo-600/20 border border-indigo-500/30 text-[#c7d2fe]'
           : 'bg-[#111113] border border-[#1c1c20] text-[#e4e4e7]',
       )}>
-        <GuideMd text={message.content} compact />
+        <GuideMd text={message.content} />
       </div>
     </div>
   )
@@ -351,23 +336,50 @@ export default function OpsCenter() {
   const { currentMission } = useAppStore()
   const currentMissionId = currentMission?.id
 
-  const [selectedProcess, setSelectedProcess] = useState<AutoProcess | null>(null)
-  const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set())
-  const [showScenarios, setShowScenarios] = useState(true)
+  // 상단 바 도메인 드롭다운
+  const [openDomain, setOpenDomain] = useState<string | null>(null)
 
+  // 좌측 AI 프로세스 카드
+  const [processCards, setProcessCards] = useState<AiProcessCard[]>([])
+  const [selectedCard, setSelectedCard] = useState<AiProcessCard | null>(null)
+  const [checkedSteps, setCheckedSteps] = useState<Set<number>>(new Set())
+
+  // 우측 AI 채팅
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', content: '자동화할 업무 프로세스를 왼쪽에서 선택하거나, 원하는 자동화를 직접 설명해주세요.\n\nn8n 워크플로우 JSON을 생성해드립니다.' },
+    {
+      role: 'assistant',
+      content: '자동화하고 싶은 업무를 설명해주세요.\n\n위 도메인 버튼이나 빠른 실행을 클릭하면 프롬프트가 자동으로 입력됩니다.\n\nn8n 워크플로우 JSON과 함께 왼쪽에 프로세스 카드를 생성해드립니다.',
+    },
   ])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
   const [workflow, setWorkflow] = useState<{ name: string; json: string } | null>(null)
   const [copied, setCopied] = useState(false)
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const topBarRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, streaming])
+
+  useEffect(() => {
+    if (!openDomain) return
+    const handler = (e: MouseEvent) => {
+      if (topBarRef.current && !topBarRef.current.contains(e.target as Node)) {
+        setOpenDomain(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [openDomain])
+
+  const injectPrompt = (text: string) => {
+    setInput(text)
+    setOpenDomain(null)
+    setTimeout(() => inputRef.current?.focus(), 50)
+  }
 
   const handleSend = useCallback(async () => {
     const text = input.trim()
@@ -380,13 +392,23 @@ export default function OpsCenter() {
     setStreaming(true)
 
     try {
-      const systemPrompt = selectedProcess
-        ? `당신은 n8n 자동화 전문가입니다. 솔로프리너의 업무 자동화를 도와주세요.
-선택된 자동화 프로세스: ${selectedProcess.title} (${selectedProcess.domain} / ${selectedProcess.tCode})
-설명: ${selectedProcess.desc}
-요청을 분석하고 n8n 워크플로우 JSON을 포함해주세요. 응답은 한국어로 작성하세요.`
-        : `당신은 n8n 자동화 전문가입니다. 솔로프리너의 업무 자동화를 도와주세요.
-요청을 분석하고 적합한 자동화 유형(T1~T7)을 분류한 후 n8n 워크플로우 JSON을 포함해주세요. 응답은 한국어로 작성하세요.`
+      const systemPrompt = `당신은 n8n 자동화 전문가입니다. 솔로프리너의 업무 자동화를 도와주세요.
+요청을 분석하고 n8n 워크플로우 JSON을 포함해서 구체적인 구현 가이드를 제공해주세요.
+응답은 한국어로 작성하세요.
+
+응답 마지막에 반드시 다음 형식으로 프로세스 카드 JSON을 추가하세요:
+\`\`\`process-cards
+[
+  {
+    "title": "프로세스 이름",
+    "role": "이 프로세스가 자동화하는 역할 설명 (1-2문장)",
+    "steps": ["단계 1", "단계 2", "단계 3"],
+    "fields": [{"name": "필드명", "value": "설정값 예시", "note": "주의사항"}],
+    "warnings": ["주의사항 1"],
+    "guide": "상세 구현 가이드 텍스트"
+  }
+]
+\`\`\``
 
       const BASE_URL = 'http://localhost:3001'
       let internalKey = 'dev-key'
@@ -436,16 +458,15 @@ export default function OpsCenter() {
             } else if (eventName === 'done' && parsed.text) {
               fullText = parsed.text
               setMessages(prev => { const c = [...prev]; c[c.length - 1] = { role: 'assistant', content: fullText }; return c })
+              const wf = parseWorkflowFromText(fullText)
+              if (wf) setWorkflow(wf)
+              const cards = parseAiProcessCards(fullText)
+              if (cards.length > 0) { setProcessCards(cards); setSelectedCard(null); setCheckedSteps(new Set()) }
             } else if (eventName === 'error') {
-              throw new Error(parsed.message ?? 'Stream error')
+              throw new Error((parsed as { message?: string }).message ?? 'streaming error')
             }
-          } catch (e) { if (e instanceof SyntaxError) continue; throw e }
+          } catch { /* noop */ }
         }
-      }
-
-      if (fullText) {
-        const wf = parseWorkflowFromText(fullText)
-        if (wf) setWorkflow(wf)
       }
     } catch {
       const errMsg = '⚠️ 연결 오류. 잠시 후 다시 시도해주세요.'
@@ -458,7 +479,7 @@ export default function OpsCenter() {
     } finally {
       setStreaming(false)
     }
-  }, [input, messages, streaming, selectedProcess, currentMissionId])
+  }, [input, messages, streaming, currentMissionId])
 
   const copyJson = useCallback(() => {
     if (!workflow?.json) return
@@ -478,19 +499,6 @@ export default function OpsCenter() {
     URL.revokeObjectURL(url)
   }, [workflow])
 
-  const toggleStep = (idx: number) => {
-    setCheckedSteps(prev => {
-      const next = new Set(prev)
-      if (next.has(idx)) next.delete(idx); else next.add(idx)
-      return next
-    })
-  }
-
-  const selectProcess = (process: AutoProcess) => {
-    setSelectedProcess(process)
-    setCheckedSteps(new Set())
-  }
-
   // ── render ────────────────────────────────────────────────────────────────
 
   return (
@@ -503,185 +511,274 @@ export default function OpsCenter() {
         <span className="text-[11px] text-[#52525b] bg-[#111113] border border-[#27272a] px-2 py-0.5 rounded-full">
           자동화 지원 센터
         </span>
-        {selectedProcess && (
+        {processCards.length > 0 && (
           <button
-            onClick={() => { setSelectedProcess(null); setCheckedSteps(new Set()) }}
+            onClick={() => { setProcessCards([]); setSelectedCard(null); setWorkflow(null) }}
             className="ml-auto text-[11px] text-[#52525b] hover:text-[#a1a1aa] transition-colors"
           >
-            ← 목록으로
+            초기화
           </button>
         )}
       </div>
 
-      {/* ── 3-panel 본문 ──────────────────────────────────────────────── */}
+      {/* ── 상단 바: 도메인 드롭다운 + 빠른 실행 ─────────────────────────── */}
+      <div ref={topBarRef} className="shrink-0 border-b border-[#1c1c20] bg-[#0a0a10] px-4 py-2.5 flex items-center gap-3 flex-wrap">
+        {/* 도메인 드롭다운 */}
+        <span className="text-[10px] text-[#3f3f46] uppercase tracking-widest shrink-0">도메인</span>
+        {DOMAINS.map(domain => {
+          const domainProcesses = PROCESSES.filter(p => p.domain === domain)
+          const isOpen = openDomain === domain
+          return (
+            <div key={domain} className="relative">
+              <button
+                onClick={() => setOpenDomain(isOpen ? null : domain)}
+                className={cn(
+                  'flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-lg border transition-all',
+                  isOpen
+                    ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300'
+                    : 'bg-white/3 border-white/10 text-[#71717a] hover:text-[#a1a1aa] hover:border-white/20',
+                )}
+              >
+                {domain}
+                <ChevronDown size={10} className={cn('transition-transform duration-200', isOpen && 'rotate-180')} />
+              </button>
+              {isOpen && (
+                <div className="absolute top-full left-0 mt-1 z-50 w-[220px] bg-[#0a0a10] border border-[#27272a] rounded-xl shadow-xl overflow-hidden">
+                  {domainProcesses.map(p => {
+                    const tColor = T_COLOR[p.tCode] ?? '#888'
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => injectPrompt(`"${p.title}" 자동화를 구현해주세요.\n${p.desc}`)}
+                        className="w-full text-left px-3 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 group"
+                      >
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                            style={{ color: tColor, background: `${tColor}20` }}>
+                            {p.tCode}
+                          </span>
+                          <span className="text-[11px] font-medium text-[#a1a1aa] group-hover:text-white transition-colors">{p.title}</span>
+                        </div>
+                        <p className="text-[10px] text-[#52525b] leading-snug pl-6">{p.desc}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })}
+
+        {/* 구분선 */}
+        <div className="w-px h-3.5 bg-[#27272a] shrink-0" />
+
+        {/* 빠른 실행 */}
+        <span className="text-[10px] text-[#3f3f46] uppercase tracking-widest shrink-0">빠른 실행</span>
+        {QUICK_PROMPTS.map(qp => (
+          <button
+            key={qp}
+            onClick={() => injectPrompt(qp)}
+            className="text-[10px] text-[#52525b] bg-[#111113] border border-[#1c1c20] rounded-lg px-2.5 py-1 hover:border-amber-500/30 hover:text-[#a1a1aa] transition-colors whitespace-nowrap"
+          >
+            {qp.length > 18 ? qp.slice(0, 18) + '…' : qp}
+          </button>
+        ))}
+      </div>
+
+      {/* ── 3-panel 본문 ──────────────────────────────────────────────────── */}
       <div className="flex flex-1 min-h-0">
 
-        {/* ── Left: 프로세스 카드 목록 (AX Clinic 추천 카드 스타일) ─── */}
-        <aside className="w-[260px] flex-shrink-0 border-r border-[#1c1c20] bg-[#0a0a10] flex flex-col overflow-hidden">
-          <div className="px-3 pt-3 pb-2 border-b border-white/6 shrink-0">
-            <p className="text-[10px] font-bold text-[#52525b] uppercase tracking-widest">자동화 프로세스</p>
+        {/* ── Left: AI 프로세스 카드 (기본 빈 상태) ────────────────────── */}
+        <aside className="w-[280px] flex-shrink-0 border-r border-[#1c1c20] bg-[#0a0a10] flex flex-col overflow-hidden">
+          <div className="px-3 pt-3 pb-2 border-b border-white/5 shrink-0 flex items-center justify-between">
+            <p className="text-[10px] font-bold text-[#3f3f46] uppercase tracking-widest">자동화 프로세스</p>
+            {processCards.length > 0 && (
+              <span className="text-[9px] text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded-full">
+                {processCards.length}개
+              </span>
+            )}
           </div>
 
-          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-5">
-            {DOMAINS.map(domain => {
-              const domainProcesses = PROCESSES.filter(p => p.domain === domain)
-              return (
-                <div key={domain}>
-                  {/* 도메인 레이블 */}
-                  <p className="text-[10px] font-semibold text-[#52525b] uppercase tracking-widest mb-2 px-1">
-                    {domain}
-                  </p>
-                  <div className="space-y-1.5">
-                    {domainProcesses.map(process => {
-                      const isSelected = selectedProcess?.id === process.id
-                      const tColor = T_COLOR[process.tCode] ?? '#888'
-                      return (
-                        <button
-                          key={process.id}
-                          onClick={() => selectProcess(process)}
-                          className={cn(
-                            'w-full text-left rounded-xl px-3 py-3 transition-all border-2 text-xs',
-                            isSelected
-                              ? 'bg-indigo-500/15 border-indigo-500/50 shadow-md shadow-indigo-500/10'
-                              : 'bg-white/3 border-white/8 hover:bg-white/6 hover:border-white/15'
-                          )}
-                        >
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <span className={cn(
-                              'font-bold leading-tight text-xs',
-                              isSelected ? 'text-white' : 'text-slate-300'
-                            )}>
-                              {process.title}
-                            </span>
-                            <ChevronRight className={cn(
-                              'h-3.5 w-3.5 flex-shrink-0 mt-0.5 transition-transform',
-                              isSelected ? 'rotate-90 text-indigo-400' : 'text-slate-600'
-                            )} />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                              style={{ color: tColor, background: `${tColor}20` }}
-                            >
-                              {process.tCode}
-                            </span>
-                            <span className={cn('text-[9px]', isSelected ? 'text-indigo-300' : 'text-slate-600')}>
-                              {process.steps.length}단계
-                            </span>
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          {processCards.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-white/3 border border-white/8 flex items-center justify-center">
+                <Layers size={22} className="text-[#3f3f46]" />
+              </div>
+              <div>
+                <p className="text-[12px] text-[#52525b] mb-1.5">아직 프로세스가 없어요</p>
+                <p className="text-[11px] text-[#3f3f46] leading-relaxed">
+                  오른쪽 채팅에서 자동화를<br />요청하면 여기에 카드가 생성됩니다
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+              {processCards.map((card, idx) => {
+                const isSelected = selectedCard?.id === card.id
+                return (
+                  <button
+                    key={card.id}
+                    onClick={() => {
+                      setSelectedCard(isSelected ? null : card)
+                      setCheckedSteps(new Set())
+                    }}
+                    className={cn(
+                      'w-full text-left rounded-xl px-3 py-3 transition-all border-2',
+                      isSelected
+                        ? 'bg-indigo-500/15 border-indigo-500/50 shadow-md shadow-indigo-500/10'
+                        : 'bg-white/3 border-white/8 hover:bg-white/6 hover:border-white/15',
+                    )}
+                  >
+                    <div className="flex items-start gap-2.5 mb-2">
+                      <span className={cn(
+                        'flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black border',
+                        isSelected ? 'bg-indigo-500 border-indigo-400 text-white' : 'bg-white/8 border-white/15 text-[#71717a]',
+                      )}>
+                        {idx + 1}
+                      </span>
+                      <span className={cn('font-bold text-xs leading-tight', isSelected ? 'text-white' : 'text-[#d4d4d8]')}>
+                        {card.title}
+                      </span>
+                    </div>
+                    <p className={cn('text-[10px] leading-relaxed pl-7', isSelected ? 'text-indigo-200' : 'text-[#71717a]')}>
+                      {card.role}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-2 pl-7">
+                      <span className={cn(
+                        'text-[9px] px-1.5 py-0.5 rounded border',
+                        isSelected ? 'text-indigo-300 border-indigo-500/30 bg-indigo-500/10' : 'text-[#52525b] border-white/10 bg-white/3',
+                      )}>
+                        {card.steps.length}단계
+                      </span>
+                      {card.warnings?.length > 0 && (
+                        <span className="text-[9px] text-amber-400/70">⚠ {card.warnings.length}</span>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </aside>
 
-        {/* ── Center: 시나리오 + STEP 가이드 ──────────────────────────── */}
-        <div className="flex-1 flex flex-col border-r border-[#1c1c20] min-w-0">
-
-          {/* 빠른 시작 시나리오 아코디언 (TOP) */}
-          <div className="shrink-0 border-b border-[#1c1c20]">
-            <button
-              onClick={() => setShowScenarios(v => !v)}
-              className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-white/2 transition-colors group"
-            >
-              <div className="h-5 w-5 rounded-md bg-amber-500/15 border border-amber-500/25 flex items-center justify-center">
-                <Zap size={11} className="text-amber-400" />
+        {/* ── Center: 선택된 프로세스 상세 ─────────────────────────────── */}
+        <div className="flex-1 flex flex-col border-r border-[#1c1c20] min-w-0 overflow-hidden">
+          {!selectedCard ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[#3f3f46]">
+              <Workflow size={36} strokeWidth={1.5} />
+              <div className="text-center">
+                <p className="text-sm text-[#71717a] mb-1">
+                  {processCards.length > 0 ? '왼쪽에서 프로세스 카드를 선택하세요' : '오른쪽 채팅에서 자동화를 요청하세요'}
+                </p>
+                <p className="text-[11px] text-[#3f3f46]">
+                  {processCards.length > 0 ? 'FIELD · 설정값 · 주의사항 · 가이드를 확인합니다' : '프로세스 카드가 자동으로 생성됩니다'}
+                </p>
               </div>
-              <span className="text-[11px] font-semibold text-[#a1a1aa] group-hover:text-[#e4e4e7]">
-                빠른 시작 시나리오
-              </span>
-              <ChevronDown size={12} className={cn(
-                'ml-auto text-[#52525b] transition-transform duration-200',
-                showScenarios && 'rotate-180'
-              )} />
-            </button>
-            {showScenarios && (
-              <div className="px-4 pb-3 grid grid-cols-2 gap-1.5">
-                {QUICK_PROMPTS.map(qp => (
-                  <button
-                    key={qp}
-                    onClick={() => { setInput(qp); inputRef.current?.focus() }}
-                    className="text-left text-[10px] text-[#52525b] bg-[#111113] border border-[#1c1c20] rounded-lg px-2.5 py-2 hover:border-amber-500/30 hover:text-[#a1a1aa] transition-colors leading-relaxed"
-                  >
-                    {qp}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* STEP 가이드 영역 */}
-          <div className="flex-1 overflow-y-auto p-4">
-            {!selectedProcess ? (
-              <div className="flex flex-col items-center justify-center h-full gap-3 text-[#3f3f46]">
-                <Workflow size={36} strokeWidth={1.5} />
-                <div className="text-center">
-                  <p className="text-sm text-[#71717a] mb-1">왼쪽에서 자동화 프로세스를 선택하세요</p>
-                  <p className="text-[11px] text-[#3f3f46]">단계별 구현 가이드를 확인할 수 있습니다</p>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-5">
+              {/* 카드 헤더 */}
+              <div className="flex items-start gap-3 mb-5 pb-4 border-b border-[#1c1c20]">
+                <div className="h-9 w-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                  <Zap className="h-4 w-4 text-indigo-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-indigo-400 uppercase tracking-widest mb-1">프로세스 상세</p>
+                  <p className="text-base font-bold text-white mb-1">{selectedCard.title}</p>
+                  <p className="text-[12px] text-[#71717a] leading-snug">{selectedCard.role}</p>
                 </div>
               </div>
-            ) : (
-              /* AX Clinic 스타일 STEP 카드 */
-              <div className="rounded-2xl border-2 border-indigo-500/30 bg-indigo-500/4 overflow-hidden">
 
-                {/* 카드 헤더 */}
-                <div className="flex items-center gap-3 px-4 py-3.5 border-b border-indigo-500/20 bg-indigo-500/8">
-                  <div className="h-8 w-8 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
-                    <Play className="h-4 w-4 text-indigo-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">STEP 가이드</span>
-                      <span
-                        className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                        style={{ color: T_COLOR[selectedProcess.tCode], background: `${T_COLOR[selectedProcess.tCode]}20` }}
+              {/* 실행 순서 */}
+              {selectedCard.steps.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-[10px] font-bold text-[#52525b] uppercase tracking-widest mb-3">실행 순서</p>
+                  <div className="space-y-2">
+                    {selectedCard.steps.map((step, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCheckedSteps(prev => {
+                          const next = new Set(prev)
+                          if (next.has(idx)) next.delete(idx); else next.add(idx)
+                          return next
+                        })}
+                        className={cn(
+                          'w-full flex items-center gap-3 text-left rounded-xl px-3.5 py-3 transition-all border-2',
+                          checkedSteps.has(idx)
+                            ? 'bg-emerald-500/8 border-emerald-500/25'
+                            : 'bg-white/2 border-white/8 hover:bg-white/5 hover:border-indigo-500/25',
+                        )}
                       >
-                        {selectedProcess.tCode}
-                      </span>
-                      <span className="text-[9px] text-[#52525b] bg-[#111113] border border-[#27272a] px-1.5 py-0.5 rounded">
-                        {selectedProcess.domain}
-                      </span>
-                    </div>
-                    <p className="text-sm font-bold text-white leading-tight">{selectedProcess.title}</p>
-                    <p className="text-[11px] text-[#71717a] mt-0.5 leading-snug">{selectedProcess.desc}</p>
-                  </div>
-                  <div className="text-xs text-indigo-400 font-semibold shrink-0">
-                    {checkedSteps.size}/{selectedProcess.steps.length}
+                        <div className={cn(
+                          'flex-shrink-0 h-6 w-6 rounded-full border-2 flex items-center justify-center',
+                          checkedSteps.has(idx) ? 'bg-emerald-500 border-emerald-500' : 'border-indigo-500/40 bg-indigo-500/10',
+                        )}>
+                          {checkedSteps.has(idx)
+                            ? <Check className="h-3 w-3 text-white" />
+                            : <span className="text-[9px] text-indigo-300 font-black">{idx + 1}</span>}
+                        </div>
+                        <span className={cn('text-xs', checkedSteps.has(idx) ? 'text-slate-500 line-through' : 'text-slate-200')}>
+                          {step}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 </div>
+              )}
 
-                {/* 단계 목록 */}
-                <div className="p-4 space-y-2.5">
-                  {selectedProcess.steps.map((step, idx) => (
-                    <StepItem
-                      key={idx}
-                      index={idx}
-                      text={step.title}
-                      desc={step.desc}
-                      done={checkedSteps.has(idx)}
-                      onToggle={() => toggleStep(idx)}
-                    />
-                  ))}
-
-                  {checkedSteps.size === selectedProcess.steps.length && selectedProcess.steps.length > 0 && (
-                    <div className="mt-1 text-center py-3.5 text-emerald-400 text-sm font-medium border-2 border-emerald-500/25 rounded-xl bg-emerald-500/8">
-                      ✓ 모든 단계 완료! 오른쪽 AI 채팅에서 n8n JSON을 생성해보세요.
-                    </div>
-                  )}
+              {/* FIELD / 설정값 */}
+              {selectedCard.fields?.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-[10px] font-bold text-[#52525b] uppercase tracking-widest mb-3">FIELD / 설정값</p>
+                  <div className="rounded-xl border border-[#1c1c20] overflow-hidden">
+                    {selectedCard.fields.map((field, idx) => (
+                      <div key={idx} className="px-4 py-3 border-b border-[#1c1c20] last:border-0 bg-[#111113]">
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="text-[11px] font-mono text-amber-300/80">{field.name}</span>
+                          <span className="text-[11px] text-[#a1a1aa]">{field.value}</span>
+                        </div>
+                        {field.note && (
+                          <p className="text-[10px] text-[#52525b] mt-1 flex items-center gap-1">
+                            <Info size={9} className="text-blue-400/60" />
+                            {field.note}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+
+              {/* 주의사항 */}
+              {selectedCard.warnings?.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-[10px] font-bold text-[#52525b] uppercase tracking-widest mb-3">주의사항</p>
+                  <div className="space-y-1.5">
+                    {selectedCard.warnings.map((w, idx) => (
+                      <div key={idx} className="flex items-start gap-2 px-3 py-2 bg-amber-500/5 border border-amber-500/15 rounded-lg">
+                        <AlertTriangle size={11} className="text-amber-400/70 shrink-0 mt-0.5" />
+                        <span className="text-[11px] text-[#a1a1aa]">{w}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 상세 가이드 */}
+              {selectedCard.guide && (
+                <div className="mb-5">
+                  <p className="text-[10px] font-bold text-[#52525b] uppercase tracking-widest mb-3">상세 가이드</p>
+                  <div className="bg-[#111113] border border-[#1c1c20] rounded-xl px-4 py-3">
+                    <GuideMd text={selectedCard.guide} />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── Right: AI 채팅 ────────────────────────────────────────────── */}
-        <div className="w-[300px] shrink-0 flex flex-col bg-[#0a0a10]">
-
-          {/* 채팅 헤더 */}
+        <div className="w-[320px] shrink-0 flex flex-col bg-[#0a0a10]">
           <div className="px-4 py-2.5 border-b border-[#1c1c20] flex items-center gap-1.5 shrink-0">
             <MessageSquare size={12} className="text-purple-400" />
             <span className="text-[10px] font-semibold text-[#52525b] uppercase tracking-widest">AI 자동화 설계</span>
@@ -690,9 +787,13 @@ export default function OpsCenter() {
                 JSON 생성됨
               </span>
             )}
+            {streaming && (
+              <div className={cn('flex items-center gap-1 text-[10px] text-purple-400', workflow ? 'ml-1' : 'ml-auto')}>
+                <RefreshCw size={10} className="animate-spin" />
+              </div>
+            )}
           </div>
 
-          {/* 채팅 메시지 */}
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {messages.map((m, i) => <ChatBubble key={i} message={m} />)}
             {streaming && messages[messages.length - 1]?.role === 'user' && (
@@ -712,7 +813,6 @@ export default function OpsCenter() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* n8n JSON 섹션 */}
           {workflow && (
             <div className="px-3 pb-2 shrink-0 border-t border-[#1c1c20] pt-2">
               <div className="flex items-center justify-between mb-1.5">
@@ -734,7 +834,6 @@ export default function OpsCenter() {
             </div>
           )}
 
-          {/* 입력창 */}
           <div className="p-3 border-t border-[#1c1c20] shrink-0">
             <div className="flex gap-2 items-end">
               <textarea
@@ -742,10 +841,7 @@ export default function OpsCenter() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-                placeholder={selectedProcess
-                  ? `"${selectedProcess.title}" n8n JSON을 생성해드립니다...`
-                  : '자동화하고 싶은 업무를 설명하세요...'
-                }
+                placeholder="자동화하고 싶은 업무를 설명하세요..."
                 rows={3}
                 className="flex-1 resize-none bg-[#111113] border border-[#1c1c20] rounded-lg px-3 py-2 text-xs text-[#e4e4e7] placeholder:text-[#52525b] focus:outline-none focus:border-indigo-500/50 transition-colors"
               />
