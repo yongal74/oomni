@@ -433,6 +433,7 @@ export default function OpsCenter() {
       const decoder = new TextDecoder()
       let buffer = ''
       let fullText = ''
+      let cardsSet = false
 
       setMessages(prev => [...prev, { role: 'assistant', content: '' }])
 
@@ -455,18 +456,25 @@ export default function OpsCenter() {
             if (eventName === 'delta' && parsed.text) {
               fullText += parsed.text
               setMessages(prev => { const c = [...prev]; c[c.length - 1] = { role: 'assistant', content: fullText }; return c })
-            } else if (eventName === 'done' && parsed.text) {
-              fullText = parsed.text
+            } else if (eventName === 'done') {
+              if (parsed.text) fullText = parsed.text
               setMessages(prev => { const c = [...prev]; c[c.length - 1] = { role: 'assistant', content: fullText }; return c })
               const wf = parseWorkflowFromText(fullText)
               if (wf) setWorkflow(wf)
               const cards = parseAiProcessCards(fullText)
-              if (cards.length > 0) { setProcessCards(cards); setSelectedCard(null); setCheckedSteps(new Set()) }
+              if (cards.length > 0) { cardsSet = true; setProcessCards(cards); setSelectedCard(null); setCheckedSteps(new Set()) }
             } else if (eventName === 'error') {
               throw new Error((parsed as { message?: string }).message ?? 'streaming error')
             }
           } catch { /* noop */ }
         }
+      }
+      // done 이벤트 누락 대비: 누적 fullText에서 카드 재파싱
+      if (!cardsSet && fullText) {
+        const wf = parseWorkflowFromText(fullText)
+        if (wf) setWorkflow(wf)
+        const cards = parseAiProcessCards(fullText)
+        if (cards.length > 0) { setProcessCards(cards); setSelectedCard(null); setCheckedSteps(new Set()) }
       }
     } catch {
       const errMsg = '⚠️ 연결 오류. 잠시 후 다시 시도해주세요.'

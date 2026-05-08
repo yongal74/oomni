@@ -43,16 +43,22 @@ const BOT_COLOR: Record<string, string> = {
 }
 
 // ─── 네비게이션 그룹 ──────────────────────────────────────────────────────────
-const NAV_ITEMS: NavIconItem[] = [
-  { to: '/dashboard',                 icon: LayoutDashboard, label: '대시보드',     end: true },
-  { to: '/dashboard/board',           icon: CheckSquare,     label: 'Mission Board' },
-{ to: '/dashboard/growth',          icon: Rocket,          label: 'Growth Studio' },
-  { to: '/dashboard/design-studio',   icon: Palette,         label: 'Studio Bot' },
-  { to: '/dashboard/ops',             icon: Workflow,        label: 'Ops Center' },
-  { to: '/dashboard/cdp',            icon: Database,        label: 'CDP 뷰' },
-  { to: '/dashboard/approvals',       icon: Bell,            label: '승인 인박스',  badge: true },
-  { to: '/dashboard/cost',            icon: DollarSign,      label: '비용 추적' },
-  { to: '/dashboard/settings',        icon: Settings2,       label: '설정' },
+const TOP_NAV_ITEMS: NavIconItem[] = [
+  { to: '/dashboard',       icon: LayoutDashboard, label: '대시보드',     end: true },
+  { to: '/dashboard/board', icon: CheckSquare,     label: 'Mission Board' },
+]
+
+const BOT_NAV_ITEMS: NavIconItem[] = [
+  { to: '/dashboard/growth',        icon: Rocket,   label: 'Growth Bot' },
+  { to: '/dashboard/design-studio', icon: Palette,  label: 'Studio Bot' },
+  { to: '/dashboard/ops',           icon: Workflow, label: 'Ops Bot' },
+]
+
+const UTIL_NAV_ITEMS: NavIconItem[] = [
+  { to: '/dashboard/cdp',       icon: Database,   label: 'CDP 뷰' },
+  { to: '/dashboard/approvals', icon: Bell,       label: '승인 인박스', badge: true },
+  { to: '/dashboard/cost',      icon: DollarSign, label: '비용 추적' },
+  { to: '/dashboard/settings',  icon: Settings2,  label: '설정' },
 ]
 
 // ─── 단일 아이콘 버튼 (툴팁 포함) ────────────────────────────────────────────
@@ -230,7 +236,20 @@ export function AppLayout() {
           <span className="text-[10px] font-black text-white tracking-tight select-none">O</span>
         </button>
 
-        <div className="w-5 h-px bg-[#27272a] mb-2" />
+        <div className="w-5 h-px bg-[#27272a] mb-1" />
+
+        {/* 대시보드 + 미션보드 — 최상단 고정 */}
+        {TOP_NAV_ITEMS.map(item => (
+          <IconBtn
+            key={item.to}
+            icon={item.icon}
+            label={item.label}
+            to={item.to}
+            end={item.end}
+          />
+        ))}
+
+        <div className="w-5 h-px bg-[#27272a] my-1" />
 
         {/* 봇 패널 토글 */}
         <div className="relative group">
@@ -251,7 +270,6 @@ export function AppLayout() {
               <circle cx="11.5" cy="11.5" r="1.4" fill="currentColor" opacity="0.9" />
               <circle cx="7.5"  cy="7.5"  r="1.4" fill="currentColor" opacity="0.45" />
             </svg>
-            {/* 활성 봇 수 뱃지 */}
             {activeCount > 0 && (
               <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-green-500 pointer-events-none" />
             )}
@@ -261,7 +279,7 @@ export function AppLayout() {
           </span>
         </div>
 
-        {/* 봇별 아이콘 (최대 6개 직접 노출, CEO·구버전 디자인/빌드/옵스 제외 — nav에 별도 항목 있음) */}
+        {/* 동적 봇 아이콘 (DB 봇 — research/content 등, CEO·design·build·ops 제외) */}
         {agents.filter(a => !['ceo', 'design', 'build', 'ops'].includes(a.role)).slice(0, 6).map(agent => {
           const Icon  = BOT_ICON[agent.role]  ?? Settings2
           const color = BOT_COLOR[agent.role] ?? 'text-[#666]'
@@ -276,24 +294,35 @@ export function AppLayout() {
           )
         })}
 
-        {agents.filter(a => !['ceo', 'design', 'build'].includes(a.role)).length > 6 && (
+        {agents.filter(a => !['ceo', 'design', 'build', 'ops'].includes(a.role)).length > 6 && (
           <IconBtn
             icon={Plus}
-            label={`봇 더 보기 (${agents.filter(a => !['ceo', 'design', 'build'].includes(a.role)).length - 6}개)`}
+            label={`봇 더 보기 (${agents.filter(a => !['ceo', 'design', 'build', 'ops'].includes(a.role)).length - 6}개)`}
             onClick={() => setBotPanelOpen(true)}
           />
         )}
 
-        <div className="w-5 h-px bg-[#27272a] my-1.5" />
+        <div className="w-5 h-px bg-[#27272a] my-1" />
 
-        {/* 네비게이션 아이콘 */}
-        {NAV_ITEMS.map(item => (
+        {/* Growth Bot / Studio Bot / Ops Bot */}
+        {BOT_NAV_ITEMS.map(item => (
           <IconBtn
             key={item.to}
             icon={item.icon}
             label={item.label}
             to={item.to}
-            end={item.end}
+          />
+        ))}
+
+        <div className="w-5 h-px bg-[#27272a] my-1" />
+
+        {/* 유틸리티 */}
+        {UTIL_NAV_ITEMS.map(item => (
+          <IconBtn
+            key={item.to}
+            icon={item.icon}
+            label={item.label}
+            to={item.to}
             badge={item.badge}
             badgeCount={item.badge ? pendingApprovals : 0}
           />

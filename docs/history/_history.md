@@ -2,6 +2,167 @@
 
 ---
 
+## 2026-05-08 — v5.7.0 온보딩 색상 통일 + 사이드바 재구조화 + Ops Bot 카드 파싱 fix
+
+### 배경
+v5.6.0 실사용 테스트에서 3가지 문제 발견:
+1. 온보딩 화면이 indigo(파란) 계열 — 서비스 본화면(주황 primary, 다크 배경)과 색상 불일치
+2. 사이드바 순서 오류 — agents DB 봇 아이콘(research/content)이 대시보드·미션보드 위에 렌더됨
+3. Ops Bot — AI 응답 후 왼쪽 프로세스 카드와 중앙 상세 패널이 채워지지 않음
+
+### 변경 파일
+| 파일 | 변경 내용 |
+|---|---|
+| `frontend/src/pages/OnboardingPage.tsx` | indigo 계열 → `primary(#D4763B)` + 서비스 다크 배경으로 전면 교체 |
+| `frontend/src/components/layout/AppLayout.tsx` | NAV 3그룹 분리, 사이드바 순서 재구조화, Growth Bot·Ops Bot 이름 변경 |
+| `frontend/src/pages/OpsCenter.tsx` | done 이벤트 조건 완화 + while 루프 후 fallback 파싱 추가 |
+| `package.json` | v5.6.0 → v5.7.0 |
+| `docs/index.html` | 다운로드 링크 v5.7.0으로 업데이트 |
+
+### 세부 변경 사항
+
+#### [1] 온보딩 색상 통일
+- 루트 배경: `bg-[#060b18]` → `bg-[#0d0d0f]`
+- 좌측 패널 그라디언트/보더: 파란 계열 → `#111113`/`#1c1c20`
+- 모든 `indigo-600/500/400` → `primary`(`#D4763B`) / `primary-hover`
+- 입력 필드·카드 배경: `#0d1525`/`#1c2440` → `#111113`/`#1c1c20`
+- 뮤티드 텍스트: `#4a5580`/`#303a55` → `#52525b`/`#3f3f46`
+
+#### [2] 사이드바 재구조화
+- `NAV_ITEMS` → `TOP_NAV_ITEMS` / `BOT_NAV_ITEMS` / `UTIL_NAV_ITEMS` 3분할
+- 렌더 순서: 로고 → **대시보드·미션보드** → 봇패널·동적봇 → **Growth Bot·Studio Bot·Ops Bot** → 유틸
+- 이름 변경: 'Growth Studio' → 'Growth Bot', 'Ops Center' → 'Ops Bot'
+
+#### [3] Ops Bot 프로세스 카드 파싱 fix
+- SSE `done` 이벤트 조건 `&& parsed.text` 제거 → `parsed.text` 없어도 누적 fullText 사용
+- `cardsSet` 플래그로 이중 파싱 방지
+- while 루프 종료 후 fallback 파싱 추가 — done 이벤트 누락 시에도 카드 생성 보장
+
+### 배포
+- `npm run package` → `OOMNI Setup 5.7.0.exe`
+- GitHub Release v5.7.0: https://github.com/yongal74/oomni/releases/tag/v5.7.0
+- 랜딩페이지 `docs/index.html` 다운로드 링크 v5.7.0으로 업데이트
+
+### 상세 기록
+→ [docs/dev-log/v5.7.0-dev-log.md](../dev-log/v5.7.0-dev-log.md)
+
+---
+
+## 2026-05-06 — v5.6.0 OpsCenter 완전 재설계 + Studio Bot 플로팅 채팅
+
+### 배경
+v5.5.0까지의 OpsCenter는 좌측에 프로세스 목록을 두는 구조였으나, 사용자 피드백으로 패널 역할을 완전히 재정의.
+- 빠른 실행/도메인 목록 → 상단 바로 이동
+- Left 패널 → 기본 빈 상태, AI 결과로만 채워지는 동적 카드 공간
+- Center 패널 → 선택된 카드의 상세 정보 (FIELD/설정/가이드)
+- Studio Bot 채팅창 위치/설정 개선 3건
+
+### 변경 파일
+| 파일 | 변경 내용 |
+|---|---|
+| `frontend/src/pages/OpsCenter.tsx` | 3패널 완전 재작성 — 상단 드롭다운 바 + 동적 카드 Left + 상세 Center |
+| `frontend/src/pages/StudioBotPage.tsx` | 채팅 플로팅, 폰트 크기 S/M/L/XL, 배경색 5가지 |
+| `package.json` | v5.5.0 → v5.6.0 |
+| `docs/index.html` | 다운로드 링크 v5.6.0으로 업데이트 |
+
+### 세부 변경 사항
+
+#### [1] OpsCenter — 상단 바 (신규)
+- 도메인 6개(재무/세무/인사/IT/운영/법률) 작은 버튼 → 클릭 시 드롭다운으로 프로세스 목록 표시
+- 빠른 실행 프롬프트 4개 버튼
+- 클릭 시 우측 AI 채팅 입력창에 프롬프트 자동 주입 + focus
+
+#### [2] OpsCenter — Left 패널 역할 변경
+- 기존: 도메인별 프로세스 카드 항상 표시
+- 변경: **기본 빈 상태** ("오른쪽 채팅에서 자동화 요청하면 카드 생성")
+- AI 응답 완료 후 `process-cards` JSON 블록 파싱 → 번호+제목+역할설명+단계수 카드 자동 표시
+- 카드 클릭 → Center에 상세 표시
+
+#### [3] OpsCenter — Center 패널 역할 변경
+- 기존: 빠른 시작 시나리오 아코디언 + STEP 체크리스트
+- 변경: **기본 빈 상태**, Left 카드 선택 시 상세 표시
+  - 실행 순서 체크리스트
+  - FIELD / 설정값 테이블 (필드명 | 값 | 주의사항)
+  - 주의사항 섹션 (amber 경고 박스)
+  - 상세 가이드 (마크다운 렌더링)
+
+#### [4] OpsCenter — AI 시스템 프롬프트 개선
+- `process-cards` JSON 형식 응답 요청 추가
+- AI 응답에서 n8n JSON + process-cards 동시 파싱
+
+#### [5] Studio Bot — 채팅창 플로팅
+- 기존: 결과 영역 하단 `shrink-0` 고정 패널
+- 변경: `absolute bottom-6 left-1/2 -translate-x-1/2` 플로팅 (backdrop-blur, shadow-2xl)
+- 좌측 패널 제외한 결과 영역 기준 좌우 중앙 위치
+
+#### [6] Studio Bot — 폰트 크기 설정
+- 좌측 패널 하단에 S/M/L/XL(11/13/15/17px) 버튼 추가
+- 결과 영역 전체(`absolute inset-0`)에 `fontSize` 적용
+
+#### [7] Studio Bot — 배경색 설정
+- Dark/Navy/Slate/Carbon/Forest 5가지 색상 스와치
+- 루트 div에 inline `background` style 적용
+
+### 배포
+- `npm run package` → `OOMNI Setup 5.6.0.exe`
+- GitHub Release v5.6.0: https://github.com/yongal74/oomni/releases/tag/v5.6.0
+- 랜딩페이지 `docs/index.html` 다운로드 링크 v5.6.0으로 업데이트
+
+### 다음 할 일
+- OpsCenter: AI 응답에서 `process-cards` JSON 실제 파싱 여부 실사용 테스트
+- Studio Bot: 플로팅 채팅이 모든 모드(ui-proto/graphic/build)에서 자연스러운지 확인
+- v5.2.0 빈 릴리즈 삭제: `gh release delete v5.2.0 --repo yongal74/oomni`
+
+### 상세 기록
+→ [docs/dev-log/v5.6.0-dev-log.md](../dev-log/v5.6.0-dev-log.md)
+
+---
+
+## 2026-05-05 — v5.5.0 5-Stage UI/UX 전면 개선
+
+### 변경 파일
+| 파일 | 변경 내용 |
+|---|---|
+| `frontend/src/pages/OpsCenter.tsx` | AX Clinic GuideClient 패턴 완성 (StepItem 토글, 3패널 재정비) |
+| `frontend/src/pages/StudioBotPage.tsx` | 플로팅 챗 → 하단 고정 패널, VS Code 5개 테마 |
+| `frontend/src/pages/GrowthStudio.tsx` | 4탭 (콘텐츠 생성/목록/리드/CDP ID-Graph), SettingsTab 삭제 |
+| `frontend/src/components/bot/ResearchPanel.tsx` | 버튼 이모지 제거, highlight:false 통일, SerpAPI 소스 추가 |
+| `frontend/src/components/bot/ContentPanel.tsx` | 문체/톤 5가지 버튼, 글자 수 슬라이더+조절 버튼 |
+| `backend/src/services/realSourceFetcher.ts` | SerpAPI fetchSerpApi 추가 |
+| `backend/src/db/seedResearchSources.ts` | SerpAPI 시드 (is_active:0 기본 비활성) |
+
+### 세부 변경 사항
+
+#### Stage 1 — OpsCenter AX Clinic 패턴 완성
+- StepItem: emerald(완료)/indigo(미완료) 컬러 체계
+- 3패널: 좌=도메인 섹션 헤더+카드(260px), 중=시나리오 아코디언+STEP카드(flex-1), 우=AI채팅+JSON(300px)
+
+#### Stage 2 — Studio Bot 하단 고정 채팅 + VS Code 테마
+- 플로팅(중앙 위치) → 하단 고정 shrink-0 패널 (h-160px/300px)
+- VS Code 5개 테마: Dark+/One Dark/Dracula/Monokai/Light
+
+#### Stage 3 — Growth Bot CDP ID-Graph 탭
+- 4탭 구조, CDP 통합 프로파일 + 식별자(email/instagram/phone/cookie) 연결 뷰
+- 더미 데이터 5건 (mission 없을 때 자동 표시)
+
+#### Stage 4 — Research Bot SerpAPI + 버튼 정리
+- 경쟁사동향·논문 버튼 이모지 제거, highlight:false 통일
+- SerpAPI Google 검색 소스 추가 (SERP_API_KEY 환경변수 설정 후 활성화)
+
+#### Stage 5 — Content Bot 문체/글자수 조절
+- 문체 5가지: 캐주얼/격식체/권위형/공감형/유머
+- 글자 수 슬라이더 + ±100 조절 버튼
+
+### 배포
+- `npm run package` → `OOMNI Setup 5.5.0.exe`
+- GitHub Release v5.5.0: https://github.com/yongal74/oomni/releases/tag/v5.5.0
+- 랜딩페이지 `docs/index.html` 다운로드 링크 v5.5.0으로 업데이트
+
+### 상세 기록
+→ [docs/dev-log/v5.5.0-dev-log.md](../dev-log/v5.5.0-dev-log.md)
+
+---
+
 ## 2026-05-05 — v5.4.0 UI/UX 전면 개선 (8개 항목)
 
 ### 배경

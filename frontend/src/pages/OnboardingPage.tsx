@@ -1,5 +1,5 @@
 /**
- * OnboardingPage.tsx — OOMNI v5.1.0 온보딩
+ * OnboardingPage.tsx — OOMNI v5.7.0 온보딩
  *
  * 레이아웃: 좌측 브랜드 패널 | 우측 4-step 폼
  * Step 1: Claude API 키 입력
@@ -116,35 +116,35 @@ export default function OnboardingPage() {
   // ── render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#060b18] flex">
+    <div className="min-h-screen bg-[#0d0d0f] flex">
 
       {/* ── 좌측: 브랜드 패널 ──────────────────────────────────────────────── */}
-      <div className="hidden lg:flex w-[420px] shrink-0 flex-col justify-between p-10 bg-gradient-to-br from-[#0a0f1e] via-[#0d1525] to-[#060b18] border-r border-[#1c2440]">
+      <div className="hidden lg:flex w-[420px] shrink-0 flex-col justify-between p-10 bg-gradient-to-br from-[#111113] via-[#0d0d0f] to-[#0d0d0f] border-r border-[#1c1c20]">
 
         {/* 로고 */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <Zap size={16} className="text-white" />
             </div>
             <span className="text-xl font-bold text-white tracking-tight">OOMNI</span>
           </div>
-          <p className="text-[#4a5580] text-sm">솔로프리너를 위한 AI 에이전트 팀</p>
+          <p className="text-[#52525b] text-sm">솔로프리너를 위한 AI 에이전트 팀</p>
         </div>
 
         {/* 기능 목록 */}
         <div className="space-y-4 my-8">
-          <p className="text-[11px] text-[#4a5580] uppercase tracking-widest mb-4">AI 팀 구성</p>
+          <p className="text-[11px] text-[#52525b] uppercase tracking-widest mb-4">AI 팀 구성</p>
           {FEATURES.map(f => {
             const Icon = f.icon
             return (
               <div key={f.label} className="flex items-start gap-3">
-                <div className="w-7 h-7 rounded-md bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
-                  <Icon size={13} className="text-indigo-400" />
+                <div className="w-7 h-7 rounded-md bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
+                  <Icon size={13} className="text-primary" />
                 </div>
                 <div>
-                  <div className="text-[13px] font-medium text-[#c8d0e8]">{f.label}</div>
-                  <div className="text-[11px] text-[#4a5580]">{f.desc}</div>
+                  <div className="text-[13px] font-medium text-[#e4e4e7]">{f.label}</div>
+                  <div className="text-[11px] text-[#52525b]">{f.desc}</div>
                 </div>
               </div>
             )
@@ -152,7 +152,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* 하단 */}
-        <div className="text-[11px] text-[#303a55] space-y-1">
+        <div className="text-[11px] text-[#3f3f46] space-y-1">
           <p>API 키는 이 기기에만 저장됩니다</p>
           <p>외부로 전송되지 않습니다</p>
         </div>
@@ -163,7 +163,7 @@ export default function OnboardingPage() {
 
         {/* 모바일 로고 */}
         <div className="lg:hidden flex items-center gap-2 mb-8">
-          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
             <Zap size={14} className="text-white" />
           </div>
           <span className="text-lg font-bold text-white">OOMNI</span>
@@ -178,22 +178,22 @@ export default function OnboardingPage() {
                 <div className={cn(
                   'w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold transition-all',
                   step > n
-                    ? 'bg-indigo-600 text-white'
+                    ? 'bg-primary text-white'
                     : step === n
-                    ? 'bg-indigo-600 text-white ring-2 ring-indigo-500/30'
-                    : 'bg-[#1a2035] border border-[#2a3050] text-[#4a5580]',
+                    ? 'bg-primary text-white ring-2 ring-primary/30'
+                    : 'bg-[#1c1c20] border border-[#27272a] text-[#52525b]',
                 )}>
                   {step > n ? <CheckCircle size={12} /> : n}
                 </div>
                 {n < TOTAL_STEPS && (
                   <div className={cn(
                     'h-px w-8 transition-colors',
-                    step > n ? 'bg-indigo-600' : 'bg-[#1a2035]',
+                    step > n ? 'bg-primary' : 'bg-[#1c1c20]',
                   )} />
                 )}
               </div>
             ))}
-            <span className="ml-2 text-[11px] text-[#4a5580]">
+            <span className="ml-2 text-[11px] text-[#52525b]">
               {step === 1 ? 'API 키' : step === 2 ? '미션' : step === 3 ? '팀 구성' : '완료'}
             </span>
           </div>
@@ -203,7 +203,7 @@ export default function OnboardingPage() {
             <StepCard title="Claude API 키 설정" desc="봇을 실행하려면 Anthropic API 키가 필요합니다">
               <div className="space-y-4">
                 <div>
-                  <label className="text-[11px] text-[#4a5580] uppercase tracking-wide block mb-1.5">
+                  <label className="text-[11px] text-[#52525b] uppercase tracking-wide block mb-1.5">
                     Anthropic API 키
                   </label>
                   <div className="relative">
@@ -214,22 +214,22 @@ export default function OnboardingPage() {
                       onKeyDown={e => e.key === 'Enter' && handleStep1()}
                       placeholder="sk-ant-api03-..."
                       autoFocus
-                      className="w-full bg-[#0d1525] border border-[#1c2440] rounded-lg px-3 py-2.5 text-sm text-[#c8d0e8] placeholder-[#303a55] focus:outline-none focus:border-indigo-500/60 transition-colors pr-10"
+                      className="w-full bg-[#111113] border border-[#1c1c20] rounded-lg px-3 py-2.5 text-sm text-[#e4e4e7] placeholder-[#3f3f46] focus:outline-none focus:border-primary/60 transition-colors pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowKey(!showKey)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4a5580] hover:text-[#c8d0e8] transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#52525b] hover:text-[#e4e4e7] transition-colors"
                     >
                       {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
                   </div>
-                  <p className="text-[11px] text-[#303a55] mt-1.5">
+                  <p className="text-[11px] text-[#3f3f46] mt-1.5">
                     <a
                       href="https://console.anthropic.com"
                       target="_blank"
                       rel="noreferrer"
-                      className="text-indigo-400 hover:text-indigo-300 transition-colors"
+                      className="text-primary hover:text-primary/80 transition-colors"
                     >
                       console.anthropic.com
                     </a>
@@ -243,7 +243,7 @@ export default function OnboardingPage() {
                 <button
                   type="button"
                   onClick={() => { setStep(2); setError('') }}
-                  className="w-full text-center text-[11px] text-[#303a55] hover:text-[#4a5580] transition-colors"
+                  className="w-full text-center text-[11px] text-[#3f3f46] hover:text-[#52525b] transition-colors"
                 >
                   나중에 설정하기
                 </button>
@@ -256,7 +256,7 @@ export default function OnboardingPage() {
             <StepCard title="첫 미션 만들기" desc="AI 팀이 달성할 목표를 설정하세요">
               <div className="space-y-4">
                 <div>
-                  <label className="text-[11px] text-[#4a5580] uppercase tracking-wide block mb-1.5">
+                  <label className="text-[11px] text-[#52525b] uppercase tracking-wide block mb-1.5">
                     미션 이름
                   </label>
                   <input
@@ -266,11 +266,11 @@ export default function OnboardingPage() {
                     onKeyDown={e => e.key === 'Enter' && handleStep2()}
                     placeholder="나의 스타트업"
                     autoFocus
-                    className="w-full bg-[#0d1525] border border-[#1c2440] rounded-lg px-3 py-2.5 text-sm text-[#c8d0e8] placeholder-[#303a55] focus:outline-none focus:border-indigo-500/60 transition-colors"
+                    className="w-full bg-[#111113] border border-[#1c1c20] rounded-lg px-3 py-2.5 text-sm text-[#e4e4e7] placeholder-[#3f3f46] focus:outline-none focus:border-primary/60 transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] text-[#4a5580] uppercase tracking-wide block mb-1.5">
+                  <label className="text-[11px] text-[#52525b] uppercase tracking-wide block mb-1.5">
                     설명 (선택)
                   </label>
                   <textarea
@@ -278,12 +278,12 @@ export default function OnboardingPage() {
                     onChange={e => setMissionDesc(e.target.value)}
                     placeholder="SaaS 제품 개발 및 마케팅"
                     rows={2}
-                    className="w-full bg-[#0d1525] border border-[#1c2440] rounded-lg px-3 py-2.5 text-sm text-[#c8d0e8] placeholder-[#303a55] focus:outline-none focus:border-indigo-500/60 transition-colors resize-none"
+                    className="w-full bg-[#111113] border border-[#1c1c20] rounded-lg px-3 py-2.5 text-sm text-[#e4e4e7] placeholder-[#3f3f46] focus:outline-none focus:border-primary/60 transition-colors resize-none"
                   />
                 </div>
                 {/* 프리셋 */}
                 <div>
-                  <p className="text-[11px] text-[#4a5580] mb-2">빠른 선택</p>
+                  <p className="text-[11px] text-[#52525b] mb-2">빠른 선택</p>
                   <div className="grid grid-cols-2 gap-2">
                     {PRESETS.map(p => (
                       <button
@@ -293,8 +293,8 @@ export default function OnboardingPage() {
                         className={cn(
                           'text-left px-3 py-2 rounded-lg border text-[11px] transition-all',
                           missionName === p.name
-                            ? 'border-indigo-500/60 bg-indigo-600/10 text-indigo-300'
-                            : 'border-[#1c2440] text-[#4a5580] hover:border-[#2a3050] hover:text-[#c8d0e8]',
+                            ? 'border-primary/60 bg-primary/10 text-primary'
+                            : 'border-[#1c1c20] text-[#52525b] hover:border-[#27272a] hover:text-[#e4e4e7]',
                         )}
                       >
                         {p.label}
@@ -339,14 +339,14 @@ export default function OnboardingPage() {
           {step === 4 && (
             <StepCard title="" desc="">
               <div className="text-center py-2">
-                <div className="w-14 h-14 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle size={28} className="text-indigo-400" />
+                <div className="w-14 h-14 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle size={28} className="text-primary" />
                 </div>
                 <h2 className="text-xl font-bold text-white mb-1">준비 완료!</h2>
-                <p className="text-[#4a5580] text-sm mb-6">OOMNI가 실행될 준비가 됐습니다</p>
+                <p className="text-[#52525b] text-sm mb-6">OOMNI가 실행될 준비가 됐습니다</p>
 
                 {/* 요약 */}
-                <div className="bg-[#0d1525] border border-[#1c2440] rounded-xl p-4 text-left space-y-2.5 mb-6">
+                <div className="bg-[#111113] border border-[#1c1c20] rounded-xl p-4 text-left space-y-2.5 mb-6">
                   <SummaryRow done={apiKeySet}     label={apiKeySet ? 'Claude API 연결 완료' : 'API 키 미설정 (설정 > API 키에서 추가)'} />
                   {createdMission && (
                     <SummaryRow done label={`미션: ${createdMission.name}`} />
@@ -361,7 +361,7 @@ export default function OnboardingPage() {
 
                 <button
                   onClick={handleFinish}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                  className="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
                 >
                   OOMNI 시작하기 <ChevronRight size={14} />
                 </button>
@@ -384,10 +384,10 @@ function StepCard({ title, desc, children }: {
       {title && (
         <div className="mb-6">
           <h2 className="text-lg font-bold text-white mb-1">{title}</h2>
-          <p className="text-[#4a5580] text-sm">{desc}</p>
+          <p className="text-[#52525b] text-sm">{desc}</p>
         </div>
       )}
-      <div className="bg-[#0d1525] border border-[#1c2440] rounded-2xl p-6">
+      <div className="bg-[#111113] border border-[#1c1c20] rounded-2xl p-6">
         {children}
       </div>
     </div>
@@ -404,7 +404,7 @@ function PrimaryButton({ onClick, loading, disabled, children }: {
     <button
       onClick={onClick}
       disabled={loading || disabled}
-      className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors"
+      className="w-full bg-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed text-white py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors"
     >
       {loading && <Loader2 size={14} className="animate-spin" />}
       {children}
@@ -423,8 +423,8 @@ function TemplateOption({ selected, onClick, badge, title, desc }: {
       className={cn(
         'w-full text-left p-4 rounded-xl border-2 transition-all',
         selected
-          ? 'border-indigo-500/70 bg-indigo-600/10'
-          : 'border-[#1c2440] hover:border-[#2a3050] bg-[#0a0f1e]',
+          ? 'border-primary/70 bg-primary/10'
+          : 'border-[#1c1c20] hover:border-[#27272a] bg-[#111113]',
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -432,16 +432,16 @@ function TemplateOption({ selected, onClick, badge, title, desc }: {
           <div className="flex items-center gap-2 mb-1">
             <span className="text-sm font-semibold text-white">{title}</span>
             {badge && (
-              <span className="text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded font-medium">
+              <span className="text-[10px] bg-primary text-white px-1.5 py-0.5 rounded font-medium">
                 {badge}
               </span>
             )}
           </div>
-          <p className="text-[12px] text-[#4a5580]">{desc}</p>
+          <p className="text-[12px] text-[#52525b]">{desc}</p>
         </div>
         <div className={cn(
           'w-4 h-4 rounded-full border-2 mt-0.5 shrink-0 flex items-center justify-center transition-colors',
-          selected ? 'border-indigo-500 bg-indigo-500' : 'border-[#2a3050]',
+          selected ? 'border-primary bg-primary' : 'border-[#27272a]',
         )}>
           {selected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
         </div>
@@ -453,8 +453,8 @@ function TemplateOption({ selected, onClick, badge, title, desc }: {
 function SummaryRow({ done, label }: { done: boolean; label: string }) {
   return (
     <div className="flex items-center gap-2 text-[12px]">
-      <CheckCircle size={13} className={done ? 'text-indigo-400' : 'text-[#303a55]'} />
-      <span className={done ? 'text-[#c8d0e8]' : 'text-[#303a55]'}>{label}</span>
+      <CheckCircle size={13} className={done ? 'text-primary' : 'text-[#3f3f46]'} />
+      <span className={done ? 'text-[#e4e4e7]' : 'text-[#3f3f46]'}>{label}</span>
     </div>
   )
 }
