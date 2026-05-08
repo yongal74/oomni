@@ -411,11 +411,9 @@ export default function OpsCenter() {
 \`\`\``
 
       const BASE_URL = 'http://localhost:3001'
-      let internalKey = 'dev-key'
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        internalKey = await (window as any).electronAPI?.getInternalApiKey?.() ?? 'dev-key'
-      } catch { /* noop */ }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const internalKey = await (window as any).electronAPI?.getInternalApiKey?.() ?? ''
+      if (!internalKey) throw new Error('내부 API 키를 가져올 수 없습니다')
 
       const resp = await fetch(`${BASE_URL}/api/ops/chat`, {
         method: 'POST',

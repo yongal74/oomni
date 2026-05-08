@@ -2,6 +2,53 @@
 
 ---
 
+## 2026-05-08 — v5.8.0 보안 강화 (내부 API 키 랜덤화 + 포트 바인딩 + Electron 샌드박스)
+
+### 배경
+상용화 플랜 수립 과정에서 4가지 보안 이슈 식별 → 즉시 수정.
+
+### 변경 파일
+| 파일 | 변경 내용 |
+|---|---|
+| `electron/main.js` | 앱 시작 시 랜덤 UUID 내부 API 키 자동 생성 + sandbox: true |
+| `frontend/src/pages/OpsCenter.tsx` | 'dev-key' 하드코딩 fallback 제거 |
+| `backend/src/index.ts` | server.listen 127.0.0.1 명시 바인딩 |
+| `package.json` | v5.7.0 → v5.8.0 |
+| `docs/index.html` | 다운로드 링크 v5.8.0 업데이트 |
+
+### 세부 변경 사항
+
+#### [1] 내부 API 키 랜덤화 (main.js)
+- 기존: `'oomni-internal-dev-key-change-me!'` 예측 가능한 기본값 사용
+- 변경: 프로덕션 시작 시 `crypto.randomUUID()` 자동 생성 → 재시작마다 새 키
+
+#### [2] OpsCenter.tsx dev-key fallback 제거
+- 기존: `?? 'dev-key'` 하드코딩 fallback
+- 변경: 키 획득 실패 시 명시적 에러 throw → 연결 오류 메시지 표시
+
+#### [3] Backend 127.0.0.1 바인딩
+- 기존: `server.listen(port)` — `0.0.0.0` 기본값 (외부 네트워크 접근 가능)
+- 변경: `server.listen(port, '127.0.0.1')` — 로컬호스트 전용
+
+#### [4] Electron sandbox: true
+- 기존: `sandbox: false` (preload Node API 필요 주석)
+- 변경: `sandbox: true` — preload가 contextBridge/ipcRenderer만 사용하므로 안전
+
+### 변경 없는 항목 (이미 안전)
+- API 키: AES-256-GCM 암호화 적용됨
+- CORS: file:// + localhost만 허용
+- contextIsolation: true, nodeIntegration: false
+
+### 배포
+- GitHub Release v5.8.0: https://github.com/yongal74/oomni/releases/tag/v5.8.0
+- 랜딩페이지 다운로드 링크 v5.8.0 업데이트
+
+### 참고
+→ [docs/dev-log/v5.8.0-dev-log.md](../dev-log/v5.8.0-dev-log.md)
+→ [docs/상용화플랜.md](../상용화플랜.md)
+
+---
+
 ## 2026-05-08 — v5.7.0 온보딩 색상 통일 + 사이드바 재구조화 + Ops Bot 카드 파싱 fix
 
 ### 배경

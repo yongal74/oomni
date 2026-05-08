@@ -123,6 +123,10 @@ function startBackend() {
   // 환경변수 설정
   process.env.NODE_ENV = 'production'
   process.env.PORT = '3001'
+  // 매 실행마다 랜덤 내부 API 키 생성 — dev-key 하드코딩 방지
+  if (!process.env.OOMNI_INTERNAL_API_KEY || process.env.OOMNI_INTERNAL_API_KEY === 'oomni-internal-dev-key-change-me!') {
+    process.env.OOMNI_INTERNAL_API_KEY = require('crypto').randomUUID()
+  }
   // 프로덕션: 항상 자체 백엔드 실행 (외부 백엔드 재사용 금지 — 키 불일치 방지)
   return new Promise((resolve) => launchBackend(backendPath, resolve))
 }
@@ -157,7 +161,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,      // 보안: renderer와 main 격리
       nodeIntegration: false,      // 보안: renderer에서 Node.js 비활성화
-      sandbox: false,              // preload에서 일부 Node API 필요
+      sandbox: true,               // preload는 contextBridge/ipcRenderer만 사용 — sandbox 안전
       webSecurity: true,
       allowRunningInsecureContent: false,
     },

@@ -138,7 +138,7 @@ async function main() {
       throw err;
     }
   });
-  server.listen(config.PORT, () => {
+  server.listen(config.PORT, '127.0.0.1', () => {
     logger.info(`[Main] OOMNI 서버 시작: http://localhost:${config.PORT}`);
     logger.info(`[Main] WebSocket: ws://localhost:${config.PORT}/ws`);
     logger.info(`[Main] 환경: ${config.NODE_ENV}`);
