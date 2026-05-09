@@ -287,6 +287,18 @@ function parseAiProcessCards(text: string): AiProcessCard[] {
 
 interface ChatMessage { role: 'user' | 'assistant'; content: string }
 
+function CopyFieldBtn({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
+      className="flex items-center gap-1 text-[9px] text-[#52525b] hover:text-sky-400 transition-colors px-1.5 py-0.5 rounded border border-transparent hover:border-sky-500/20"
+    >
+      {copied ? <><Check size={9} className="text-emerald-400" />복사됨</> : <><Copy size={9} />복사</>}
+    </button>
+  )
+}
+
 function GuideMd({ text }: { text: string }) {
   return (
     <div className="space-y-1.5 text-xs text-[#e4e4e7] leading-relaxed">
@@ -328,6 +340,11 @@ function ChatBubble({ message }: { message: ChatMessage }) {
       </div>
     </div>
   )
+}
+
+// API 전송 전 process-cards/json 블록 제거 (토큰 절약 + 연속 요청 오류 방지)
+function stripCodeBlocks(content: string): string {
+  return content.replace(/```(process-cards|json)[\s\S]*?```/g, '[이전 자동화 결과 생략]').trim()
 }
 
 // ─── OpsCenter ────────────────────────────────────────────────────────────────
@@ -381,10 +398,17 @@ export default function OpsCenter() {
     setTimeout(() => inputRef.current?.focus(), 50)
   }
 
+  const abortRef = useRef<AbortController | null>(null)
+
   const handleSend = useCallback(async () => {
     const text = input.trim()
     if (!text || streaming) return
     setInput('')
+
+    // 이전 스트림이 진행 중이면 강제 중단
+    if (abortRef.current) { abortRef.current.abort(); abortRef.current = null }
+    const controller = new AbortController()
+    abortRef.current = controller
 
     const userMsg: ChatMessage = { role: 'user', content: text }
     const newMessages = [...messages, userMsg]
@@ -404,9 +428,11 @@ export default function OpsCenter() {
     "title": "프로세스 이름",
     "role": "이 프로세스가 자동화하는 역할 설명 (1-2문장)",
     "steps": ["단계 1", "단계 2", "단계 3"],
-    "fields": [{"name": "필드명", "value": "설정값 예시", "note": "주의사항"}],
-    "warnings": ["주의사항 1"],
-    "guide": "상세 구현 가이드"
+    "fields": [
+      {"name": "필드명", "value": "실제 복사 가능한 설정값 (예: https://hooks.n8n.io/webhook/xxx)", "note": "어디서 얻는지 설명"}
+    ],
+    "warnings": ["주의사항 (구체적으로)"],
+    "guide": "각 노드 설정 상세 가이드. 실제 클릭 순서, 입력값, API 엔드포인트, 환경변수명을 모두 포함해서 복사해서 바로 쓸 수 있게 작성"
   }
 ]
 \`\`\`
@@ -423,11 +449,18 @@ export default function OpsCenter() {
       const internalKey = await (window as any).electronAPI?.getInternalApiKey?.() ?? ''
       if (!internalKey) throw new Error('내부 API 키를 가져올 수 없습니다')
 
+      // 최근 10개 메시지만 전송 + 어시스턴트 메시지에서 코드 블록 제거
+      const historyToSend = newMessages.slice(-10).map(m => ({
+        role: m.role,
+        content: m.role === 'assistant' ? stripCodeBlocks(m.content) : m.content,
+      }))
+
       const resp = await fetch(`${BASE_URL}/api/ops/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${internalKey}` },
+        signal: controller.signal,
         body: JSON.stringify({
-          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
+          messages: historyToSend,
           system: systemPrompt,
           mission_id: currentMissionId,
         }),
@@ -482,7 +515,8 @@ export default function OpsCenter() {
         const cards = parseAiProcessCards(fullText)
         if (cards.length > 0) { setProcessCards(cards); setSelectedCard(null); setCheckedSteps(new Set()) }
       }
-    } catch {
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return // 의도적 중단 — 에러 표시 불필요
       const errMsg = '⚠️ 연결 오류. 잠시 후 다시 시도해주세요.'
       setMessages(prev => {
         const c = [...prev]
@@ -491,6 +525,7 @@ export default function OpsCenter() {
         return c
       })
     } finally {
+      abortRef.current = null
       setStreaming(false)
     }
   }, [input, messages, streaming, currentMissionId])
@@ -626,49 +661,59 @@ export default function OpsCenter() {
               </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+            /* ── 플로우차트: 박스 + 화살표 ── */
+            <div className="flex-1 overflow-y-auto px-3 py-4 flex flex-col items-center">
               {processCards.map((card, idx) => {
                 const isSelected = selectedCard?.id === card.id
                 return (
-                  <button
-                    key={card.id}
-                    onClick={() => {
-                      setSelectedCard(isSelected ? null : card)
-                      setCheckedSteps(new Set())
-                    }}
-                    className={cn(
-                      'w-full text-left rounded-xl px-3 py-3 transition-all border-2',
-                      isSelected
-                        ? 'bg-primary/10 border-primary/40 shadow-md shadow-primary/10'
-                        : 'bg-white/3 border-white/8 hover:bg-white/6 hover:border-white/15',
-                    )}
-                  >
-                    <div className="flex items-start gap-2.5 mb-2">
-                      <span className={cn(
-                        'flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black border',
-                        isSelected ? 'bg-primary border-primary/70 text-white' : 'bg-white/8 border-white/15 text-[#71717a]',
-                      )}>
-                        {idx + 1}
-                      </span>
-                      <span className={cn('font-bold text-xs leading-tight', isSelected ? 'text-white' : 'text-[#d4d4d8]')}>
-                        {card.title}
-                      </span>
-                    </div>
-                    <p className={cn('text-[10px] leading-relaxed pl-7', isSelected ? 'text-orange-200' : 'text-[#71717a]')}>
-                      {card.role}
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-2 pl-7">
-                      <span className={cn(
-                        'text-[9px] px-1.5 py-0.5 rounded border',
-                        isSelected ? 'text-primary border-primary/30 bg-primary/10' : 'text-[#52525b] border-white/10 bg-white/3',
-                      )}>
-                        {card.steps.length}단계
-                      </span>
-                      {card.warnings?.length > 0 && (
-                        <span className="text-[9px] text-amber-400/70">⚠ {card.warnings.length}</span>
+                  <div key={card.id} className="w-full flex flex-col items-center">
+                    {/* 프로세스 박스 */}
+                    <button
+                      onClick={() => { setSelectedCard(isSelected ? null : card); setCheckedSteps(new Set()) }}
+                      className={cn(
+                        'w-full text-left rounded-xl border-2 px-3 py-3 transition-all relative',
+                        isSelected
+                          ? 'bg-primary/10 border-primary/50 shadow-lg shadow-primary/15'
+                          : 'bg-[#111115] border-[#27272a] hover:bg-white/4 hover:border-white/20',
                       )}
-                    </div>
-                  </button>
+                    >
+                      {/* 단계 번호 뱃지 */}
+                      <span className={cn(
+                        'absolute -top-2.5 left-3 text-[9px] font-black px-2 py-0.5 rounded-full border',
+                        isSelected ? 'bg-primary text-white border-primary/70' : 'bg-[#1c1c20] text-[#71717a] border-[#27272a]',
+                      )}>
+                        STEP {idx + 1}
+                      </span>
+                      <p className={cn('font-bold text-[12px] leading-tight mt-1 mb-1.5', isSelected ? 'text-white' : 'text-[#d4d4d8]')}>
+                        {card.title}
+                      </p>
+                      <p className={cn('text-[10px] leading-relaxed', isSelected ? 'text-orange-200/80' : 'text-[#71717a]')}>
+                        {card.role}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className={cn('text-[9px] px-1.5 py-0.5 rounded border', isSelected ? 'text-primary border-primary/30 bg-primary/10' : 'text-[#52525b] border-[#27272a] bg-white/3')}>
+                          {card.steps.length}단계
+                        </span>
+                        {card.fields?.length > 0 && (
+                          <span className={cn('text-[9px] px-1.5 py-0.5 rounded border', isSelected ? 'text-sky-400 border-sky-500/30 bg-sky-500/10' : 'text-[#52525b] border-[#27272a] bg-white/3')}>
+                            {card.fields.length} FIELDS
+                          </span>
+                        )}
+                        {card.warnings?.length > 0 && (
+                          <span className="text-[9px] text-amber-400/70">⚠ {card.warnings.length}</span>
+                        )}
+                      </div>
+                    </button>
+                    {/* 화살표 (마지막 카드 제외) */}
+                    {idx < processCards.length - 1 && (
+                      <div className="flex flex-col items-center my-1">
+                        <div className="w-px h-3 bg-[#27272a]" />
+                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                          <path d="M5 6L0 0h10L5 6z" fill="#3f3f46" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>
@@ -740,22 +785,30 @@ export default function OpsCenter() {
                 </div>
               )}
 
-              {/* FIELD / 설정값 */}
+              {/* FIELD / 설정값 — 복사 가능 */}
               {selectedCard.fields?.length > 0 && (
                 <div className="mb-5">
-                  <p className="text-[10px] font-bold text-[#52525b] uppercase tracking-widest mb-3">FIELD / 설정값</p>
-                  <div className="rounded-xl border border-[#1c1c20] overflow-hidden">
+                  <div className="flex items-center gap-2 mb-3">
+                    <p className="text-[10px] font-bold text-[#52525b] uppercase tracking-widest">FIELD / 설정값</p>
+                    <span className="text-[9px] text-sky-400/60 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded-full">복사해서 바로 사용</span>
+                  </div>
+                  <div className="space-y-2">
                     {selectedCard.fields.map((field, idx) => (
-                      <div key={idx} className="px-4 py-3 border-b border-[#1c1c20] last:border-0 bg-[#111113]">
-                        <div className="flex items-start justify-between gap-3">
-                          <span className="text-[11px] font-mono text-amber-300/80">{field.name}</span>
-                          <span className="text-[11px] text-[#a1a1aa]">{field.value}</span>
+                      <div key={idx} className="rounded-lg border border-[#1c1c20] bg-[#0e0e12] overflow-hidden">
+                        {/* 필드명 행 */}
+                        <div className="flex items-center justify-between px-3 py-1.5 bg-[#111115] border-b border-[#1c1c20]">
+                          <span className="text-[10px] font-mono font-bold text-amber-300/80 uppercase tracking-wide">{field.name}</span>
+                          <CopyFieldBtn value={field.value} />
+                        </div>
+                        {/* 값 행 */}
+                        <div className="px-3 py-2">
+                          <code className="text-[12px] text-sky-300 font-mono break-all leading-relaxed">{field.value}</code>
                         </div>
                         {field.note && (
-                          <p className="text-[10px] text-[#52525b] mt-1 flex items-center gap-1">
-                            <Info size={9} className="text-blue-400/60" />
-                            {field.note}
-                          </p>
+                          <div className="px-3 pb-2 flex items-start gap-1">
+                            <Info size={9} className="text-blue-400/50 shrink-0 mt-0.5" />
+                            <p className="text-[10px] text-[#52525b] leading-relaxed">{field.note}</p>
+                          </div>
                         )}
                       </div>
                     ))}
@@ -771,18 +824,21 @@ export default function OpsCenter() {
                     {selectedCard.warnings.map((w, idx) => (
                       <div key={idx} className="flex items-start gap-2 px-3 py-2 bg-amber-500/5 border border-amber-500/15 rounded-lg">
                         <AlertTriangle size={11} className="text-amber-400/70 shrink-0 mt-0.5" />
-                        <span className="text-[11px] text-[#a1a1aa]">{w}</span>
+                        <span className="text-[11px] text-[#a1a1aa] leading-relaxed">{w}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* 상세 가이드 */}
+              {/* 상세 가이드 — 단계별 클릭 경로 포함 */}
               {selectedCard.guide && (
                 <div className="mb-5">
-                  <p className="text-[10px] font-bold text-[#52525b] uppercase tracking-widest mb-3">상세 가이드</p>
-                  <div className="bg-[#111113] border border-[#1c1c20] rounded-xl px-4 py-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <p className="text-[10px] font-bold text-[#52525b] uppercase tracking-widest">상세 구현 가이드</p>
+                    <span className="text-[9px] text-emerald-400/60 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">단계별 클릭 경로</span>
+                  </div>
+                  <div className="bg-[#0e0e12] border border-[#1c1c20] rounded-xl px-4 py-3">
                     <GuideMd text={selectedCard.guide} />
                   </div>
                 </div>

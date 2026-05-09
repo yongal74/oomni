@@ -167,6 +167,43 @@ export default function SettingsPage() {
 
   const [ideogramKeySet, setIdeogramKeySet] = useState(false)
 
+  // v5.10.0 미디어 AI 확장
+  const [googleAiApiKey, setGoogleAiApiKey] = useState('')
+  const [googleAiKeySet, setGoogleAiKeySet] = useState(false)
+  const [showGoogleAiKey, setShowGoogleAiKey] = useState(false)
+  const [googleAiMsg, setGoogleAiMsg] = useState<MsgState | null>(null)
+  const [googleAiSaving, setGoogleAiSaving] = useState(false)
+
+  const [runwayApiKey, setRunwayApiKey] = useState('')
+  const [runwayKeySet, setRunwayKeySet] = useState(false)
+  const [showRunwayKey, setShowRunwayKey] = useState(false)
+  const [runwayMsg, setRunwayMsg] = useState<MsgState | null>(null)
+  const [runwaySaving, setRunwaySaving] = useState(false)
+
+  const [lumaApiKey, setLumaApiKey] = useState('')
+  const [lumaKeySet, setLumaKeySet] = useState(false)
+  const [showLumaKey, setShowLumaKey] = useState(false)
+  const [lumaMsg, setLumaMsg] = useState<MsgState | null>(null)
+  const [lumaSaving, setLumaSaving] = useState(false)
+
+  const [heygenApiKey, setHeygenApiKey] = useState('')
+  const [heygenKeySet, setHeygenKeySet] = useState(false)
+  const [showHeygenKey, setShowHeygenKey] = useState(false)
+  const [heygenMsg, setHeygenMsg] = useState<MsgState | null>(null)
+  const [heygenSaving, setHeygenSaving] = useState(false)
+
+  const [falApiKey, setFalApiKey] = useState('')
+  const [falKeySet, setFalKeySet] = useState(false)
+  const [showFalKey, setShowFalKey] = useState(false)
+  const [falMsg, setFalMsg] = useState<MsgState | null>(null)
+  const [falSaving, setFalSaving] = useState(false)
+
+  const [stabilityApiKey, setStabilityApiKey] = useState('')
+  const [stabilityKeySet, setStabilityKeySet] = useState(false)
+  const [showStabilityKey, setShowStabilityKey] = useState(false)
+  const [stabilityMsg, setStabilityMsg] = useState<MsgState | null>(null)
+  const [stabilitySaving, setStabilitySaving] = useState(false)
+
   // Growth 연동
   const [n8nWebhookUrl, setN8nWebhookUrl] = useState('')
   const [ga4MeasurementId, setGa4MeasurementId] = useState('')
@@ -198,6 +235,12 @@ export default function SettingsPage() {
       setPexelsKeySet(!!s.pexels_key_set)
       setElevenLabsKeySet(!!s.elevenlabs_key_set)
       setCanvaKeySet(!!s.canva_key_set)
+      setGoogleAiKeySet(!!s.google_ai_key_set)
+      setRunwayKeySet(!!s.runway_key_set)
+      setLumaKeySet(!!s.luma_key_set)
+      setHeygenKeySet(!!s.heygen_key_set)
+      setFalKeySet(!!s.fal_key_set)
+      setStabilityKeySet(!!s.stability_key_set)
       if (s.n8n_webhook_url) setN8nWebhookUrl(s.n8n_webhook_url)
       if (s.ga4_measurement_id) setGa4MeasurementId(s.ga4_measurement_id)
     }).catch(() => {})
@@ -807,6 +850,75 @@ export default function SettingsPage() {
           </div>
           {canvaMsg && <MsgBox msg={canvaMsg} />}
         </div>
+
+        {/* ── 영상 AI (Google Veo 2 / Runway / Luma / HeyGen) ── */}
+        <div className="mt-6 mb-2">
+          <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">영상 생성 AI</p>
+        </div>
+
+        {/* Google AI (Veo 2) */}
+        {[
+          { label: 'Google AI Studio', badge: 'Veo 2 영상 · Imagen 이미지', desc: '최신 Google Veo 2 영상 + Imagen 3 이미지. aistudio.google.com에서 무료 발급.', placeholder: 'AIza...', keySet: googleAiKeySet, showKey: showGoogleAiKey, setShow: setShowGoogleAiKey, apiKey: googleAiApiKey, setApiKey: setGoogleAiApiKey, saving: googleAiSaving, msg: googleAiMsg, onSave: async () => { setGoogleAiSaving(true); setGoogleAiMsg(null); try { await settingsApi.setGoogleAiKey(googleAiApiKey.trim()); setGoogleAiKeySet(true); setGoogleAiApiKey(''); setGoogleAiMsg({ type: 'success', text: 'Google AI API 키가 저장되었습니다' }); } catch { setGoogleAiMsg({ type: 'error', text: '저장 실패' }); } setGoogleAiSaving(false); } },
+          { label: 'Runway Gen-3', badge: '영상 생성', desc: '영화급 AI 영상. dev.runwayml.com에서 발급.', placeholder: 'key_...', keySet: runwayKeySet, showKey: showRunwayKey, setShow: setShowRunwayKey, apiKey: runwayApiKey, setApiKey: setRunwayApiKey, saving: runwaySaving, msg: runwayMsg, onSave: async () => { setRunwaySaving(true); setRunwayMsg(null); try { await settingsApi.setRunwayKey(runwayApiKey.trim()); setRunwayKeySet(true); setRunwayApiKey(''); setRunwayMsg({ type: 'success', text: 'Runway API 키가 저장되었습니다' }); } catch { setRunwayMsg({ type: 'error', text: '저장 실패' }); } setRunwaySaving(false); } },
+          { label: 'Luma Ray 2', badge: '영상 생성', desc: '고품질 AI 영상. lumalabs.ai/dream-machine에서 발급.', placeholder: 'luma-...', keySet: lumaKeySet, showKey: showLumaKey, setShow: setShowLumaKey, apiKey: lumaApiKey, setApiKey: setLumaApiKey, saving: lumaSaving, msg: lumaMsg, onSave: async () => { setLumaSaving(true); setLumaMsg(null); try { await settingsApi.setLumaKey(lumaApiKey.trim()); setLumaKeySet(true); setLumaApiKey(''); setLumaMsg({ type: 'success', text: 'Luma API 키가 저장되었습니다' }); } catch { setLumaMsg({ type: 'error', text: '저장 실패' }); } setLumaSaving(false); } },
+          { label: 'HeyGen', badge: '아바타 영상', desc: 'AI 아바타 마케팅 영상. app.heygen.com에서 발급.', placeholder: 'NjY...', keySet: heygenKeySet, showKey: showHeygenKey, setShow: setShowHeygenKey, apiKey: heygenApiKey, setApiKey: setHeygenApiKey, saving: heygenSaving, msg: heygenMsg, onSave: async () => { setHeygenSaving(true); setHeygenMsg(null); try { await settingsApi.setHeyGenKey(heygenApiKey.trim()); setHeygenKeySet(true); setHeygenApiKey(''); setHeygenMsg({ type: 'success', text: 'HeyGen API 키가 저장되었습니다' }); } catch { setHeygenMsg({ type: 'error', text: '저장 실패' }); } setHeygenSaving(false); } },
+        ].map((item, idx, arr) => (
+          <div key={item.label} className={`mb-5 ${idx < arr.length - 1 ? 'pb-5 border-b border-border' : ''}`}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[13px] font-medium text-text">{item.label}</span>
+              <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">{item.badge}</span>
+              {item.keySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+            </div>
+            <p className="text-[12px] text-muted mb-3">{item.desc}</p>
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <input type={item.showKey ? 'text' : 'password'} value={item.apiKey} onChange={e => item.setApiKey(e.target.value)}
+                  placeholder={item.placeholder} className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
+                <button onClick={() => item.setShow((v: boolean) => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text" tabIndex={-1}>
+                  {item.showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+              <button onClick={item.onSave} disabled={item.saving || !item.apiKey.trim()}
+                className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0">
+                {item.saving ? <Loader2 size={13} className="animate-spin" /> : null}저장
+              </button>
+            </div>
+            {item.msg && <MsgBox msg={item.msg} />}
+          </div>
+        ))}
+
+        {/* ── 이미지 AI (Flux / Stability AI) ── */}
+        <div className="mt-4 mb-2">
+          <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">이미지 생성 AI</p>
+        </div>
+
+        {[
+          { label: 'fal.ai', badge: 'Flux 1.1 Pro 이미지', desc: 'Flux 이미지 생성. fal.ai에서 발급.', placeholder: 'fal_...', keySet: falKeySet, showKey: showFalKey, setShow: setShowFalKey, apiKey: falApiKey, setApiKey: setFalApiKey, saving: falSaving, msg: falMsg, onSave: async () => { setFalSaving(true); setFalMsg(null); try { await settingsApi.setFalKey(falApiKey.trim()); setFalKeySet(true); setFalApiKey(''); setFalMsg({ type: 'success', text: 'fal.ai API 키가 저장되었습니다' }); } catch { setFalMsg({ type: 'error', text: '저장 실패' }); } setFalSaving(false); } },
+          { label: 'Stability AI', badge: 'SDXL 이미지', desc: 'Stable Diffusion XL 이미지. platform.stability.ai에서 발급.', placeholder: 'sk-...', keySet: stabilityKeySet, showKey: showStabilityKey, setShow: setShowStabilityKey, apiKey: stabilityApiKey, setApiKey: setStabilityApiKey, saving: stabilitySaving, msg: stabilityMsg, onSave: async () => { setStabilitySaving(true); setStabilityMsg(null); try { await settingsApi.setStabilityKey(stabilityApiKey.trim()); setStabilityKeySet(true); setStabilityApiKey(''); setStabilityMsg({ type: 'success', text: 'Stability AI API 키가 저장되었습니다' }); } catch { setStabilityMsg({ type: 'error', text: '저장 실패' }); } setStabilitySaving(false); } },
+        ].map((item, idx, arr) => (
+          <div key={item.label} className={`mb-5 ${idx < arr.length - 1 ? 'pb-5 border-b border-border' : ''}`}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[13px] font-medium text-text">{item.label}</span>
+              <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">{item.badge}</span>
+              {item.keySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+            </div>
+            <p className="text-[12px] text-muted mb-3">{item.desc}</p>
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <input type={item.showKey ? 'text' : 'password'} value={item.apiKey} onChange={e => item.setApiKey(e.target.value)}
+                  placeholder={item.placeholder} className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
+                <button onClick={() => item.setShow((v: boolean) => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text" tabIndex={-1}>
+                  {item.showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+              <button onClick={item.onSave} disabled={item.saving || !item.apiKey.trim()}
+                className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0">
+                {item.saving ? <Loader2 size={13} className="animate-spin" /> : null}저장
+              </button>
+            </div>
+            {item.msg && <MsgBox msg={item.msg} />}
+          </div>
+        ))}
       </SectionCard>
 
       {/* ── 3-c. Growth 마케팅 연동 ─────────────────────────────────── */}

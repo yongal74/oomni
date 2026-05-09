@@ -40,31 +40,45 @@ export function setupRouter(): Router {
 
     const node    = checkVersion('node')
     const npm     = checkVersion('npm')
+    const nvm     = checkVersion('nvm')
     const git     = checkVersion('git')
+    const python  = checkVersion('python3') ?? checkVersion('python')
+    const pyenv   = checkVersion('pyenv')
     const claude  = checkVersion('claude')
     const code    = checkVersion('code')
+    const brew    = checkVersion('brew')
     const wsl     = checkWsl()
 
     res.json({
       platform,
       node,
       npm,
+      nvm,
       git,
+      python,
+      pyenv,
       claude,
       code,
+      brew,
       wsl,
       // 플랫폼별 설치 명령어 안내
       install_commands: {
-        node_mac:     'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash && nvm install --lts',
-        node_windows: 'nvm-windows을 https://github.com/coreybutler/nvm-windows 에서 설치 후: nvm install lts',
-        node_linux:   'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash && nvm install --lts',
+        nvm_mac:      'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash',
+        nvm_windows:  'https://github.com/coreybutler/nvm-windows 에서 nvm-setup.exe 다운로드',
+        nvm_linux:    'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash',
+        node_all:     'nvm install --lts && nvm use --lts',
         git_mac:      'brew install git',
         git_windows:  'winget install Git.Git',
         git_linux:    'sudo apt-get install git',
+        python_mac:   'brew install pyenv && pyenv install 3.11.9 && pyenv global 3.11.9',
+        python_windows: 'winget install Python.Python.3.11',
+        python_linux:   'sudo apt-get install python3.11 python3-pip',
+        pyenv_mac:    'brew install pyenv',
+        pyenv_linux:  'curl https://pyenv.run | bash',
+        brew_mac:     '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"',
         claude_all:   'curl -fsSL https://claude.ai/install.sh | sh',
         code_all:     'https://code.visualstudio.com 에서 다운로드',
         wsl_windows:  'wsl --install',
-        brew_mac:     '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"',
       },
       vscode_extensions: [
         { id: 'esbenp.prettier-vscode',     name: 'Prettier',       cmd: 'code --install-extension esbenp.prettier-vscode' },

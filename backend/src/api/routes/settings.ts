@@ -62,6 +62,12 @@ export function settingsRouter(): Router {
       pexels_key_set: !!(settings.pexels_api_key),
       elevenlabs_key_set: !!(settings.elevenlabs_api_key),
       canva_key_set: !!(settings.canva_api_key),
+      google_ai_key_set: !!(settings.google_ai_api_key),
+      runway_key_set: !!(settings.runway_api_key),
+      luma_key_set: !!(settings.luma_api_key),
+      heygen_key_set: !!(settings.heygen_api_key),
+      fal_key_set: !!(settings.fal_api_key),
+      stability_key_set: !!(settings.stability_api_key),
       n8n_webhook_url: settings.n8n_webhook_url ?? '',
       ga4_measurement_id: settings.ga4_measurement_id ?? '',
     });
@@ -252,6 +258,60 @@ export function settingsRouter(): Router {
     saveSettings({ canva_api_key: key });
     process.env.CANVA_API_KEY = key;
     res.json({ success: true, message: 'Canva API 키가 저장되었습니다' });
+  });
+
+  // POST /api/settings/google-ai-key — Google AI Studio (Veo 2 / Imagen)
+  router.post('/google-ai-key', (req: Request, res: Response) => {
+    const { key } = req.body as { key?: string };
+    if (!key || key.length < 8) { res.status(400).json({ error: 'Google AI API 키를 입력하세요' }); return; }
+    saveSettings({ google_ai_api_key: key });
+    process.env.GOOGLE_AI_API_KEY = key;
+    res.json({ success: true, message: 'Google AI API 키가 저장되었습니다' });
+  });
+
+  // POST /api/settings/runway-key — Runway Gen-3
+  router.post('/runway-key', (req: Request, res: Response) => {
+    const { key } = req.body as { key?: string };
+    if (!key || key.length < 8) { res.status(400).json({ error: 'Runway API 키를 입력하세요' }); return; }
+    saveSettings({ runway_api_key: key });
+    process.env.RUNWAY_API_KEY = key;
+    res.json({ success: true, message: 'Runway API 키가 저장되었습니다' });
+  });
+
+  // POST /api/settings/luma-key — Luma Ray 2
+  router.post('/luma-key', (req: Request, res: Response) => {
+    const { key } = req.body as { key?: string };
+    if (!key || key.length < 8) { res.status(400).json({ error: 'Luma API 키를 입력하세요' }); return; }
+    saveSettings({ luma_api_key: key });
+    process.env.LUMA_API_KEY = key;
+    res.json({ success: true, message: 'Luma API 키가 저장되었습니다' });
+  });
+
+  // POST /api/settings/heygen-key — HeyGen 아바타 영상
+  router.post('/heygen-key', (req: Request, res: Response) => {
+    const { key } = req.body as { key?: string };
+    if (!key || key.length < 8) { res.status(400).json({ error: 'HeyGen API 키를 입력하세요' }); return; }
+    saveSettings({ heygen_api_key: key });
+    process.env.HEYGEN_API_KEY = key;
+    res.json({ success: true, message: 'HeyGen API 키가 저장되었습니다' });
+  });
+
+  // POST /api/settings/fal-key — fal.ai (Flux)
+  router.post('/fal-key', (req: Request, res: Response) => {
+    const { key } = req.body as { key?: string };
+    if (!key || key.length < 8) { res.status(400).json({ error: 'fal.ai API 키를 입력하세요' }); return; }
+    saveSettings({ fal_api_key: key });
+    process.env.FAL_API_KEY = key;
+    res.json({ success: true, message: 'fal.ai API 키가 저장되었습니다' });
+  });
+
+  // POST /api/settings/stability-key — Stability AI (SDXL)
+  router.post('/stability-key', (req: Request, res: Response) => {
+    const { key } = req.body as { key?: string };
+    if (!key || key.length < 8) { res.status(400).json({ error: 'Stability AI API 키를 입력하세요' }); return; }
+    saveSettings({ stability_api_key: key });
+    process.env.STABILITY_API_KEY = key;
+    res.json({ success: true, message: 'Stability AI API 키가 저장되었습니다' });
   });
 
   // POST /api/settings/n8n-webhooks — n8n 웹훅 URL 저장

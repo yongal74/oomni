@@ -45,9 +45,13 @@ interface ToolStatus {
   platform: string
   node: string | null
   npm: string | null
+  nvm: string | null
   git: string | null
+  python: string | null
+  pyenv: string | null
   claude: string | null
   code: string | null
+  brew: string | null
   wsl: boolean
   install_commands: Record<string, string>
   vscode_extensions: { id: string; name: string; cmd: string }[]
@@ -476,6 +480,7 @@ export default function OnboardingPage() {
 
 const ACCOUNT_LINKS = [
   { label: 'Claude.ai Pro', desc: 'AI 코딩 파트너 (월 $20)', icon: Zap, url: 'https://claude.ai', color: 'text-primary' },
+  { label: 'Google', desc: 'Firebase · GCP · Gmail (무료)', icon: Globe, url: 'https://accounts.google.com', color: 'text-sky-400' },
   { label: 'GitHub', desc: '코드 저장소 · 버전 관리 (무료)', icon: Github, url: 'https://github.com', color: 'text-[#e4e4e7]' },
   { label: 'Supabase', desc: 'DB + 인증 + 스토리지 (무료)', icon: Database, url: 'https://supabase.com', color: 'text-emerald-400' },
   { label: 'Vercel', desc: '프론트엔드 배포 (무료)', icon: Globe, url: 'https://vercel.com', color: 'text-[#e4e4e7]' },
@@ -589,7 +594,7 @@ function DevSetupStep({
         {/* ── 섹션 B: 개발 도구 ── */}
         <div className="bg-[#111113] border border-[#1c1c20] rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-semibold text-[#52525b] uppercase tracking-wide">STEP 2-4 — 개발 도구 설치 확인</p>
+            <p className="text-[11px] font-semibold text-[#52525b] uppercase tracking-wide">STEP 2-4 — 개발 도구 설치 확인 (nvm · Node · Python · Git · Claude Code)</p>
             <button
               type="button"
               onClick={onRefresh}
@@ -605,7 +610,11 @@ function DevSetupStep({
             <div className="space-y-3">
               {/* 설치 상태 */}
               <div className="flex flex-wrap gap-1.5">
+                <ToolBadge version={toolStatus.nvm}    label="nvm" />
                 <ToolBadge version={toolStatus.node}   label="Node.js" />
+                <ToolBadge version={toolStatus.python} label="Python" />
+                <ToolBadge version={toolStatus.pyenv}  label="pyenv" />
+                {isMac && <ToolBadge version={toolStatus.brew} label="Homebrew" />}
                 <ToolBadge version={toolStatus.git}    label="Git" />
                 <ToolBadge version={toolStatus.claude} label="Claude Code" />
                 <ToolBadge version={toolStatus.code}   label="VS Code" />
@@ -623,17 +632,37 @@ function DevSetupStep({
               </div>
 
               {/* 미설치 → 설치 명령어 */}
-              {(!toolStatus.node || !toolStatus.git || !toolStatus.claude || !toolStatus.code || (isWin && !toolStatus.wsl)) && ic && (
+              {(!toolStatus.nvm || !toolStatus.node || !toolStatus.python || !toolStatus.pyenv ||
+                (isMac && !toolStatus.brew) || !toolStatus.git || !toolStatus.claude || !toolStatus.code ||
+                (isWin && !toolStatus.wsl)) && ic && (
                 <div className="space-y-1.5 pt-2 border-t border-[#1c1c20]">
                   <p className="text-[10px] text-[#52525b] mb-2">미설치 항목 — 복사해서 터미널에 붙여넣으세요</p>
                   {isWin && !toolStatus.wsl && (
                     <CopyBtn cmd={ic.wsl_windows} label="WSL2 설치 (PowerShell 관리자)" copied={copiedCmd} onCopy={onCopy} />
                   )}
-                  {isMac && !toolStatus.node && (
-                    <CopyBtn cmd={ic.node_mac} label="Node.js (nvm, Mac)" copied={copiedCmd} onCopy={onCopy} />
+                  {isMac && !toolStatus.brew && (
+                    <CopyBtn cmd={ic.brew_mac} label="Homebrew 설치 (Mac)" copied={copiedCmd} onCopy={onCopy} />
                   )}
-                  {isWin && !toolStatus.node && (
-                    <CopyBtn cmd={ic.node_windows} label="Node.js (nvm-windows)" copied={copiedCmd} onCopy={onCopy} />
+                  {isMac && !toolStatus.nvm && (
+                    <CopyBtn cmd={ic.nvm_mac} label="nvm 설치 (Mac)" copied={copiedCmd} onCopy={onCopy} />
+                  )}
+                  {isWin && !toolStatus.nvm && (
+                    <CopyBtn cmd={ic.nvm_windows} label="nvm-windows 다운로드 페이지" copied={copiedCmd} onCopy={onCopy} />
+                  )}
+                  {(!isWin && !isMac) && !toolStatus.nvm && (
+                    <CopyBtn cmd={ic.nvm_linux} label="nvm 설치 (Linux)" copied={copiedCmd} onCopy={onCopy} />
+                  )}
+                  {!toolStatus.node && (
+                    <CopyBtn cmd={ic.node_all} label="Node.js LTS 설치 (nvm)" copied={copiedCmd} onCopy={onCopy} />
+                  )}
+                  {isMac && !toolStatus.pyenv && (
+                    <CopyBtn cmd={ic.pyenv_mac} label="pyenv 설치 (Mac)" copied={copiedCmd} onCopy={onCopy} />
+                  )}
+                  {(!isWin && !isMac) && !toolStatus.pyenv && (
+                    <CopyBtn cmd={ic.pyenv_linux} label="pyenv 설치 (Linux)" copied={copiedCmd} onCopy={onCopy} />
+                  )}
+                  {!toolStatus.python && (
+                    <CopyBtn cmd={isWin ? ic.python_windows : isMac ? ic.python_mac : ic.python_linux} label="Python 설치" copied={copiedCmd} onCopy={onCopy} />
                   )}
                   {!toolStatus.git && (
                     <CopyBtn cmd={isWin ? ic.git_windows : isMac ? ic.git_mac : ic.git_linux} label="Git 설치" copied={copiedCmd} onCopy={onCopy} />

@@ -43,6 +43,13 @@ interface Settings {
   pexels_api_key?: string;
   elevenlabs_api_key?: string;
   canva_api_key?: string;
+  // v5.10.0 미디어 AI 확장
+  google_ai_api_key?: string;   // Google AI Studio (Veo 2 영상, Imagen 이미지)
+  runway_api_key?: string;      // Runway Gen-3 영상
+  luma_api_key?: string;        // Luma Ray 2 영상
+  heygen_api_key?: string;      // HeyGen 아바타 영상
+  fal_api_key?: string;         // fal.ai (Flux 이미지)
+  stability_api_key?: string;   // Stability AI (SDXL 이미지)
   // GA4 / n8n 공통 웹훅
   n8n_webhook_url?: string;
   ga4_measurement_id?: string;
@@ -116,6 +123,12 @@ const SENSITIVE_FIELDS: (keyof Settings)[] = [
   'pexels_api_key',
   'elevenlabs_api_key',
   'canva_api_key',
+  'google_ai_api_key',
+  'runway_api_key',
+  'luma_api_key',
+  'heygen_api_key',
+  'fal_api_key',
+  'stability_api_key',
   'instagram_app_secret',
   'youtube_client_secret',
   'tiktok_client_secret',

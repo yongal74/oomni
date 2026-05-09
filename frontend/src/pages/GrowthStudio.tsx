@@ -107,9 +107,15 @@ function GenerateTab({ missionId }: { missionId: string }) {
   const [channel,     setChannel]     = useState('instagram')
   const [tone,        setTone]        = useState('humor')
   const [segment,     setSegment]     = useState('new_visitor')
-  const [withImage,     setWithImage]     = useState(false)
-  const [withVideo,     setWithVideo]     = useState(false)
-  const [videoDuration, setVideoDuration] = useState<'5' | '10' | '20' | '60'>('10')
+  const [imageProvider,  setImageProvider]  = useState<string | null>(null)
+  const [videoProvider,  setVideoProvider]  = useState<string | null>(null)
+  const [withAudio,      setWithAudio]      = useState(false)
+  const [audioProvider,  setAudioProvider]  = useState<'elevenlabs' | 'openai_tts'>('elevenlabs')
+  const [withStock,      setWithStock]      = useState(false)
+  const [videoDuration,  setVideoDuration]  = useState<'5' | '10' | '20' | '60'>('10')
+  // 하위 호환 — API로 전송할 bool
+  const withImage = imageProvider !== null
+  const withVideo = videoProvider !== null
   const [ingestLoading, setIngestLoading] = useState(false)
   const [ingestError,   setIngestError]   = useState('')
   const [result,       setResult]       = useState<GrowthContent | null>(null)
@@ -126,6 +132,10 @@ function GenerateTab({ missionId }: { missionId: string }) {
       mission_id: missionId, channel,
       seed_content: productInfo, tone, segment,
       with_image: withImage, with_video: withVideo, video_duration: videoDuration,
+      image_provider: imageProvider ?? undefined,
+      video_provider: videoProvider ?? undefined,
+      with_audio: withAudio, audio_provider: withAudio ? audioProvider : undefined,
+      with_stock: withStock,
     }),
     onSuccess: data => {
       setResult(data)
@@ -272,25 +282,58 @@ function GenerateTab({ missionId }: { missionId: string }) {
           </div>
         </div>
 
-        <div>
-          <p className="text-[10px] text-[#444] mb-1.5">미디어 생성</p>
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-4">
+        {/* 미디어 생성 */}
+        <div className="space-y-3">
+          <p className="text-[10px] text-[#444] font-medium uppercase tracking-wider">미디어 생성</p>
+
+          {/* 이미지 AI */}
+          <div>
+            <p className="text-[10px] text-[#555] mb-1.5">이미지 생성 AI (택 1)</p>
+            <div className="flex flex-wrap gap-2">
               {[
-                { id: 'image', label: '이미지 (Ideogram)' , val: withImage, set: setWithImage },
-                { id: 'video', label: '영상 (Kling 3.0)',   val: withVideo, set: setWithVideo },
-              ].map(m => (
-                <label key={m.id} className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={m.val}
-                    onChange={e => m.set(e.target.checked)}
-                    className="w-3.5 h-3.5 accent-primary"
-                  />
-                  <span className="text-[12px] text-[#a1a1aa]">{m.label}</span>
-                </label>
+                { id: 'ideogram',    label: 'Ideogram' },
+                { id: 'dalle3',      label: 'DALL-E 3' },
+                { id: 'flux',        label: 'Flux 1.1 Pro' },
+                { id: 'stability',   label: 'Stable Diffusion XL' },
+                { id: 'google_img',  label: 'Google Imagen 3' },
+              ].map(p => (
+                <button key={p.id}
+                  onClick={() => setImageProvider(imageProvider === p.id ? null : p.id)}
+                  className={cn('px-2.5 py-1 rounded-lg text-[11px] border transition-colors',
+                    imageProvider === p.id
+                      ? 'bg-primary/20 text-primary border-primary/40'
+                      : 'bg-[#0d0d0f] text-[#52525b] border-[#27272a] hover:border-[#444]'
+                  )}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 영상 AI */}
+          <div>
+            <p className="text-[10px] text-[#555] mb-1.5">영상 생성 AI (택 1)</p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'kling',    label: 'Kling 3.0' },
+                { id: 'veo2',     label: 'Google Veo 2 ✦' },
+                { id: 'runway',   label: 'Runway Gen-3' },
+                { id: 'luma',     label: 'Luma Ray 2' },
+                { id: 'heygen',   label: 'HeyGen 아바타' },
+              ].map(p => (
+                <button key={p.id}
+                  onClick={() => setVideoProvider(videoProvider === p.id ? null : p.id)}
+                  className={cn('px-2.5 py-1 rounded-lg text-[11px] border transition-colors',
+                    videoProvider === p.id
+                      ? 'bg-primary/20 text-primary border-primary/40'
+                      : 'bg-[#0d0d0f] text-[#52525b] border-[#27272a] hover:border-[#444]'
+                  )}>
+                  {p.label}
+                </button>
               ))}
             </div>
             {withVideo && (
-              <div className="flex items-center gap-3 ml-5 flex-wrap">
+              <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                 <span className="text-[10px] text-[#555]">길이:</span>
                 {([
                   { val: '5',  label: '5초' },
@@ -309,6 +352,33 @@ function GenerateTab({ missionId }: { missionId: string }) {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* 음성/스톡 */}
+          <div className="flex flex-wrap gap-4">
+            <div>
+              <p className="text-[10px] text-[#555] mb-1.5">음성 나레이션</p>
+              <div className="flex gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={withAudio} onChange={e => setWithAudio(e.target.checked)} className="w-3.5 h-3.5 accent-primary" />
+                  <span className="text-[12px] text-[#a1a1aa]">AI 음성 추가</span>
+                </label>
+                {withAudio && (
+                  <select value={audioProvider} onChange={e => setAudioProvider(e.target.value as 'elevenlabs' | 'openai_tts')}
+                    className="text-[11px] bg-[#0d0d0f] border border-[#27272a] text-[#a1a1aa] rounded px-2 py-0.5">
+                    <option value="elevenlabs">ElevenLabs</option>
+                    <option value="openai_tts">OpenAI TTS</option>
+                  </select>
+                )}
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] text-[#555] mb-1.5">스톡 미디어</p>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={withStock} onChange={e => setWithStock(e.target.checked)} className="w-3.5 h-3.5 accent-primary" />
+                <span className="text-[12px] text-[#a1a1aa]">Pexels B-roll</span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
