@@ -48,12 +48,23 @@ export function settingsRouter(): Router {
     res.json({ success: true, message: 'API 키가 저장되었습니다' });
   });
 
-  // GET /api/settings/api-key/status — API 키 설정 여부
+  // GET /api/settings/api-key/status — API 키 설정 여부 (확장)
   router.get('/api-key/status', (_req: Request, res: Response) => {
     const settings = readSettings();
     const fromEnv = process.env.ANTHROPIC_API_KEY ?? '';
     const isSet = !!(settings.anthropic_api_key || fromEnv);
-    res.json({ api_key_set: isSet });
+    res.json({
+      api_key_set: isSet,
+      kling_key_set: !!(settings.kling_api_key),
+      gemini_key_set: !!(settings.gemini_api_key),
+      v0_key_set: !!(settings.v0_api_key),
+      ideogram_key_set: !!(settings.ideogram_api_key),
+      pexels_key_set: !!(settings.pexels_api_key),
+      elevenlabs_key_set: !!(settings.elevenlabs_api_key),
+      canva_key_set: !!(settings.canva_api_key),
+      n8n_webhook_url: settings.n8n_webhook_url ?? '',
+      ga4_measurement_id: settings.ga4_measurement_id ?? '',
+    });
   });
 
   // GET /api/settings/obsidian — Obsidian vault path 반환
@@ -205,6 +216,42 @@ export function settingsRouter(): Router {
     saveSettings({ kling_api_key: key });
     process.env.KLING_API_KEY = key;
     res.json({ success: true, message: 'Kling API 키가 저장되었습니다' });
+  });
+
+  // POST /api/settings/pexels-key — Pexels API 키 저장
+  router.post('/pexels-key', (req: Request, res: Response) => {
+    const { key } = req.body as { key?: string };
+    if (!key || key.length < 8) {
+      res.status(400).json({ error: 'Pexels API 키를 입력하세요' });
+      return;
+    }
+    saveSettings({ pexels_api_key: key });
+    process.env.PEXELS_API_KEY = key;
+    res.json({ success: true, message: 'Pexels API 키가 저장되었습니다' });
+  });
+
+  // POST /api/settings/elevenlabs-key — ElevenLabs API 키 저장
+  router.post('/elevenlabs-key', (req: Request, res: Response) => {
+    const { key } = req.body as { key?: string };
+    if (!key || key.length < 8) {
+      res.status(400).json({ error: 'ElevenLabs API 키를 입력하세요' });
+      return;
+    }
+    saveSettings({ elevenlabs_api_key: key });
+    process.env.ELEVENLABS_API_KEY = key;
+    res.json({ success: true, message: 'ElevenLabs API 키가 저장되었습니다' });
+  });
+
+  // POST /api/settings/canva-key — Canva API 키 저장
+  router.post('/canva-key', (req: Request, res: Response) => {
+    const { key } = req.body as { key?: string };
+    if (!key || key.length < 8) {
+      res.status(400).json({ error: 'Canva API 키를 입력하세요' });
+      return;
+    }
+    saveSettings({ canva_api_key: key });
+    process.env.CANVA_API_KEY = key;
+    res.json({ success: true, message: 'Canva API 키가 저장되었습니다' });
   });
 
   // POST /api/settings/n8n-webhooks — n8n 웹훅 URL 저장

@@ -2,22 +2,61 @@
 
 ---
 
-## 다음 세션 준비 (v5.9.0)
+## 2026-05-09 — v5.9.0 솔로프리너 OS 격상 (온보딩 DevSetup + 프롬프트 라이브러리 + 영상 파이프라인 + 상용화)
 
-> 마지막 업데이트: 2026-05-08 | 현재 버전: v5.8.0
+> 현재 버전: v5.9.0
 
-### 확인 먼저 (오늘 변경 검증)
-- [ ] `sandbox: true` 변경 후 앱 정상 로딩되는지 확인
-- [ ] Ops Bot — AI 응답 후 왼쪽 카드 + 중앙 패널 실제 채워지는지 확인
+### 주요 변경 사항 요약
+1. **[BUG]** Ops Bot 왼쪽/가운데 패널 미동작 → `max_tokens: 4096` + 시스템 프롬프트 재구성 (process-cards를 응답 첫 번째로 출력)
+2. **[BUG]** Ops Bot / CDP View 색깔 불일치 → indigo 전면 → primary(#D4763B)로 교체
+3. **[FEATURE]** Settings에 Pexels / ElevenLabs / Ideogram / Canva API 키 섹션 추가
+4. **[FEATURE]** Growth Bot 영상 제작 탭 — vibe-video 파이프라인 연동 (4단계 워크플로우 + Remotion 컴포지션)
+5. **[v5.9.0]** 온보딩 UX — Step 3 기본 선택 + 첫 실행 튜토리얼 오버레이 (4단계, localStorage 1회)
+6. **[v5.9.0]** Growth Bot 프롬프트 라이브러리 탭 — 20개 마케팅 프롬프트 (SNS/블로그/이메일/광고/영상/전략)
+7. **[v5.9.0]** 온보딩 Step 0 "개발환경 세팅" 추가 — 솔로프리너 책 챕터 5 기반
+   - 필수 계정 4개 (Claude.ai, GitHub, Supabase, Vercel) 원클릭 열기
+   - 개발 도구 자동 감지 (node/git/claude/code/WSL2 버전 체크)
+   - 미설치 시 플랫폼별 설치 명령어 복사 버튼
+   - 프로젝트 파일 자동 생성 (CLAUDE.md + .gitignore + .env.local)
+8. **[상용화]** Sentry + PostHog 분석 통합 (`analytics.ts`, DSN 없으면 조용히 비활성화)
+9. **[상용화]** Backend Settings 타입 확장 — pexels/elevenlabs/canva/n8n_webhook_url/ga4_measurement_id
 
-### v5.9.0 작업 목록
-1. **온보딩 UX 강화** — Step 3 "OOMNI 팀 자동 구성" 기본 선택 상태로 변경
-2. **첫 실행 튜토리얼 오버레이** — 온보딩 후 대시보드에서 첫 봇 실행 가이드 (1회)
-3. **Growth Bot 프롬프트 라이브러리** — 책 템플릿 20개 탭 추가 (카테고리별 클릭→주입)
+### 변경 파일
 
-### 참고 문서
-- 상용화 로드맵: [docs/상용화플랜.md](../상용화플랜.md)
-- 오늘 전체 세션 로그: [docs/dev-log/2026-05-08-session-log.md](../dev-log/2026-05-08-session-log.md)
+| 파일 | 변경 |
+|------|------|
+| `backend/src/api/routes/ops.ts` | max_tokens 2000→4096 |
+| `frontend/src/pages/OpsCenter.tsx` | 시스템 프롬프트 재구성 + indigo→primary |
+| `frontend/src/pages/CDPView.tsx` | indigo→primary |
+| `backend/src/api/routes/settings.ts` | pexels/elevenlabs/canva/n8n/ga4 엔드포인트 추가 |
+| `backend/src/config.ts` | Settings 타입 + SENSITIVE_FIELDS 확장 |
+| `frontend/src/lib/api.ts` | setPexelsKey/setElevenLabsKey/setCanvaKey 추가 |
+| `frontend/src/pages/SettingsPage.tsx` | Growth 크리에이티브 툴 섹션 추가 |
+| `frontend/src/pages/GrowthStudio.tsx` | video 탭 + library(프롬프트 20개) 탭 추가 |
+| `frontend/src/pages/OnboardingPage.tsx` | Step 0 DevSetup + Step 3 기본선택 + 튜토리얼 플래그 |
+| `frontend/src/pages/DashboardPage.tsx` | 첫 실행 튜토리얼 오버레이 (4단계) |
+| `backend/src/api/routes/setup.ts` | NEW — /api/setup/check-tools + generate-files |
+| `backend/src/api/app.ts` | /api/setup 라우터 등록 |
+| `frontend/src/lib/analytics.ts` | NEW — Sentry + PostHog 래퍼 |
+| `frontend/src/main.tsx` | initAnalytics() 호출 |
+| `frontend/package.json` | @sentry/react + posthog-js 추가 |
+
+### 다음 세션 준비 (v5.10.0)
+- [ ] Sentry DSN + PostHog API 키 실제 발급 후 `.env` 파일에 추가
+- [ ] 상용화 결제 연동 (Toss Payments 또는 Polar)
+- [ ] 앱 빌드 후 DevSetup Step 0 실제 동작 확인
+- [ ] 프롬프트 라이브러리 → "Growth Bot에 바로 사용" 버튼으로 탭 연동
+
+---
+
+## 다음 세션 준비 (v5.9.0) — 완료됨 2026-05-09
+
+> 마지막 업데이트: 2026-05-08 | 당시 버전: v5.8.0
+
+### v5.9.0 작업 목록 (완료)
+1. **온보딩 UX 강화** — Step 3 "OOMNI 팀 자동 구성" 기본 선택 상태로 변경 ✅
+2. **첫 실행 튜토리얼 오버레이** — 온보딩 후 대시보드에서 첫 봇 실행 가이드 (1회) ✅
+3. **Growth Bot 프롬프트 라이브러리** — 책 템플릿 20개 탭 추가 (카테고리별 클릭→주입) ✅
 
 ---
 

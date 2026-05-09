@@ -193,9 +193,26 @@ export const settingsApi = {
     api.post('/api/settings/kling-key', { key }).then(r => r.data),
   setV0Key: (key: string): Promise<{ success: boolean; message: string }> =>
     api.post('/api/settings/v0-key', { key }).then(r => r.data),
+  setPexelsKey: (key: string): Promise<{ success: boolean; message: string }> =>
+    api.post('/api/settings/pexels-key', { key }).then(r => r.data),
+  setElevenLabsKey: (key: string): Promise<{ success: boolean; message: string }> =>
+    api.post('/api/settings/elevenlabs-key', { key }).then(r => r.data),
+  setCanvaKey: (key: string): Promise<{ success: boolean; message: string }> =>
+    api.post('/api/settings/canva-key', { key }).then(r => r.data),
   setGrowthConfig: (data: { n8n_webhook_url?: string; ga4_measurement_id?: string }): Promise<{ success: boolean }> =>
     api.post('/api/settings/growth-config', data).then(r => r.data),
-  getExtendedStatus: (): Promise<{ api_key_set: boolean; kling_key_set?: boolean; gemini_key_set?: boolean; v0_key_set?: boolean; n8n_webhook_url?: string; ga4_measurement_id?: string }> =>
+  getExtendedStatus: (): Promise<{
+    api_key_set: boolean
+    kling_key_set?: boolean
+    gemini_key_set?: boolean
+    v0_key_set?: boolean
+    ideogram_key_set?: boolean
+    pexels_key_set?: boolean
+    elevenlabs_key_set?: boolean
+    canva_key_set?: boolean
+    n8n_webhook_url?: string
+    ga4_measurement_id?: string
+  }> =>
     settingsAxios.get('/api/settings/api-key/status').then(r => r.data),
 }
 

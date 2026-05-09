@@ -32,6 +32,7 @@ import { identityRouter } from './routes/identity';
 import { opsRouter } from './routes/ops';
 import { studioRouter } from './routes/studio';
 import { snsRouter } from './routes/sns';
+import { setupRouter } from './routes/setup';
 import { VIDEOS_DIR } from '../services/klingService';
 import { logger } from '../logger';
 
@@ -108,6 +109,7 @@ export function createApp(options: AppOptions): Application {
 
   // ── 설정 라우터 (인증 없이 접근 가능, 온보딩용) ──────────
   app.use('/api/settings', settingsRouter());
+  app.use('/api/setup', setupRouter());
 
   // ── 인증 라우터 (Bearer 인증 제외, 별도 rate limit) ─────
   app.use('/api/auth', authLimiter, authRouter());
@@ -133,6 +135,7 @@ export function createApp(options: AppOptions): Application {
       req.path === '/health' ||
       req.path.startsWith('/auth') ||
       req.path.startsWith('/settings') ||
+      req.path.startsWith('/setup') ||
       req.path.startsWith('/studio') ||
       req.path.startsWith('/video/local') ||
       req.path.startsWith('/sns/callback') ||

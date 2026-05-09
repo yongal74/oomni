@@ -146,6 +146,27 @@ export default function SettingsPage() {
   const [v0Msg, setV0Msg] = useState<MsgState | null>(null)
   const [v0Saving, setV0Saving] = useState(false)
 
+  // Growth 크리에이티브 툴
+  const [pexelsApiKey, setPexelsApiKey] = useState('')
+  const [pexelsKeySet, setPexelsKeySet] = useState(false)
+  const [showPexelsKey, setShowPexelsKey] = useState(false)
+  const [pexelsMsg, setPexelsMsg] = useState<MsgState | null>(null)
+  const [pexelsSaving, setPexelsSaving] = useState(false)
+
+  const [elevenLabsApiKey, setElevenLabsApiKey] = useState('')
+  const [elevenLabsKeySet, setElevenLabsKeySet] = useState(false)
+  const [showElevenLabsKey, setShowElevenLabsKey] = useState(false)
+  const [elevenLabsMsg, setElevenLabsMsg] = useState<MsgState | null>(null)
+  const [elevenLabsSaving, setElevenLabsSaving] = useState(false)
+
+  const [canvaApiKey, setCanvaApiKey] = useState('')
+  const [canvaKeySet, setCanvaKeySet] = useState(false)
+  const [showCanvaKey, setShowCanvaKey] = useState(false)
+  const [canvaMsg, setCanvaMsg] = useState<MsgState | null>(null)
+  const [canvaSaving, setCanvaSaving] = useState(false)
+
+  const [ideogramKeySet, setIdeogramKeySet] = useState(false)
+
   // Growth 연동
   const [n8nWebhookUrl, setN8nWebhookUrl] = useState('')
   const [ga4MeasurementId, setGa4MeasurementId] = useState('')
@@ -173,6 +194,10 @@ export default function SettingsPage() {
       setKlingKeySet(!!s.kling_key_set)
       setGeminiKeySet(!!s.gemini_key_set)
       setV0KeySet(!!s.v0_key_set)
+      setIdeogramKeySet(!!s.ideogram_key_set)
+      setPexelsKeySet(!!s.pexels_key_set)
+      setElevenLabsKeySet(!!s.elevenlabs_key_set)
+      setCanvaKeySet(!!s.canva_key_set)
       if (s.n8n_webhook_url) setN8nWebhookUrl(s.n8n_webhook_url)
       if (s.ga4_measurement_id) setGa4MeasurementId(s.ga4_measurement_id)
     }).catch(() => {})
@@ -688,6 +713,99 @@ export default function SettingsPage() {
             </button>
           </div>
           {v0Msg && <MsgBox msg={v0Msg} />}
+        </div>
+      </SectionCard>
+
+      {/* ── 3-b2. Growth 크리에이티브 툴 ───────────────────────────────── */}
+      <SectionCard>
+        <SectionTitle icon={<Zap size={16} />} title="Growth 크리에이티브 툴" />
+        <p className="text-muted text-sm mb-5">이미지·영상·TTS·디자인 등 콘텐츠 제작 툴 API 키를 설정합니다.</p>
+
+        {/* Ideogram API */}
+        <div className="mb-5 pb-5 border-b border-border">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[13px] font-medium text-text">Ideogram API</span>
+            <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">AI 이미지 생성</span>
+            {ideogramKeySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+          </div>
+          <p className="text-[12px] text-muted mb-3">마케팅 이미지 자동 생성. ideogram.ai에서 발급.</p>
+          <div className="flex gap-2">
+            <input type="password" placeholder="ideogram_api_..." className="flex-1 px-3 py-2 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary"
+              onChange={async (e) => { if (e.target.value.length > 8) { try { await settingsApi.setIdeogramKey(e.target.value.trim()); setIdeogramKeySet(true) } catch { /* noop */ } } }} />
+            <span className="text-[11px] text-muted self-center">ideogram.ai</span>
+          </div>
+        </div>
+
+        {/* Pexels API */}
+        <div className="mb-5 pb-5 border-b border-border">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[13px] font-medium text-text">Pexels API</span>
+            <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">무료 스톡 이미지/영상</span>
+            {pexelsKeySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+          </div>
+          <p className="text-[12px] text-muted mb-3">무료 고퀄리티 스톡 사진/영상. pexels.com/api에서 무료 발급.</p>
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <input type={showPexelsKey ? 'text' : 'password'} value={pexelsApiKey} onChange={e => setPexelsApiKey(e.target.value)}
+                placeholder="pexels_api_key" className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
+              <button onClick={() => setShowPexelsKey(v => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text" tabIndex={-1}>
+                {showPexelsKey ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            <button onClick={async () => { setPexelsSaving(true); setPexelsMsg(null); try { await settingsApi.setPexelsKey(pexelsApiKey.trim()); setPexelsKeySet(true); setPexelsApiKey(''); setPexelsMsg({ type: 'success', text: 'Pexels API 키가 저장되었습니다' }); } catch { setPexelsMsg({ type: 'error', text: '저장 실패' }); } setPexelsSaving(false); }} disabled={pexelsSaving || !pexelsApiKey.trim()}
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0">
+              {pexelsSaving ? <Loader2 size={13} className="animate-spin" /> : null}저장
+            </button>
+          </div>
+          {pexelsMsg && <MsgBox msg={pexelsMsg} />}
+        </div>
+
+        {/* ElevenLabs API */}
+        <div className="mb-5 pb-5 border-b border-border">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[13px] font-medium text-text">ElevenLabs API</span>
+            <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">AI 음성 합성 (TTS)</span>
+            {elevenLabsKeySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+          </div>
+          <p className="text-[12px] text-muted mb-3">영상 나레이션·팟캐스트·TTS 자동화. elevenlabs.io에서 발급.</p>
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <input type={showElevenLabsKey ? 'text' : 'password'} value={elevenLabsApiKey} onChange={e => setElevenLabsApiKey(e.target.value)}
+                placeholder="sk_..." className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
+              <button onClick={() => setShowElevenLabsKey(v => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text" tabIndex={-1}>
+                {showElevenLabsKey ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            <button onClick={async () => { setElevenLabsSaving(true); setElevenLabsMsg(null); try { await settingsApi.setElevenLabsKey(elevenLabsApiKey.trim()); setElevenLabsKeySet(true); setElevenLabsApiKey(''); setElevenLabsMsg({ type: 'success', text: 'ElevenLabs API 키가 저장되었습니다' }); } catch { setElevenLabsMsg({ type: 'error', text: '저장 실패' }); } setElevenLabsSaving(false); }} disabled={elevenLabsSaving || !elevenLabsApiKey.trim()}
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0">
+              {elevenLabsSaving ? <Loader2 size={13} className="animate-spin" /> : null}저장
+            </button>
+          </div>
+          {elevenLabsMsg && <MsgBox msg={elevenLabsMsg} />}
+        </div>
+
+        {/* Canva API */}
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[13px] font-medium text-text">Canva API</span>
+            <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">디자인 자동화</span>
+            {canvaKeySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+          </div>
+          <p className="text-[12px] text-muted mb-3">SNS 콘텐츠 자동 디자인. developer.canva.com에서 발급.</p>
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <input type={showCanvaKey ? 'text' : 'password'} value={canvaApiKey} onChange={e => setCanvaApiKey(e.target.value)}
+                placeholder="OAuthClientID 또는 API Key" className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
+              <button onClick={() => setShowCanvaKey(v => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text" tabIndex={-1}>
+                {showCanvaKey ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            <button onClick={async () => { setCanvaSaving(true); setCanvaMsg(null); try { await settingsApi.setCanvaKey(canvaApiKey.trim()); setCanvaKeySet(true); setCanvaApiKey(''); setCanvaMsg({ type: 'success', text: 'Canva API 키가 저장되었습니다' }); } catch { setCanvaMsg({ type: 'error', text: '저장 실패' }); } setCanvaSaving(false); }} disabled={canvaSaving || !canvaApiKey.trim()}
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0">
+              {canvaSaving ? <Loader2 size={13} className="animate-spin" /> : null}저장
+            </button>
+          </div>
+          {canvaMsg && <MsgBox msg={canvaMsg} />}
         </div>
       </SectionCard>
 

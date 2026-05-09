@@ -295,10 +295,10 @@ function GuideMd({ text }: { text: string }) {
         if (line.startsWith('## '))  return <div key={i} className="font-bold text-white mt-3">{line.slice(3)}</div>
         if (line.startsWith('# '))   return <div key={i} className="font-bold text-white text-sm mt-3">{line.slice(2)}</div>
         if (line.startsWith('- ') || line.startsWith('* '))
-          return <div key={i} className="flex gap-1.5"><span className="text-indigo-400 shrink-0">·</span><span>{line.slice(2)}</span></div>
+          return <div key={i} className="flex gap-1.5"><span className="text-primary shrink-0">·</span><span>{line.slice(2)}</span></div>
         if (/^\d+\./.test(line)) {
           const num = line.match(/^(\d+)\./)?.[1]
-          return <div key={i} className="flex gap-1.5"><span className="text-indigo-400 shrink-0 w-4">{num}.</span><span>{line.replace(/^\d+\.\s*/, '')}</span></div>
+          return <div key={i} className="flex gap-1.5"><span className="text-primary shrink-0 w-4">{num}.</span><span>{line.replace(/^\d+\.\s*/, '')}</span></div>
         }
         if (line.startsWith('```')) return null
         if (!line.trim()) return <div key={i} className="h-1" />
@@ -314,14 +314,14 @@ function ChatBubble({ message }: { message: ChatMessage }) {
     <div className={cn('flex gap-2', isUser && 'flex-row-reverse')}>
       <div className={cn(
         'flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold',
-        isUser ? 'bg-indigo-600/30 text-indigo-300' : 'bg-purple-600/30 text-purple-300',
+        isUser ? 'bg-primary/30 text-primary' : 'bg-orange-600/20 text-orange-300',
       )}>
         {isUser ? 'U' : 'AI'}
       </div>
       <div className={cn(
         'max-w-[82%] rounded-xl px-3 py-2 text-xs leading-relaxed',
         isUser
-          ? 'bg-indigo-600/20 border border-indigo-500/30 text-[#c7d2fe]'
+          ? 'bg-primary/15 border border-primary/30 text-[#e4e4e7]'
           : 'bg-[#111113] border border-[#1c1c20] text-[#e4e4e7]',
       )}>
         <GuideMd text={message.content} />
@@ -393,10 +393,11 @@ export default function OpsCenter() {
 
     try {
       const systemPrompt = `당신은 n8n 자동화 전문가입니다. 솔로프리너의 업무 자동화를 도와주세요.
-요청을 분석하고 n8n 워크플로우 JSON을 포함해서 구체적인 구현 가이드를 제공해주세요.
 응답은 한국어로 작성하세요.
 
-응답 마지막에 반드시 다음 형식으로 프로세스 카드 JSON을 추가하세요:
+응답 형식 (이 순서를 반드시 지키세요):
+
+1. 먼저 아래 process-cards 블록을 출력하세요 (필수, 생략 금지):
 \`\`\`process-cards
 [
   {
@@ -405,10 +406,17 @@ export default function OpsCenter() {
     "steps": ["단계 1", "단계 2", "단계 3"],
     "fields": [{"name": "필드명", "value": "설정값 예시", "note": "주의사항"}],
     "warnings": ["주의사항 1"],
-    "guide": "상세 구현 가이드 텍스트"
+    "guide": "상세 구현 가이드"
   }
 ]
-\`\`\``
+\`\`\`
+
+2. 그 다음 n8n 워크플로우 JSON을 출력하세요:
+\`\`\`json
+{"name": "워크플로우명", "nodes": [...], "connections": [...]}
+\`\`\`
+
+3. 마지막으로 구현 단계별 한국어 가이드를 작성하세요.`
 
       const BASE_URL = 'http://localhost:3001'
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -541,7 +549,7 @@ export default function OpsCenter() {
                 className={cn(
                   'flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-lg border transition-all',
                   isOpen
-                    ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300'
+                    ? 'bg-primary/15 border-primary/40 text-primary'
                     : 'bg-white/3 border-white/10 text-[#71717a] hover:text-[#a1a1aa] hover:border-white/20',
                 )}
               >
@@ -599,7 +607,7 @@ export default function OpsCenter() {
           <div className="px-3 pt-3 pb-2 border-b border-white/5 shrink-0 flex items-center justify-between">
             <p className="text-[10px] font-bold text-[#3f3f46] uppercase tracking-widest">자동화 프로세스</p>
             {processCards.length > 0 && (
-              <span className="text-[9px] text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded-full">
+              <span className="text-[9px] text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-full">
                 {processCards.length}개
               </span>
             )}
@@ -631,14 +639,14 @@ export default function OpsCenter() {
                     className={cn(
                       'w-full text-left rounded-xl px-3 py-3 transition-all border-2',
                       isSelected
-                        ? 'bg-indigo-500/15 border-indigo-500/50 shadow-md shadow-indigo-500/10'
+                        ? 'bg-primary/10 border-primary/40 shadow-md shadow-primary/10'
                         : 'bg-white/3 border-white/8 hover:bg-white/6 hover:border-white/15',
                     )}
                   >
                     <div className="flex items-start gap-2.5 mb-2">
                       <span className={cn(
                         'flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black border',
-                        isSelected ? 'bg-indigo-500 border-indigo-400 text-white' : 'bg-white/8 border-white/15 text-[#71717a]',
+                        isSelected ? 'bg-primary border-primary/70 text-white' : 'bg-white/8 border-white/15 text-[#71717a]',
                       )}>
                         {idx + 1}
                       </span>
@@ -646,13 +654,13 @@ export default function OpsCenter() {
                         {card.title}
                       </span>
                     </div>
-                    <p className={cn('text-[10px] leading-relaxed pl-7', isSelected ? 'text-indigo-200' : 'text-[#71717a]')}>
+                    <p className={cn('text-[10px] leading-relaxed pl-7', isSelected ? 'text-orange-200' : 'text-[#71717a]')}>
                       {card.role}
                     </p>
                     <div className="flex items-center gap-1.5 mt-2 pl-7">
                       <span className={cn(
                         'text-[9px] px-1.5 py-0.5 rounded border',
-                        isSelected ? 'text-indigo-300 border-indigo-500/30 bg-indigo-500/10' : 'text-[#52525b] border-white/10 bg-white/3',
+                        isSelected ? 'text-primary border-primary/30 bg-primary/10' : 'text-[#52525b] border-white/10 bg-white/3',
                       )}>
                         {card.steps.length}단계
                       </span>
@@ -685,11 +693,11 @@ export default function OpsCenter() {
             <div className="flex-1 overflow-y-auto p-5">
               {/* 카드 헤더 */}
               <div className="flex items-start gap-3 mb-5 pb-4 border-b border-[#1c1c20]">
-                <div className="h-9 w-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
-                  <Zap className="h-4 w-4 text-indigo-400" />
+                <div className="h-9 w-9 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
+                  <Zap className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] text-indigo-400 uppercase tracking-widest mb-1">프로세스 상세</p>
+                  <p className="text-[10px] text-primary uppercase tracking-widest mb-1">프로세스 상세</p>
                   <p className="text-base font-bold text-white mb-1">{selectedCard.title}</p>
                   <p className="text-[12px] text-[#71717a] leading-snug">{selectedCard.role}</p>
                 </div>
@@ -712,16 +720,16 @@ export default function OpsCenter() {
                           'w-full flex items-center gap-3 text-left rounded-xl px-3.5 py-3 transition-all border-2',
                           checkedSteps.has(idx)
                             ? 'bg-emerald-500/8 border-emerald-500/25'
-                            : 'bg-white/2 border-white/8 hover:bg-white/5 hover:border-indigo-500/25',
+                            : 'bg-white/2 border-white/8 hover:bg-white/5 hover:border-primary/25',
                         )}
                       >
                         <div className={cn(
                           'flex-shrink-0 h-6 w-6 rounded-full border-2 flex items-center justify-center',
-                          checkedSteps.has(idx) ? 'bg-emerald-500 border-emerald-500' : 'border-indigo-500/40 bg-indigo-500/10',
+                          checkedSteps.has(idx) ? 'bg-emerald-500 border-emerald-500' : 'border-primary/40 bg-primary/10',
                         )}>
                           {checkedSteps.has(idx)
                             ? <Check className="h-3 w-3 text-white" />
-                            : <span className="text-[9px] text-indigo-300 font-black">{idx + 1}</span>}
+                            : <span className="text-[9px] text-primary font-black">{idx + 1}</span>}
                         </div>
                         <span className={cn('text-xs', checkedSteps.has(idx) ? 'text-slate-500 line-through' : 'text-slate-200')}>
                           {step}
@@ -786,7 +794,7 @@ export default function OpsCenter() {
         {/* ── Right: AI 채팅 ────────────────────────────────────────────── */}
         <div className="w-[320px] shrink-0 flex flex-col bg-[#0a0a10]">
           <div className="px-4 py-2.5 border-b border-[#1c1c20] flex items-center gap-1.5 shrink-0">
-            <MessageSquare size={12} className="text-purple-400" />
+            <MessageSquare size={12} className="text-primary" />
             <span className="text-[10px] font-semibold text-[#52525b] uppercase tracking-widest">AI 자동화 설계</span>
             {workflow && (
               <span className="ml-auto text-[10px] text-green-500 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded-full normal-case tracking-normal">
@@ -794,7 +802,7 @@ export default function OpsCenter() {
               </span>
             )}
             {streaming && (
-              <div className={cn('flex items-center gap-1 text-[10px] text-purple-400', workflow ? 'ml-1' : 'ml-auto')}>
+              <div className={cn('flex items-center gap-1 text-[10px] text-primary', workflow ? 'ml-1' : 'ml-auto')}>
                 <RefreshCw size={10} className="animate-spin" />
               </div>
             )}
@@ -804,8 +812,8 @@ export default function OpsCenter() {
             {messages.map((m, i) => <ChatBubble key={i} message={m} />)}
             {streaming && messages[messages.length - 1]?.role === 'user' && (
               <div className="flex gap-2">
-                <div className="w-6 h-6 rounded-full bg-purple-600/30 shrink-0 flex items-center justify-center">
-                  <Zap size={11} className="text-purple-400" />
+                <div className="w-6 h-6 rounded-full bg-primary/20 shrink-0 flex items-center justify-center">
+                  <Zap size={11} className="text-primary" />
                 </div>
                 <div className="bg-[#111113] border border-[#1c1c20] rounded-xl px-3 py-2">
                   <span className="flex gap-1">
@@ -849,7 +857,7 @@ export default function OpsCenter() {
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
                 placeholder="자동화하고 싶은 업무를 설명하세요..."
                 rows={3}
-                className="flex-1 resize-none bg-[#111113] border border-[#1c1c20] rounded-lg px-3 py-2 text-xs text-[#e4e4e7] placeholder:text-[#52525b] focus:outline-none focus:border-indigo-500/50 transition-colors"
+                className="flex-1 resize-none bg-[#111113] border border-[#1c1c20] rounded-lg px-3 py-2 text-xs text-[#e4e4e7] placeholder:text-[#52525b] focus:outline-none focus:border-primary/50 transition-colors"
               />
               <button
                 onClick={handleSend}
@@ -857,7 +865,7 @@ export default function OpsCenter() {
                 className={cn(
                   'w-8 h-8 rounded-lg flex items-center justify-center transition-all shrink-0',
                   input.trim() && !streaming
-                    ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                    ? 'bg-primary hover:bg-primary-hover text-white'
                     : 'bg-[#1c1c20] text-[#52525b]',
                 )}
               >

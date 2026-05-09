@@ -7,13 +7,15 @@
  * Step 3: AI 팀 템플릿 선택
  * Step 4: 완료
  */
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { missionsApi, settingsApi, type Mission } from '../lib/api'
+import { missionsApi, settingsApi, type Mission, api } from '../lib/api'
 import { useAppStore } from '../store/app.store'
 import {
   Eye, EyeOff, Loader2, CheckCircle, ChevronRight,
   Zap, Search, Palette, Code2, TrendingUp, Crown, Workflow,
+  Terminal, Github, Database, Globe, Copy, FolderOpen,
+  ExternalLink, AlertCircle,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 
@@ -35,12 +37,26 @@ const PRESETS = [
   { label: '쇼핑몰 운영',       name: '쇼핑몰 운영',       desc: '온라인 쇼핑몰 운영 및 마케팅' },
 ]
 
-const TOTAL_STEPS = 4
+const TOTAL_STEPS = 5
+
+// ── DevSetup 타입 ─────────────────────────────────────────────────────────────
+
+interface ToolStatus {
+  platform: string
+  node: string | null
+  npm: string | null
+  git: string | null
+  claude: string | null
+  code: string | null
+  wsl: boolean
+  install_commands: Record<string, string>
+  vscode_extensions: { id: string; name: string; cmd: string }[]
+}
 
 export default function OnboardingPage() {
   const navigate  = useNavigate()
   const { setCurrentMission } = useAppStore()
-  const [step,    setStep]    = useState(1)
+  const [step,    setStep]    = useState(0)   // 0=DevSetup, 1-4=기존 온보딩
   const [error,   setError]   = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -55,8 +71,63 @@ export default function OnboardingPage() {
   const [createdMission, setCreatedMission] = useState<Mission | null>(null)
 
   // Step 3
-  const [selectedTemplate, setSelectedTemplate] = useState<'solo-factory-os' | 'manual' | null>(null)
+  const [selectedTemplate, setSelectedTemplate] = useState<'solo-factory-os' | 'manual' | null>('solo-factory-os')
   const [templateApplied,  setTemplateApplied]  = useState(false)
+
+  // Step 0 — DevSetup
+  const [toolStatus,    setToolStatus]    = useState<ToolStatus | null>(null)
+  const [toolsLoading,  setToolsLoading]  = useState(false)
+  const [projectPath,   setProjectPath]   = useState('')
+  const [projectName,   setProjectName]   = useState('')
+  const [supabaseUrl,   setSupabaseUrl]   = useState('')
+  const [supabaseAnon,  setSupabaseAnon]  = useState('')
+  const [genLoading,    setGenLoading]    = useState(false)
+  const [genResult,     setGenResult]     = useState<string | null>(null)
+  const [copiedCmd,     setCopiedCmd]     = useState<string | null>(null)
+
+  // ── Step 0: DevSetup ──────────────────────────────────────────────────────
+
+  const checkTools = useCallback(async () => {
+    setToolsLoading(true)
+    try {
+      const res = await api.get('/api/setup/check-tools')
+      setToolStatus(res.data as ToolStatus)
+    } catch {
+      // 백엔드 아직 연결 안 된 경우 무시
+    } finally {
+      setToolsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (step === 0) checkTools()
+  }, [step, checkTools])
+
+  const copyCmd = (cmd: string) => {
+    navigator.clipboard.writeText(cmd)
+    setCopiedCmd(cmd)
+    setTimeout(() => setCopiedCmd(null), 2000)
+  }
+
+  const handleGenerateFiles = async () => {
+    if (!projectPath.trim()) { setError('프로젝트 경로를 입력해주세요'); return }
+    setError('')
+    setGenLoading(true)
+    try {
+      const res = await api.post('/api/setup/generate-files', {
+        project_path: projectPath,
+        project_name: projectName,
+        supabase_url: supabaseUrl,
+        supabase_anon_key: supabaseAnon,
+      })
+      setGenResult((res.data as { message: string }).message)
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } } }
+      setError(err.response?.data?.error ?? '파일 생성 실패')
+    } finally {
+      setGenLoading(false)
+    }
+  }
 
   // ── Step handlers ──────────────────────────────────────────────────────────
 
@@ -111,7 +182,10 @@ export default function OnboardingPage() {
     }
   }
 
-  const handleFinish = () => navigate('/dashboard')
+  const handleFinish = () => {
+    localStorage.setItem('oomni_show_tutorial', 'true')
+    navigate('/dashboard')
+  }
 
   // ── render ─────────────────────────────────────────────────────────────────
 
@@ -173,7 +247,7 @@ export default function OnboardingPage() {
 
           {/* 스텝 인디케이터 */}
           <div className="flex items-center gap-1.5 mb-8">
-            {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map(n => (
+            {Array.from({ length: TOTAL_STEPS }, (_, i) => i).map(n => (
               <div key={n} className="flex items-center gap-1.5">
                 <div className={cn(
                   'w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold transition-all',
@@ -183,9 +257,9 @@ export default function OnboardingPage() {
                     ? 'bg-primary text-white ring-2 ring-primary/30'
                     : 'bg-[#1c1c20] border border-[#27272a] text-[#52525b]',
                 )}>
-                  {step > n ? <CheckCircle size={12} /> : n}
+                  {step > n ? <CheckCircle size={12} /> : n + 1}
                 </div>
-                {n < TOTAL_STEPS && (
+                {n < TOTAL_STEPS - 1 && (
                   <div className={cn(
                     'h-px w-8 transition-colors',
                     step > n ? 'bg-primary' : 'bg-[#1c1c20]',
@@ -194,9 +268,33 @@ export default function OnboardingPage() {
               </div>
             ))}
             <span className="ml-2 text-[11px] text-[#52525b]">
-              {step === 1 ? 'API 키' : step === 2 ? '미션' : step === 3 ? '팀 구성' : '완료'}
+              {step === 0 ? '환경 세팅' : step === 1 ? 'API 키' : step === 2 ? '미션' : step === 3 ? '팀 구성' : '완료'}
             </span>
           </div>
+
+          {/* ── Step 0: 개발환경 세팅 ── */}
+          {step === 0 && (
+            <DevSetupStep
+              toolStatus={toolStatus}
+              toolsLoading={toolsLoading}
+              onRefresh={checkTools}
+              projectPath={projectPath}
+              setProjectPath={setProjectPath}
+              projectName={projectName}
+              setProjectName={setProjectName}
+              supabaseUrl={supabaseUrl}
+              setSupabaseUrl={setSupabaseUrl}
+              supabaseAnon={supabaseAnon}
+              setSupabaseAnon={setSupabaseAnon}
+              genLoading={genLoading}
+              genResult={genResult}
+              onGenerate={handleGenerateFiles}
+              copiedCmd={copiedCmd}
+              onCopy={copyCmd}
+              error={error}
+              onNext={() => { setError(''); setStep(1) }}
+            />
+          )}
 
           {/* ── Step 1: API 키 ── */}
           {step === 1 && (
@@ -368,6 +466,275 @@ export default function OnboardingPage() {
               </div>
             </StepCard>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── DevSetup Step ────────────────────────────────────────────────────────────
+
+const ACCOUNT_LINKS = [
+  { label: 'Claude.ai Pro', desc: 'AI 코딩 파트너 (월 $20)', icon: Zap, url: 'https://claude.ai', color: 'text-primary' },
+  { label: 'GitHub', desc: '코드 저장소 · 버전 관리 (무료)', icon: Github, url: 'https://github.com', color: 'text-[#e4e4e7]' },
+  { label: 'Supabase', desc: 'DB + 인증 + 스토리지 (무료)', icon: Database, url: 'https://supabase.com', color: 'text-emerald-400' },
+  { label: 'Vercel', desc: '프론트엔드 배포 (무료)', icon: Globe, url: 'https://vercel.com', color: 'text-[#e4e4e7]' },
+] as const
+
+function ToolBadge({ version, label }: { version: string | null | undefined; label: string }) {
+  if (version === undefined) return null
+  return (
+    <div className={cn(
+      'flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg border',
+      version
+        ? 'bg-green-500/10 border-green-500/20 text-green-400'
+        : 'bg-[#1c1c20] border-[#27272a] text-[#52525b]',
+    )}>
+      {version ? <CheckCircle size={10} /> : <AlertCircle size={10} />}
+      <span className="font-medium">{label}</span>
+      {version && <span className="opacity-60">{version.slice(0, 12)}</span>}
+    </div>
+  )
+}
+
+function CopyBtn({ cmd, label, copied, onCopy }: { cmd: string; label?: string; copied: string | null; onCopy: (c: string) => void }) {
+  const isCopied = copied === cmd
+  return (
+    <button
+      onClick={() => onCopy(cmd)}
+      className={cn(
+        'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] border transition-all font-mono',
+        isCopied
+          ? 'bg-green-500/10 border-green-500/20 text-green-400'
+          : 'bg-[#0d0d0f] border-[#1c1c20] text-[#71717a] hover:text-[#a1a1aa] hover:border-[#27272a]',
+      )}
+    >
+      {isCopied ? <CheckCircle size={10} /> : <Copy size={10} />}
+      <span className="max-w-[240px] truncate">{label ?? cmd}</span>
+    </button>
+  )
+}
+
+interface DevSetupStepProps {
+  toolStatus: ToolStatus | null
+  toolsLoading: boolean
+  onRefresh: () => void
+  projectPath: string
+  setProjectPath: (v: string) => void
+  projectName: string
+  setProjectName: (v: string) => void
+  supabaseUrl: string
+  setSupabaseUrl: (v: string) => void
+  supabaseAnon: string
+  setSupabaseAnon: (v: string) => void
+  genLoading: boolean
+  genResult: string | null
+  onGenerate: () => void
+  copiedCmd: string | null
+  onCopy: (cmd: string) => void
+  error: string
+  onNext: () => void
+}
+
+function DevSetupStep({
+  toolStatus, toolsLoading, onRefresh,
+  projectPath, setProjectPath, projectName, setProjectName,
+  supabaseUrl, setSupabaseUrl, supabaseAnon, setSupabaseAnon,
+  genLoading, genResult, onGenerate,
+  copiedCmd, onCopy, error, onNext,
+}: DevSetupStepProps) {
+  const platform = toolStatus?.platform ?? 'win32'
+  const isWin = platform === 'win32'
+  const isMac = platform === 'darwin'
+  const ic = toolStatus?.install_commands
+
+  const openUrl = (url: string) => {
+    (window as { electronAPI?: { openExternal?: (u: string) => void } }).electronAPI?.openExternal?.(url)
+  }
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h2 className="text-lg font-bold text-white mb-1">개발환경 세팅</h2>
+        <p className="text-[#52525b] text-sm">Claude Code를 바로 쓰기 위한 1회성 세팅입니다. 이미 완료됐다면 건너뛰세요.</p>
+      </div>
+
+      <div className="space-y-4">
+
+        {/* ── 섹션 A: 필수 계정 ── */}
+        <div className="bg-[#111113] border border-[#1c1c20] rounded-2xl p-5">
+          <p className="text-[11px] font-semibold text-[#52525b] uppercase tracking-wide mb-3">STEP 1 — 필수 계정 만들기</p>
+          <div className="grid grid-cols-2 gap-2">
+            {ACCOUNT_LINKS.map(a => {
+              const Icon = a.icon
+              return (
+                <button
+                  key={a.label}
+                  type="button"
+                  onClick={() => openUrl(a.url)}
+                  className="flex items-center gap-2 p-2.5 rounded-lg border border-[#1c1c20] hover:border-[#27272a] bg-[#0d0d0f] text-left transition-all group"
+                >
+                  <Icon size={13} className={a.color} />
+                  <div>
+                    <div className="text-[12px] font-medium text-[#e4e4e7] group-hover:text-white transition-colors">{a.label}</div>
+                    <div className="text-[10px] text-[#52525b]">{a.desc}</div>
+                  </div>
+                  <ExternalLink size={10} className="ml-auto text-[#3f3f46] group-hover:text-[#52525b]" />
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ── 섹션 B: 개발 도구 ── */}
+        <div className="bg-[#111113] border border-[#1c1c20] rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[11px] font-semibold text-[#52525b] uppercase tracking-wide">STEP 2-4 — 개발 도구 설치 확인</p>
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={toolsLoading}
+              className="flex items-center gap-1 text-[10px] text-[#52525b] hover:text-primary transition-colors"
+            >
+              {toolsLoading ? <Loader2 size={10} className="animate-spin" /> : <Terminal size={10} />}
+              재확인
+            </button>
+          </div>
+
+          {toolStatus ? (
+            <div className="space-y-3">
+              {/* 설치 상태 */}
+              <div className="flex flex-wrap gap-1.5">
+                <ToolBadge version={toolStatus.node}   label="Node.js" />
+                <ToolBadge version={toolStatus.git}    label="Git" />
+                <ToolBadge version={toolStatus.claude} label="Claude Code" />
+                <ToolBadge version={toolStatus.code}   label="VS Code" />
+                {isWin && (
+                  <div className={cn(
+                    'flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg border',
+                    toolStatus.wsl
+                      ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                      : 'bg-[#1c1c20] border-[#27272a] text-[#52525b]',
+                  )}>
+                    {toolStatus.wsl ? <CheckCircle size={10} /> : <AlertCircle size={10} />}
+                    <span className="font-medium">WSL2</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 미설치 → 설치 명령어 */}
+              {(!toolStatus.node || !toolStatus.git || !toolStatus.claude || !toolStatus.code || (isWin && !toolStatus.wsl)) && ic && (
+                <div className="space-y-1.5 pt-2 border-t border-[#1c1c20]">
+                  <p className="text-[10px] text-[#52525b] mb-2">미설치 항목 — 복사해서 터미널에 붙여넣으세요</p>
+                  {isWin && !toolStatus.wsl && (
+                    <CopyBtn cmd={ic.wsl_windows} label="WSL2 설치 (PowerShell 관리자)" copied={copiedCmd} onCopy={onCopy} />
+                  )}
+                  {isMac && !toolStatus.node && (
+                    <CopyBtn cmd={ic.node_mac} label="Node.js (nvm, Mac)" copied={copiedCmd} onCopy={onCopy} />
+                  )}
+                  {isWin && !toolStatus.node && (
+                    <CopyBtn cmd={ic.node_windows} label="Node.js (nvm-windows)" copied={copiedCmd} onCopy={onCopy} />
+                  )}
+                  {!toolStatus.git && (
+                    <CopyBtn cmd={isWin ? ic.git_windows : isMac ? ic.git_mac : ic.git_linux} label="Git 설치" copied={copiedCmd} onCopy={onCopy} />
+                  )}
+                  {!toolStatus.claude && (
+                    <CopyBtn cmd={ic.claude_all} label="Claude Code 설치" copied={copiedCmd} onCopy={onCopy} />
+                  )}
+                </div>
+              )}
+
+              {/* VS Code 확장 */}
+              {toolStatus.code && (
+                <div className="pt-2 border-t border-[#1c1c20]">
+                  <p className="text-[10px] text-[#52525b] mb-2">VS Code 확장 — 터미널에서 실행 (선택사항)</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {toolStatus.vscode_extensions.map(ext => (
+                      <CopyBtn key={ext.id} cmd={ext.cmd} label={ext.name} copied={copiedCmd} onCopy={onCopy} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : toolsLoading ? (
+            <div className="flex items-center gap-2 text-[#52525b] text-[12px]">
+              <Loader2 size={12} className="animate-spin" /> 설치 상태 확인 중...
+            </div>
+          ) : (
+            <div className="text-[#52525b] text-[12px]">백엔드 연결 후 재확인 버튼을 눌러보세요.</div>
+          )}
+        </div>
+
+        {/* ── 섹션 C: 프로젝트 파일 생성 ── */}
+        <div className="bg-[#111113] border border-[#1c1c20] rounded-2xl p-5">
+          <p className="text-[11px] font-semibold text-[#52525b] uppercase tracking-wide mb-3">STEP 5 — 프로젝트 파일 자동 생성 (선택)</p>
+          <p className="text-[11px] text-[#52525b] mb-3">프로젝트 폴더를 지정하면 CLAUDE.md + .gitignore + .env.local을 자동 생성합니다.</p>
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={projectPath}
+              onChange={e => setProjectPath(e.target.value)}
+              placeholder={isWin ? 'C:\\Users\\me\\my-project' : '~/my-project'}
+              className="w-full bg-[#0d0d0f] border border-[#1c1c20] rounded-lg px-3 py-2 text-[12px] text-[#e4e4e7] placeholder-[#3f3f46] focus:outline-none focus:border-primary/50 transition-colors"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="text"
+                value={projectName}
+                onChange={e => setProjectName(e.target.value)}
+                placeholder="프로젝트 이름 (선택)"
+                className="bg-[#0d0d0f] border border-[#1c1c20] rounded-lg px-3 py-2 text-[12px] text-[#e4e4e7] placeholder-[#3f3f46] focus:outline-none focus:border-primary/50 transition-colors"
+              />
+              <input
+                type="text"
+                value={supabaseUrl}
+                onChange={e => setSupabaseUrl(e.target.value)}
+                placeholder="Supabase URL (선택)"
+                className="bg-[#0d0d0f] border border-[#1c1c20] rounded-lg px-3 py-2 text-[12px] text-[#e4e4e7] placeholder-[#3f3f46] focus:outline-none focus:border-primary/50 transition-colors"
+              />
+            </div>
+            <input
+              type="text"
+              value={supabaseAnon}
+              onChange={e => setSupabaseAnon(e.target.value)}
+              placeholder="Supabase Anon Key (선택)"
+              className="w-full bg-[#0d0d0f] border border-[#1c1c20] rounded-lg px-3 py-2 text-[12px] text-[#e4e4e7] placeholder-[#3f3f46] focus:outline-none focus:border-primary/50 transition-colors"
+            />
+            {genResult ? (
+              <div className="flex items-center gap-2 text-[11px] text-green-400 bg-green-400/10 border border-green-400/20 rounded-lg px-3 py-2">
+                <CheckCircle size={11} /> {genResult}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={onGenerate}
+                disabled={genLoading || !projectPath.trim()}
+                className="flex items-center gap-1.5 px-3 py-2 bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30 rounded-lg text-[12px] font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {genLoading ? <Loader2 size={11} className="animate-spin" /> : <FolderOpen size={11} />}
+                파일 자동 생성 (CLAUDE.md + .gitignore + .env.local)
+              </button>
+            )}
+          </div>
+        </div>
+
+        {error && <ErrorMsg>{error}</ErrorMsg>}
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onNext}
+            className="flex-1 text-center text-[11px] text-[#3f3f46] hover:text-[#52525b] transition-colors py-2"
+          >
+            건너뛰기
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            className="flex items-center gap-1.5 bg-primary hover:bg-primary-hover text-white px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-colors"
+          >
+            다음 단계로 <ChevronRight size={13} />
+          </button>
         </div>
       </div>
     </div>

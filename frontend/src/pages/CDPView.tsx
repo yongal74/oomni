@@ -27,7 +27,7 @@ import { cn } from '../lib/utils'
 
 const NODE_COLORS: Record<string, string> = {
   profile_high:   '#f59e0b',   // gold  — high LTV
-  profile_mid:    '#6366f1',   // indigo — mid LTV
+  profile_mid:    '#D4763B',   // primary — mid LTV
   profile_low:    '#64748b',   // gray   — low LTV
   email_hash:     '#3b82f6',   // blue
   phone_hash:     '#22c55e',   // green
@@ -451,7 +451,7 @@ function CanvasGraph({ graph, loading, onNodeClick, selectedNodeId }: CanvasGrap
     <div className="relative w-full h-full bg-[#0b1120] rounded-lg overflow-hidden">
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center z-10">
-          <RefreshCw className="w-7 h-7 text-indigo-400 animate-spin" />
+          <RefreshCw className="w-7 h-7 text-primary animate-spin" />
         </div>
       )}
       {!loading && !graph && (
@@ -516,7 +516,7 @@ function ProfileListItem({
 }: { profile: CdpProfile; selected: boolean; onClick: () => void }) {
   const tier  = getLtvTier(profile)
   const sources = safeParse<string[]>(profile.sources, [])
-  const tierColor = tier === 'high' ? 'text-amber-400' : tier === 'mid' ? 'text-indigo-400' : 'text-slate-500'
+  const tierColor = tier === 'high' ? 'text-amber-400' : tier === 'mid' ? 'text-primary' : 'text-slate-500'
 
   return (
     <button
@@ -524,7 +524,7 @@ function ProfileListItem({
       className={cn(
         'w-full text-left px-3 py-2.5 rounded-lg border transition-all',
         selected
-          ? 'bg-indigo-900/40 border-indigo-500/50 text-white'
+          ? 'bg-primary/15 border-primary/40 text-white'
           : 'bg-slate-900/40 border-slate-800 text-slate-300 hover:bg-slate-800/60 hover:border-slate-700',
       )}
     >
@@ -559,7 +559,7 @@ function ProfileDetailPanel({
   const sources = safeParse<string[]>(profile.sources, [])
   const traits  = safeParse<Record<string, unknown>>(profile.traits, {})
   const tierColor = tier === 'high' ? 'text-amber-400 bg-amber-400/10 border-amber-400/20'
-    : tier === 'mid' ? 'text-indigo-400 bg-indigo-400/10 border-indigo-400/20'
+    : tier === 'mid' ? 'text-primary bg-primary/10 border-primary/20'
     : 'text-slate-400 bg-slate-400/10 border-slate-600'
 
   const deterministicCount = graph?.edges.filter(e => e.idClass === 'deterministic').length ?? 0
@@ -770,7 +770,7 @@ export default function CDPView() {
         <div className="p-4 border-b border-slate-800 shrink-0">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-sm flex items-center gap-2">
-              <Database className="w-4 h-4 text-indigo-400" />
+              <Database className="w-4 h-4 text-primary" />
               CDP ID-Graph
             </h2>
             <button
@@ -785,7 +785,7 @@ export default function CDPView() {
           <div className="grid grid-cols-3 gap-1.5 mb-3">
             <StatPill label="전체" value={profiles.length} color="text-white" />
             <StatPill label="High" value={highCount} color="text-amber-400" />
-            <StatPill label="Mid"  value={midCount}  color="text-indigo-400" />
+            <StatPill label="Mid"  value={midCount}  color="text-primary" />
           </div>
 
           {/* search */}
@@ -796,7 +796,7 @@ export default function CDPView() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="프로필 검색..."
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-800 border border-slate-700 rounded-md text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-800 border border-slate-700 rounded-md text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-primary"
             />
           </div>
 
@@ -809,7 +809,7 @@ export default function CDPView() {
                 className={cn(
                   'flex-1 py-1 text-[10px] rounded transition-all border',
                   tierFilter === t
-                    ? 'bg-indigo-600 border-indigo-500 text-white'
+                    ? 'bg-primary border-primary/80 text-white'
                     : 'bg-slate-800/60 border-slate-700 text-slate-500 hover:border-slate-600',
                 )}
               >
@@ -823,7 +823,7 @@ export default function CDPView() {
         <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
           {profilesLoading ? (
             <div className="flex justify-center py-8">
-              <RefreshCw className="w-5 h-5 text-indigo-400 animate-spin" />
+              <RefreshCw className="w-5 h-5 text-primary animate-spin" />
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-8 text-slate-600 text-xs">

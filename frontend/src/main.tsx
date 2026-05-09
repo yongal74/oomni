@@ -5,7 +5,10 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './lib/query'
 import { router } from './router'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { initAnalytics } from './lib/analytics'
 import './index.css'
+
+initAnalytics()
 
 // 저장된 UI 줌 레벨 즉시 적용 (레이아웃 시프트 방지)
 const savedZoom = localStorage.getItem('oomni-ui-zoom')

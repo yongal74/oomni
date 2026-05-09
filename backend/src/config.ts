@@ -39,6 +39,13 @@ interface Settings {
   v0_api_key?: string;
   // Kling AI (format: "access_key_id:access_key_secret" or raw JWT)
   kling_api_key?: string;
+  // v5.9.0 크리에이티브 툴
+  pexels_api_key?: string;
+  elevenlabs_api_key?: string;
+  canva_api_key?: string;
+  // GA4 / n8n 공통 웹훅
+  n8n_webhook_url?: string;
+  ga4_measurement_id?: string;
   n8n_instagram_webhook?: string;
   n8n_tiktok_webhook?: string;
   instagram_app_id?: string;
@@ -106,6 +113,9 @@ const SENSITIVE_FIELDS: (keyof Settings)[] = [
   'ideogram_api_key',
   'v0_api_key',
   'kling_api_key',
+  'pexels_api_key',
+  'elevenlabs_api_key',
+  'canva_api_key',
   'instagram_app_secret',
   'youtube_client_secret',
   'tiktok_client_secret',
@@ -204,6 +214,8 @@ export function readSettings(): Settings {
   // Non-sensitive fields — return as-is
   if (raw.preferred_ide) result.preferred_ide = raw.preferred_ide;
   if (raw.obsidian_vault_path) result.obsidian_vault_path = raw.obsidian_vault_path;
+  if (raw.n8n_webhook_url) result.n8n_webhook_url = raw.n8n_webhook_url;
+  if (raw.ga4_measurement_id) result.ga4_measurement_id = raw.ga4_measurement_id;
   if (raw.n8n_instagram_webhook) result.n8n_instagram_webhook = raw.n8n_instagram_webhook;
   if (raw.n8n_tiktok_webhook) result.n8n_tiktok_webhook = raw.n8n_tiktok_webhook;
   // Non-sensitive SNS IDs

@@ -13,6 +13,7 @@ import {
   Play, Plus, X, Check, XCircle, Loader2,
   Layers, Archive,
   Telescope, Code2, Palette, BookOpen, Workflow, Bot,
+  ChevronRight, Zap,
 } from 'lucide-react'
 
 const BOT_ICONS: Record<string, React.ElementType> = {
@@ -105,6 +106,16 @@ export default function DashboardPage() {
   const [creatingRole, setCreatingRole] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<DashTab>('feed')
   const [runModalAgent, setRunModalAgent] = useState<Agent | null>(null)
+
+  // 첫 실행 튜토리얼
+  const [showTutorial, setShowTutorial] = useState(() =>
+    localStorage.getItem('oomni_show_tutorial') === 'true'
+  )
+  const [tutorialStep, setTutorialStep] = useState(0)
+  const dismissTutorial = () => {
+    localStorage.removeItem('oomni_show_tutorial')
+    setShowTutorial(false)
+  }
 
   // TODO/DONE state
   const [todoItems, setTodoItems] = useState<TodoItem[]>(() => {
@@ -727,6 +738,111 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* ── 첫 실행 튜토리얼 오버레이 ──────────────────────────────────────────── */}
+      {showTutorial && (
+        <FirstRunTutorial
+          step={tutorialStep}
+          onNext={() => {
+            if (tutorialStep < TUTORIAL_STEPS.length - 1) setTutorialStep(s => s + 1)
+            else dismissTutorial()
+          }}
+          onSkip={dismissTutorial}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── 튜토리얼 스텝 정의 ───────────────────────────────────────────────────────
+
+const TUTORIAL_STEPS = [
+  {
+    icon: Zap,
+    title: 'OOMNI에 오신 것을 환영합니다!',
+    desc: '솔로프리너를 위한 AI 에이전트 팀입니다. 빠른 시작 가이드를 안내해 드릴게요.',
+    tip: null,
+  },
+  {
+    icon: Bot,
+    title: '봇 실행하기',
+    desc: '왼쪽 사이드바에서 봇을 선택하고 ▶ 버튼을 눌러 실행하세요. 각 봇은 특정 역할을 수행합니다.',
+    tip: '"봇 추가" 버튼으로 Research · Build · Design · Content · Ops 봇을 추가할 수 있습니다.',
+  },
+  {
+    icon: Layers,
+    title: 'AI 팀 구성 템플릿',
+    desc: '"템플릿" 버튼을 눌러 6개 봇을 한 번에 구성할 수 있습니다.',
+    tip: '상단 헤더의 "템플릿" 버튼을 찾아보세요.',
+  },
+  {
+    icon: Workflow,
+    title: 'Ops Bot — n8n 자동화',
+    desc: 'Ops Bot은 n8n 워크플로우를 자동으로 설계합니다. 왼쪽 패널에서 단계가, 가운데 패널에서 JSON이 생성됩니다.',
+    tip: '사이드바 > Ops Bot 선택 후 자동화 목표를 입력해보세요.',
+  },
+] as const
+
+function FirstRunTutorial({
+  step, onNext, onSkip,
+}: {
+  step: number
+  onNext: () => void
+  onSkip: () => void
+}) {
+  const current = TUTORIAL_STEPS[step]
+  const Icon = current.icon
+  const isLast = step === TUTORIAL_STEPS.length - 1
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center pb-8 pointer-events-none">
+      <div className="pointer-events-auto w-full max-w-sm mx-4 bg-[#111113] border border-[#2a2a2e] rounded-2xl shadow-2xl p-5 animate-in slide-in-from-bottom-4 duration-300">
+        {/* 스텝 인디케이터 */}
+        <div className="flex items-center gap-1.5 mb-4">
+          {TUTORIAL_STEPS.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1 rounded-full transition-all ${
+                i === step ? 'bg-primary w-6' : i < step ? 'bg-primary/50 w-3' : 'bg-[#27272a] w-3'
+              }`}
+            />
+          ))}
+          <span className="ml-auto text-[10px] text-[#52525b]">{step + 1} / {TUTORIAL_STEPS.length}</span>
+        </div>
+
+        {/* 아이콘 + 내용 */}
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-9 h-9 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
+            <Icon size={16} className="text-primary" />
+          </div>
+          <div>
+            <h3 className="text-[14px] font-semibold text-white mb-1">{current.title}</h3>
+            <p className="text-[12px] text-[#71717a] leading-relaxed">{current.desc}</p>
+            {current.tip && (
+              <p className="text-[11px] text-primary/80 mt-2 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1.5 leading-relaxed">
+                {current.tip}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* 버튼 */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onSkip}
+            className="text-[12px] text-[#52525b] hover:text-[#71717a] transition-colors px-2 py-1.5"
+          >
+            건너뛰기
+          </button>
+          <button
+            onClick={onNext}
+            className="ml-auto flex items-center gap-1.5 bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-[13px] font-medium transition-colors"
+          >
+            {isLast ? '시작하기' : '다음'}
+            <ChevronRight size={13} />
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
