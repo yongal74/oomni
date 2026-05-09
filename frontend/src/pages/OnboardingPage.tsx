@@ -49,6 +49,7 @@ interface ToolStatus {
   git: string | null
   python: string | null
   pyenv: string | null
+  pnpm: string | null
   claude: string | null
   code: string | null
   brew: string | null
@@ -614,6 +615,7 @@ function DevSetupStep({
                 <ToolBadge version={toolStatus.node}   label="Node.js" />
                 <ToolBadge version={toolStatus.python} label="Python" />
                 <ToolBadge version={toolStatus.pyenv}  label="pyenv" />
+                <ToolBadge version={toolStatus.pnpm}   label="pnpm" />
                 {isMac && <ToolBadge version={toolStatus.brew} label="Homebrew" />}
                 <ToolBadge version={toolStatus.git}    label="Git" />
                 <ToolBadge version={toolStatus.claude} label="Claude Code" />
@@ -633,7 +635,7 @@ function DevSetupStep({
 
               {/* 미설치 → 설치 명령어 */}
               {(!toolStatus.nvm || !toolStatus.node || !toolStatus.python || !toolStatus.pyenv ||
-                (isMac && !toolStatus.brew) || !toolStatus.git || !toolStatus.claude || !toolStatus.code ||
+                !toolStatus.pnpm || (isMac && !toolStatus.brew) || !toolStatus.git || !toolStatus.claude || !toolStatus.code ||
                 (isWin && !toolStatus.wsl)) && ic && (
                 <div className="space-y-1.5 pt-2 border-t border-[#1c1c20]">
                   <p className="text-[10px] text-[#52525b] mb-2">미설치 항목 — 복사해서 터미널에 붙여넣으세요</p>
@@ -663,6 +665,9 @@ function DevSetupStep({
                   )}
                   {!toolStatus.python && (
                     <CopyBtn cmd={isWin ? ic.python_windows : isMac ? ic.python_mac : ic.python_linux} label="Python 설치" copied={copiedCmd} onCopy={onCopy} />
+                  )}
+                  {!toolStatus.pnpm && (
+                    <CopyBtn cmd={ic.pnpm_all} label="pnpm 설치 (Open Design 에디터용)" copied={copiedCmd} onCopy={onCopy} />
                   )}
                   {!toolStatus.git && (
                     <CopyBtn cmd={isWin ? ic.git_windows : isMac ? ic.git_mac : ic.git_linux} label="Git 설치" copied={copiedCmd} onCopy={onCopy} />

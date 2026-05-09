@@ -9,7 +9,8 @@ import {
   FileCode2, Settings2, GitBranch, Shield, Database,
   Send, Paperclip, ChevronDown, Minimize2, Maximize2,
   Loader2, Copy, Download, RotateCcw, Bot, ExternalLink,
-  Instagram, Youtube, Music2, Layout,
+  Instagram, Youtube, Music2, Layout, PenTool,
+  Play, Square, RefreshCw, AlertCircle,
 } from 'lucide-react'
 import { agentsApi, type Agent } from '../lib/api'
 import { useAppStore } from '../store/app.store'
@@ -17,12 +18,15 @@ import { cn } from '../lib/utils'
 import { BACKEND_URL } from '../config'
 
 // ── 모드 정의 ──────────────────────────────────────────────────────────────────
-type StudioMode = 'ui-proto' | 'graphic' | 'build'
+type StudioMode = 'ui-proto' | 'graphic' | 'build' | 'open-design'
+
+const OPEN_DESIGN_PORT = 7456
 
 const MODES: { key: StudioMode; label: string; icon: React.ElementType; role: string }[] = [
-  { key: 'ui-proto',  label: 'UI 프로토타입', icon: Monitor,  role: 'design' },
-  { key: 'graphic',   label: '그래픽 디자인', icon: Image,    role: 'design' },
-  { key: 'build',     label: '빌드',          icon: Code2,    role: 'build'  },
+  { key: 'ui-proto',     label: 'UI 프로토타입', icon: Monitor,  role: 'design' },
+  { key: 'graphic',      label: '그래픽 디자인', icon: Image,    role: 'design' },
+  { key: 'build',        label: '빌드',          icon: Code2,    role: 'build'  },
+  { key: 'open-design',  label: 'Open Design',   icon: PenTool,  role: 'design' },
 ]
 
 // ── 디자인 카테고리 (UI 프로토타입 모드용) ─────────────────────────────────────
@@ -236,6 +240,49 @@ export default function StudioBotPage() {
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [catPrompt, setCatPrompt] = useState('')
 
+  // Open Design 데몬 상태
+  type OdStatus = 'idle' | 'checking' | 'starting' | 'running' | 'error'
+  const [odStatus, setOdStatus]     = useState<OdStatus>('idle')
+  const [odError, setOdError]       = useState('')
+
+  const checkOdStatus = useCallback(async () => {
+    setOdStatus('checking')
+    try {
+      const r = await fetch(`${BACKEND_URL}/api/setup/open-design/status`)
+      const d = await r.json() as { running: boolean }
+      setOdStatus(d.running ? 'running' : 'idle')
+    } catch {
+      setOdStatus('idle')
+    }
+  }, [])
+
+  const startOd = useCallback(async () => {
+    setOdStatus('starting')
+    setOdError('')
+    try {
+      const r = await fetch(`${BACKEND_URL}/api/setup/open-design/start`, { method: 'POST' })
+      const d = await r.json() as { success: boolean; status?: string; error?: string }
+      if (d.success || d.status === 'already_running') {
+        setOdStatus('running')
+      } else {
+        setOdStatus('error')
+        setOdError(d.error ?? '서버 시작 실패')
+      }
+    } catch {
+      setOdStatus('error')
+      setOdError('백엔드 연결 실패')
+    }
+  }, [])
+
+  const stopOd = useCallback(async () => {
+    await fetch(`${BACKEND_URL}/api/setup/open-design/stop`, { method: 'POST' })
+    setOdStatus('idle')
+  }, [])
+
+  useEffect(() => {
+    if (mode === 'open-design') checkOdStatus()
+  }, [mode, checkOdStatus])
+
   const abortRef = useRef<AbortController | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -401,7 +448,7 @@ export default function StudioBotPage() {
     textareaRef.current?.focus()
   }
 
-  const cats = mode === 'build' ? BUILD_CATS : mode === 'graphic' ? GRAPHIC_CATS : DESIGN_CATS
+  const cats = mode === 'build' ? BUILD_CATS : mode === 'graphic' ? GRAPHIC_CATS : mode === 'open-design' ? [] : DESIGN_CATS
 
   return (
     <div className="flex h-full bg-bg overflow-hidden" style={bgColor ? { background: bgColor } : undefined}>
@@ -434,9 +481,30 @@ export default function StudioBotPage() {
 
         {/* 카테고리 버튼들 */}
         <div className="p-3 flex-1">
+          {mode !== 'open-design' && (
           <p className="text-[10px] text-muted uppercase tracking-widest mb-2 px-1">
             {mode === 'build' ? '빌드 카테고리' : mode === 'graphic' ? '그래픽 카테고리' : 'UI 카테고리'}
           </p>
+          )}
+          {mode === 'open-design' && (
+            <div className="space-y-2">
+              <p className="text-[10px] text-muted uppercase tracking-widest mb-2 px-1">에디터 정보</p>
+              <div className="px-2 py-2 text-[10px] text-muted/70 space-y-1.5 bg-surface/50 rounded-lg border border-border">
+                <div>포트: <span className="text-primary font-mono">{OPEN_DESIGN_PORT}</span></div>
+                <div>엔진: <span className="text-text">nexu-io/open-design</span></div>
+                <div>AI: <span className="text-text">Claude Code 연동</span></div>
+                <div>모드: <span className="text-text">로컬 퍼스트</span></div>
+              </div>
+              <a
+                href={`http://localhost:${OPEN_DESIGN_PORT}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 w-full px-3 py-2 rounded-lg text-[11px] text-muted hover:text-text hover:bg-border/40 transition-colors"
+              >
+                <ExternalLink size={11} />새 창으로 열기
+              </a>
+            </div>
+          )}
           <div className="space-y-1">
             {(cats as Array<{ icon: React.ElementType; label: string; prompt: string; channel?: string }>).map(cat => {
               const Icon = cat.icon
@@ -557,6 +625,38 @@ export default function StudioBotPage() {
               Claude Sonnet 4.6 ✓
             </span>
           )}
+          {mode === 'open-design' && (
+            <div className="flex items-center gap-2 ml-auto">
+              <span className={cn(
+                'text-[10px] px-2 py-0.5 rounded-full border',
+                odStatus === 'running'
+                  ? 'text-emerald-300 bg-emerald-500/20 border-emerald-500/40'
+                  : odStatus === 'starting' || odStatus === 'checking'
+                  ? 'text-yellow-300 bg-yellow-500/20 border-yellow-500/40'
+                  : 'text-muted bg-surface border-border',
+              )}>
+                {odStatus === 'running' ? '● 실행 중 — localhost:' + OPEN_DESIGN_PORT
+                  : odStatus === 'starting' ? '● 시작 중...'
+                  : odStatus === 'checking' ? '● 확인 중...'
+                  : '● 중지됨'}
+              </span>
+              {odStatus === 'running' ? (
+                <button onClick={stopOd}
+                  className="flex items-center gap-1 px-2 py-1 text-[10px] text-red-400 border border-red-800/40 rounded-lg hover:bg-red-900/20 transition-colors">
+                  <Square size={9} fill="currentColor" />중지
+                </button>
+              ) : odStatus === 'idle' || odStatus === 'error' ? (
+                <button onClick={startOd}
+                  className="flex items-center gap-1 px-2.5 py-1 text-[10px] bg-emerald-600/20 text-emerald-400 border border-emerald-600/40 rounded-lg hover:bg-emerald-600/30 transition-colors">
+                  <Play size={9} fill="currentColor" />시작
+                </button>
+              ) : null}
+              <button onClick={checkOdStatus}
+                className="p-1 text-muted hover:text-text transition-colors">
+                <RefreshCw size={11} className={odStatus === 'checking' ? 'animate-spin' : ''} />
+              </button>
+            </div>
+          )}
           {isRunning && (
             <div className="ml-auto flex items-center gap-1.5 text-[11px] text-primary">
               <Loader2 size={11} className="animate-spin" />
@@ -584,7 +684,60 @@ export default function StudioBotPage() {
         {/* 결과 영역 (플로팅 채팅 기준 relative) */}
         <div className="flex-1 relative overflow-hidden">
         <div className="absolute inset-0 overflow-y-auto" style={{ fontSize: `${fontSize}px` }}>
-          {mode === 'ui-proto' && iframeHtml ? (
+          {/* ── Open Design 모드 ── */}
+          {mode === 'open-design' && odStatus === 'running' ? (
+            <iframe
+              src={`http://localhost:${OPEN_DESIGN_PORT}`}
+              className="w-full h-full border-0"
+              title="Open Design Editor"
+              allow="clipboard-read; clipboard-write"
+            />
+          ) : mode === 'open-design' ? (
+            <div className="h-full flex flex-col items-center justify-center gap-4 p-8 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-surface border border-border flex items-center justify-center">
+                <PenTool size={28} className="text-muted" />
+              </div>
+              <div>
+                <p className="text-[15px] font-semibold text-text mb-1">Open Design 에디터</p>
+                <p className="text-[12px] text-muted">
+                  로컬 디자인 에디터를 실행하면 OOMNI 안에서 바로 사용할 수 있습니다
+                </p>
+              </div>
+              {odStatus === 'error' && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-red-900/20 border border-red-800/40 rounded-xl text-[12px] text-red-400">
+                  <AlertCircle size={13} />
+                  {odError || '서버 시작 실패'}
+                </div>
+              )}
+              {odStatus === 'starting' || odStatus === 'checking' ? (
+                <div className="flex items-center gap-2 px-5 py-3 bg-surface border border-border rounded-xl text-[13px] text-muted">
+                  <Loader2 size={14} className="animate-spin text-primary" />
+                  {odStatus === 'starting' ? 'Open Design 서버 시작 중... (첫 실행은 30초 이상 소요될 수 있습니다)' : '상태 확인 중...'}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <button
+                    onClick={startOd}
+                    className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary-light text-white rounded-xl text-[13px] font-semibold transition-colors shadow-lg"
+                  >
+                    <Play size={14} fill="currentColor" />
+                    Open Design 시작
+                  </button>
+                  <p className="text-[10px] text-muted/60">
+                    npx open-design-ade 를 포트 {OPEN_DESIGN_PORT}에서 실행합니다
+                  </p>
+                  <div className="mt-2 px-4 py-3 bg-surface border border-border rounded-xl text-left max-w-sm">
+                    <p className="text-[11px] text-muted font-semibold mb-1.5">사전 요구사항</p>
+                    <div className="space-y-1 text-[11px] text-muted/80">
+                      <div className="flex items-center gap-1.5"><span className="text-primary">→</span> Node.js 18+ 설치됨</div>
+                      <div className="flex items-center gap-1.5"><span className="text-primary">→</span> 인터넷 연결 (첫 실행 시 패키지 다운로드)</div>
+                      <div className="flex items-center gap-1.5"><span className="text-primary">→</span> Claude API 키 설정됨 (Settings)</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : mode === 'ui-proto' && iframeHtml ? (
             <iframe
               srcDoc={iframeHtml}
               className="w-full h-full border-0"
@@ -726,8 +879,8 @@ export default function StudioBotPage() {
         </div>
 
 
-        {/* ── 플로팅 채팅 패널 — 결과영역 위 하단 중앙 ───────────────── */}
-        {chatOpen ? (
+        {/* ── 플로팅 채팅 패널 — open-design 모드에서 숨김 ───────────── */}
+        {mode !== 'open-design' && chatOpen ? (
           <div className={cn(
             'absolute bottom-6 left-1/2 -translate-x-1/2 z-20',
             'border border-border bg-surface/95 backdrop-blur-sm rounded-2xl shadow-2xl shadow-black/40 flex flex-col transition-all duration-200',
@@ -799,13 +952,15 @@ export default function StudioBotPage() {
           </div>
         ) : (
           /* 채팅 최소화 버튼 — 하단 중앙 플로팅 */
-          <button
-            onClick={() => setChatOpen(true)}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 bg-surface/95 backdrop-blur-sm border border-border rounded-full shadow-lg text-[11px] text-muted hover:text-text hover:border-primary/40 transition-all"
-          >
-            <Bot size={12} className="text-primary" />AI 채팅 열기
-            <Maximize2 size={11} />
-          </button>
+          mode !== 'open-design' ? (
+            <button
+              onClick={() => setChatOpen(true)}
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 bg-surface/95 backdrop-blur-sm border border-border rounded-full shadow-lg text-[11px] text-muted hover:text-text hover:border-primary/40 transition-all"
+            >
+              <Bot size={12} className="text-primary" />AI 채팅 열기
+              <Maximize2 size={11} />
+            </button>
+          ) : null
         )}
         </div>
       </div>
