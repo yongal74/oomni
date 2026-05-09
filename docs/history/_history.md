@@ -2,6 +2,33 @@
 
 ---
 
+## 2026-05-09 — v5.11.0 Open Design 에디터 Studio Bot 통합
+
+> 현재 버전: v5.11.0
+
+### 주요 변경 사항 요약
+1. **[FEATURE]** Studio Bot에 4번째 모드 "Open Design" 추가
+   - nexu-io/open-design: 71개 디자인 시스템 + AI 연동, 완전 로컬
+   - `npx open-design-ade --port 7456` 데몬 → OOMNI 내부 iframe 임베드
+   - 시작/중지/상태 UI + 미실행 시 안내 패널
+2. **[FEATURE]** Backend: open-design 데몬 관리 API (start/stop/status)
+3. **[FEATURE]** Onboarding: pnpm 도구 감지 및 배지 표시 추가
+
+### 변경 파일
+| 파일 | 변경 |
+|------|------|
+| `backend/src/api/routes/setup.ts` | pnpm 감지 + open-design 3개 엔드포인트 |
+| `frontend/src/pages/StudioBotPage.tsx` | open-design 모드 + 데몬 관리 UI |
+| `frontend/src/pages/OnboardingPage.tsx` | pnpm 배지 추가 |
+| `package.json` | v5.10.0 → v5.11.0 |
+
+### 다음 세션 준비 (v5.12.0)
+- [ ] open-design 실제 실행 테스트 + 포트 검증
+- [ ] 미디어 AI 백엔드 API 연동 (프로바이더 분기)
+- [ ] 결제 연동 (Toss Payments / Polar)
+
+---
+
 ## 2026-05-09 — v5.10.0 미디어 AI 확장 + Ops Bot UX + 온보딩 DevSetup 강화
 
 > 현재 버전: v5.10.0
