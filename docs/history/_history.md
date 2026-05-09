@@ -2,6 +2,45 @@
 
 ---
 
+## 2026-05-09 — v5.10.0 미디어 AI 확장 + Ops Bot UX + 온보딩 DevSetup 강화
+
+> 현재 버전: v5.10.0
+
+### 주요 변경 사항 요약
+1. **[#1 FEATURE]** Lead Gen 미디어 생성 AI 대폭 확장 — 이미지(Ideogram/DALL-E 3/Flux/SDXL/Imagen 3), 영상(Kling/Veo 2/Runway/Luma/HeyGen), 오디오(ElevenLabs/OpenAI TTS), 스톡(Pexels) 프로바이더 선택 UI
+2. **[#1 FEATURE]** Settings — 영상 AI(Google AI/Runway/Luma/HeyGen) + 이미지 AI(fal.ai/Stability AI) API 키 섹션 신규 추가
+3. **[#2 BUG]** Ops Bot 연속 자동화 무한 로딩 수정 — AbortController + stripCodeBlocks(process-cards/json 블록 제거) + 히스토리 10개 제한
+4. **[#3 UX]** Ops Bot 좌측 패널 → STEP 배지 + 박스 카드 + SVG 화살표 플로우차트
+5. **[#3 UX]** Ops Bot 중앙 패널 → CopyFieldBtn 내장 필드 카드 + 단계별 클릭 경로 가이드 상세화
+6. **[#4 FEATURE]** 온보딩 DevSetup 강화 (Vibe Coding 치트시트 기반)
+   - 계정: Google(Firebase/GCP/Gmail) 추가, Cursor IDE 제거
+   - 도구 감지: nvm, Python, pyenv, Homebrew 추가
+   - 도구 배지: nvm→Node→Python→pyenv→Homebrew(Mac)→Git→Claude Code→VS Code→WSL2 표시
+   - 미설치 시 플랫폼별 설치 명령어 자동 제공
+
+### 변경 파일
+
+| 파일 | 변경 |
+|------|------|
+| `backend/src/config.ts` | 미디어 AI 6개 API 키 + SENSITIVE_FIELDS |
+| `backend/src/api/routes/settings.ts` | 6개 API 키 엔드포인트 + status |
+| `backend/src/api/routes/setup.ts` | nvm/python/pyenv/brew 감지 + 설치 명령어 |
+| `frontend/src/lib/api.ts` | 타입 확장 + setter 6개 |
+| `frontend/src/pages/GrowthStudio.tsx` | 미디어 프로바이더 선택 UI 전면 개편 |
+| `frontend/src/pages/SettingsPage.tsx` | 영상/이미지 AI API 키 섹션 |
+| `frontend/src/pages/OpsCenter.tsx` | 연속 자동화 버그 수정 + 패널 UX |
+| `frontend/src/pages/OnboardingPage.tsx` | 개발 도구 배지 확장 + Google 계정 |
+| `package.json` | v5.9.0 → v5.10.0 |
+| `docs/index.html` | 다운로드 링크 v5.10.0 |
+
+### 다음 세션 준비 (v5.11.0)
+- [ ] Open Design 통합 — OOMNI Studio 디자인 솔루션 연동
+- [ ] 미디어 AI 실제 API 연동 (백엔드 growth 라우터 프로바이더 분기)
+- [ ] Sentry DSN + PostHog 실제 키 연동
+- [ ] 결제 연동 (Toss Payments / Polar)
+
+---
+
 ## 2026-05-09 — v5.9.0 솔로프리너 OS 격상 (온보딩 DevSetup + 프롬프트 라이브러리 + 영상 파이프라인 + 상용화)
 
 > 현재 버전: v5.9.0

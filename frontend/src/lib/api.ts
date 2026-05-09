@@ -222,6 +222,12 @@ export const settingsApi = {
     pexels_key_set?: boolean
     elevenlabs_key_set?: boolean
     canva_key_set?: boolean
+    google_ai_key_set?: boolean
+    runway_key_set?: boolean
+    luma_key_set?: boolean
+    heygen_key_set?: boolean
+    fal_key_set?: boolean
+    stability_key_set?: boolean
     n8n_webhook_url?: string
     ga4_measurement_id?: string
   }> =>
@@ -613,8 +619,13 @@ export const growthApi = {
     tone?: string
     segment?: string
     with_image?: boolean
+    image_provider?: string
     with_video?: boolean
+    video_provider?: string
     video_duration?: '5' | '10' | '20' | '60'
+    with_audio?: boolean
+    audio_provider?: string
+    with_stock?: boolean
   }) => api.post<ApiResponse<GrowthContent>>('/api/growth/generate', data).then(r => r.data.data),
 
   listContent: (missionId: string, channel?: string, segment?: string) =>
