@@ -8,13 +8,50 @@
 
 | 항목 | 내용 |
 |------|------|
-| **최신 버전** | v5.12.0 |
-| **다음 버전** | v5.13.0 (피드백 기반 OPS 가이드 확장) |
+| **최신 버전** | v5.13.0 |
+| **다음 버전** | v5.14.0 (OPS 노드 가이드 추가, n8n CORS 안내, 번들 최적화) |
 | **tsc --noEmit** | ✅ 0 errors (백엔드 + 프론트엔드) |
-| **GitHub Release** | 🔄 v5.12.0 패키징 중 |
-| **랜딩페이지** | ✅ v5.12.0 다운로드 URL 업데이트 완료 |
+| **GitHub Release** | ✅ v5.13.0 `OOMNI.Setup.5.13.0.exe` 업로드 완료 |
+| **랜딩페이지** | ✅ v5.13.0 다운로드 URL 업데이트 완료 |
 | **IDE** | VS Code + Claude Code 익스텐션 |
 | **마지막 작업일** | 2026-05-10 |
+
+---
+
+## 2026-05-10 — v5.13.0 OPS n8n 직접 푸시 · Growth 반응형 · Open Design 45초 대기
+
+### 핵심 교훈
+**라우터를 먼저 확인하지 않으면 잘못된 파일을 수정한다.**  
+이전 세션에서 `PtyBotPage.tsx`, `DesignStudio.tsx` 수정 → 실제 라우터는 `OpsCenter.tsx`, `StudioBotPage.tsx` 사용.  
+커밋 `393f052`에서 올바른 파일로 재수정.
+
+### 변경 파일
+| 파일 | 변경 내용 |
+|---|---|
+| `frontend/src/pages/OpsCenter.tsx` | n8n REST API 직접 전송 버튼 + 로컬/클라우드 링크 + 반응형 패널 |
+| `frontend/src/pages/GrowthStudio.tsx` | 헤더/탭바 두 row 분리 + 탭바 가로 스크롤 |
+| `frontend/src/pages/StudioBotPage.tsx` | Open Design 45초 대기 메시지 + 수동 명령어 에러 표시 |
+| `backend/src/api/routes/setup.ts` | Open Design 포트 대기 15s → 45s |
+| `frontend/src/components/bot/panels/OpsPanel.tsx` | `OpsCenterPanel` alias export 추가 |
+| `package.json` (3개) | v5.13.0 |
+| `docs/index.html` | v5.13.0 다운로드 URL |
+
+### 주요 변경사항
+
+**n8n 직접 푸시**: `POST http://localhost:5678/rest/workflows` 전송 → 성공 시 ID 표시, 실패 시 실행 안내  
+**OPS 반응형**: 좌 `w-[220px]~2xl:w-[320px]` / 우 `w-[270px]~2xl:w-[360px]`  
+**Growth 탭바**: `overflow-x-auto scrollbar-hide` — 탭이 많아도 가로 스크롤  
+**Open Design**: 45초 대기 + 실패 시 `npx open-design-ade --port 7456` 수동 실행 안내  
+
+### 커밋
+- `393f052` — fix: v5.12.0 실제 사용 파일 수정
+- `3a31b19` — feat: v5.13.0
+
+### 다음 할 일
+- v5.14.0: OPS 노드 가이드 추가 (driveNode, supabase, github, discord 등)
+- n8n CORS 이슈 해결 안내 (n8n 설정 > Allow CORS)
+- index.js 번들 code-split (618kB → 최적화)
+- PTY 터미널 크기 자동 조정
 
 ---
 
