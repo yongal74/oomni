@@ -1048,16 +1048,16 @@ export default function UnifiedBotPage() {
       ) : (
         <>
           {/* ── 메인 3패널 ────────────────────────────────────── */}
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 overflow-hidden min-w-0">
             {/* LEFT — 좌측 사이드바 */}
             {left && (
-              <div className="border-r border-border overflow-y-auto shrink-0 bg-surface/30 w-56">
+              <div className="border-r border-border overflow-y-auto shrink-0 bg-surface/30 w-52 lg:w-60 xl:w-64 2xl:w-72">
                 {left}
               </div>
             )}
 
             {/* CENTER — UnifiedTerminalLayout이 우측 패널 포함 */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden min-w-0">
               {center}
             </div>
           </div>

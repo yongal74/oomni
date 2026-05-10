@@ -356,7 +356,7 @@ export function AppLayout() {
       </div>
 
       {/* ── 메인 콘텐츠 ─────────────────────────────────────────────── */}
-      <main className="flex-1 overflow-y-auto min-w-0">
+      <main className="flex-1 overflow-hidden min-w-0 flex flex-col">
         <Outlet />
       </main>
     </div>

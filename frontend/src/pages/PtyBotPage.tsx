@@ -12,7 +12,7 @@ import { PipelineBar, ROLE_STAGES } from '../components/bot/PipelineBar'
 import { XTerminal, type XTerminalRef } from '../components/bot/XTerminal'
 import { BuildLeftPanel, BuildCenterPanel, BuildRightPanel } from '../components/bot/panels/BuildPanel'
 import type { FileNode } from '../lib/api'
-import { OpsLeftPanel, OpsRightPanel } from '../components/bot/panels/OpsPanel'
+import { OpsLeftPanel, OpsRightPanel, OpsNodeGuidePanel, type OpsWorkflowNode } from '../components/bot/panels/OpsPanel'
 import { DesignCenterPanel, DesignRightPanel } from '../components/bot/panels/DesignPanel'
 import { CommonLeftPanel, CommonCenterPanel, CommonRightPanel } from '../components/bot/panels/GenericPanel'
 import { cn } from '../lib/utils'
@@ -113,6 +113,7 @@ export default function PtyBotPage() {
   const [galleryHtml, setGalleryHtml] = useState<string | null>(null)
   const terminalRef = useRef<XTerminalRef>(null)       // Build Bot 터미널 주입
   const designTerminalRef = useRef<XTerminalRef>(null)  // Design Bot 터미널 주입
+  const [selectedOpsNode, setSelectedOpsNode] = useState<OpsWorkflowNode | null>(null)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [quota, setQuota] = useState<{ plan: string; runCount: number; limit: number; exceeded: boolean; remaining: number } | null>(null)
 
@@ -438,16 +439,22 @@ export default function PtyBotPage() {
     // ── Ops Bot (PTY terminal variant) ──────────────────────────────────────
     if (agent.role === 'ops') {
       return {
-        left: <OpsLeftPanel agentId={agent.id} onSkillSelect={(s) => terminalRef.current?.send(s)} />,
-        center: <XTerminal
-          ref={terminalRef}
-          agentId={agent.id}
-          isRunning={isRunning}
-          alwaysOn
-          taskHint={task}
-          onExit={() => { setIsRunning(false); setCurrentStage('done') }}
-          onOutputCapture={(text) => setLastOutput(text)}
-          className="h-full"
+        left: <OpsLeftPanel agentId={agent.id} onSkillSelect={(s) => terminalRef.current?.send(s)} onNodeSelect={setSelectedOpsNode} selectedNode={selectedOpsNode} />,
+        center: <ResizableSplit
+          initialTopPercent={42}
+          minTopPx={80}
+          minBottomPx={80}
+          top={<OpsNodeGuidePanel node={selectedOpsNode} agentId={agent.id} />}
+          bottom={<XTerminal
+            ref={terminalRef}
+            agentId={agent.id}
+            isRunning={isRunning}
+            alwaysOn
+            taskHint={task}
+            onExit={() => { setIsRunning(false); setCurrentStage('done') }}
+            onOutputCapture={(text) => setLastOutput(text)}
+            className="h-full"
+          />}
         />,
         right: <OpsRightPanel agentId={agent.id} nextBotName={nextBot?.name} onNextBot={handleNextBot} onSkillSelect={(s) => terminalRef.current?.send(s)} currentRole="ops" content={lastOutput} />,
       }
@@ -552,22 +559,22 @@ export default function PtyBotPage() {
       ) : (
         <>
           {/* ── 메인 3패널 ────────────────────────────────────── */}
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 overflow-hidden min-w-0">
             {/* LEFT — 좌측 사이드바 (Design Bot은 없음) */}
             {left && (
-              <div className="border-r border-border overflow-y-auto shrink-0 bg-surface/30 w-56">
+              <div className="border-r border-border overflow-y-auto shrink-0 bg-surface/30 w-52 lg:w-60 xl:w-64 2xl:w-72">
                 {left}
               </div>
             )}
 
             {/* CENTER */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden min-w-0">
               {center}
             </div>
 
             {/* RIGHT */}
             {right && (
-              <div className="border-l border-border overflow-y-auto shrink-0 bg-surface/30 w-64">
+              <div className="border-l border-border overflow-y-auto shrink-0 bg-surface/30 w-56 lg:w-64 xl:w-72 2xl:w-80">
                 {right}
               </div>
             )}

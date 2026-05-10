@@ -98,6 +98,7 @@ export default function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [showAddBot, setShowAddBot] = useState(false)
   const [createBotError, setCreateBotError] = useState<string | null>(null)
+  const [showTemplateInfo, setShowTemplateInfo] = useState(false)
   const preselectedRole = searchParams.get('role')
   const [newMissionName, setNewMissionName] = useState('')
   const [creatingMission, setCreatingMission] = useState(false)
@@ -344,7 +345,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 lg:p-6 w-full max-w-[1800px] mx-auto">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -353,10 +354,10 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => applyTemplate.mutate('solo-factory-os')}
+            onClick={() => setShowTemplateInfo(true)}
             disabled={applyTemplate.isPending}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[13px] hover:bg-primary-hover transition-colors disabled:opacity-60"
-            title="OOMNI 팀 구성 템플릿"
+            title="OOMNI 팀 구성 템플릿 — Research·Build·Design·Content·Ops·CEO 6개 봇을 한 번에 생성"
           >
             {applyTemplate.isPending ? <Loader2 size={14} className="animate-spin" /> : <Layers size={14} />}
             템플릿
@@ -372,7 +373,7 @@ export default function DashboardPage() {
       </div>
 
       {/* 3단 메인 레이아웃 */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
         {/* 봇 현황 */}
         <div className="bg-surface border border-border rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
@@ -412,7 +413,7 @@ export default function DashboardPage() {
                   </button>
                 </div>
               </div>
-            ) : agents.map(agent => (
+            ) : agents.filter(a => a.role !== 'ceo').map(agent => (
               <Link key={agent.id} to={`/dashboard/bots/${agent.id}`}>
                 <div className="flex items-center gap-2 p-2 rounded hover:bg-bg transition-colors cursor-pointer">
                   <span className="text-muted"><BotRoleIcon role={agent.role} size={14} /></span>
@@ -499,21 +500,21 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* AI 브리핑 위젯 (기존 CEO 봇 운용자 전용) */}
+      {/* CEO Bot AI 브리핑 위젯 */}
       {ceoAgent && (
         <div className="bg-surface border border-border rounded-lg p-4 mb-6">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className="text-base">📊</span>
-              <h3 className="text-[13px] font-medium text-text">AI 브리핑</h3>
+              <span className="text-base">👑</span>
+              <h3 className="text-[13px] font-medium text-text">CEO Bot — AI 브리핑</h3>
               {latestCeoRun?.status === 'completed' && (
                 <span className="text-[10px] text-muted">
                   {new Date(latestCeoRun.started_at).toLocaleString('ko-KR')}
                 </span>
               )}
             </div>
-            <Link to={`/dashboard/bots/${ceoAgent.id}`} className="text-[12px] text-primary hover:underline">
-              전체 보기 →
+            <Link to={`/dashboard/bots/${ceoAgent.id}`} className="text-[12px] text-primary hover:underline flex items-center gap-1">
+              CEO Bot 열기 →
             </Link>
           </div>
           {latestCeoRun?.output ? (
@@ -525,7 +526,7 @@ export default function DashboardPage() {
               <Link to={`/dashboard/bots/${ceoAgent.id}`} className="text-primary hover:underline">
                 브리핑 실행하기
               </Link>
-              <span>— 전체 봇 현황 요약을 생성합니다</span>
+              <span>— 전체 봇 활동을 요약한 전략 브리핑을 생성합니다</span>
             </div>
           )}
         </div>
@@ -637,6 +638,53 @@ export default function DashboardPage() {
 
         </div>
       </div>
+
+      {/* 템플릿 안내 모달 */}
+      {showTemplateInfo && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface border border-border rounded-xl w-full max-w-md">
+            <div className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Layers size={16} className="text-primary" />
+                <h2 className="text-base font-semibold text-text">OOMNI 팀 구성 템플릿</h2>
+              </div>
+              <p className="text-[13px] text-dim mb-4 leading-relaxed">
+                솔로프리너를 위한 <span className="text-primary font-medium">6개 AI 봇</span>을 현재 미션에 한 번에 생성합니다.
+              </p>
+              <div className="space-y-2 mb-5">
+                {[
+                  { emoji: '🔬', name: 'Research Bot', desc: '시장·경쟁사·트렌드 자동 조사' },
+                  { emoji: '🔨', name: 'Build Bot', desc: '코드 작성·버그 수정·배포 자동화' },
+                  { emoji: '🎨', name: 'Design Bot', desc: 'UI/UX 디자인·컴포넌트 자동 생성' },
+                  { emoji: '✍️', name: 'Content Bot', desc: '블로그·뉴스레터·SNS 콘텐츠 제작' },
+                  { emoji: '⚙️', name: 'Ops Bot', desc: 'n8n 자동화·재무·운영 리포트' },
+                  { emoji: '👑', name: 'CEO Bot', desc: '전체 봇 현황 요약·전략 브리핑' },
+                ].map(b => (
+                  <div key={b.name} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-bg border border-border">
+                    <span className="text-base">{b.emoji}</span>
+                    <div>
+                      <span className="text-[13px] font-medium text-text">{b.name}</span>
+                      <span className="text-[11px] text-muted ml-2">{b.desc}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted mb-4">이미 존재하는 봇은 중복 생성되지 않습니다.</p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowTemplateInfo(false)} className="flex-1 py-2 border border-border text-muted rounded text-[13px] hover:text-text transition-colors">
+                  취소
+                </button>
+                <button
+                  onClick={() => { setShowTemplateInfo(false); applyTemplate.mutate('solo-factory-os') }}
+                  className="flex-1 py-2 bg-primary text-white rounded text-[13px] font-medium hover:bg-primary-hover transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Layers size={13} /> 팀 구성 시작
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 봇 실행 모달 */}
       {runModalAgent && (

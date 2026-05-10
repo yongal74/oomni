@@ -248,7 +248,7 @@ export default function OnboardingPage() {
           <span className="text-lg font-bold text-white">OOMNI</span>
         </div>
 
-        <div className="w-full max-w-[400px]">
+        <div className={cn('w-full transition-all duration-300', step === 0 ? 'max-w-2xl' : 'max-w-[440px]')}>
 
           {/* 스텝 인디케이터 */}
           <div className="flex items-center gap-1.5 mb-8">
@@ -479,13 +479,91 @@ export default function OnboardingPage() {
 
 // ─── DevSetup Step ────────────────────────────────────────────────────────────
 
-const ACCOUNT_LINKS = [
-  { label: 'Claude.ai Pro', desc: 'AI 코딩 파트너 (월 $20)', icon: Zap, url: 'https://claude.ai', color: 'text-primary' },
-  { label: 'Google', desc: 'Firebase · GCP · Gmail (무료)', icon: Globe, url: 'https://accounts.google.com', color: 'text-sky-400' },
-  { label: 'GitHub', desc: '코드 저장소 · 버전 관리 (무료)', icon: Github, url: 'https://github.com', color: 'text-[#e4e4e7]' },
-  { label: 'Supabase', desc: 'DB + 인증 + 스토리지 (무료)', icon: Database, url: 'https://supabase.com', color: 'text-emerald-400' },
-  { label: 'Vercel', desc: '프론트엔드 배포 (무료)', icon: Globe, url: 'https://vercel.com', color: 'text-[#e4e4e7]' },
-] as const
+interface AccountLink {
+  label: string
+  desc: string
+  icon: React.ElementType
+  url: string
+  color: string
+  afterSignup: { title: string; steps: string[] }
+}
+
+const ACCOUNT_LINKS: AccountLink[] = [
+  {
+    label: 'Anthropic (Claude API)',
+    desc: 'AI 봇 실행 필수 (유료)',
+    icon: Zap,
+    url: 'https://console.anthropic.com',
+    color: 'text-primary',
+    afterSignup: {
+      title: '가입 후 조치',
+      steps: [
+        '① console.anthropic.com → API Keys → Create Key',
+        '② 생성된 sk-ant-... 키를 복사',
+        '③ OOMNI 온보딩 Step 1에 붙여넣기',
+      ],
+    },
+  },
+  {
+    label: 'Google',
+    desc: 'Firebase · GCP · Gmail (무료)',
+    icon: Globe,
+    url: 'https://accounts.google.com',
+    color: 'text-sky-400',
+    afterSignup: {
+      title: '가입 후 조치',
+      steps: [
+        '① console.cloud.google.com → 프로젝트 생성',
+        '② Gmail API / Drive API 활성화',
+        '③ OAuth 클라이언트 ID 생성 → OOMNI 설정에 입력',
+      ],
+    },
+  },
+  {
+    label: 'GitHub',
+    desc: '코드 저장소 · 버전 관리 (무료)',
+    icon: Github,
+    url: 'https://github.com',
+    color: 'text-[#e4e4e7]',
+    afterSignup: {
+      title: '가입 후 조치',
+      steps: [
+        '① github.com → Settings → Developer Settings → Personal Access Tokens',
+        '② repo / workflow 권한으로 토큰 생성',
+        '③ Build Bot이 Git 명령을 실행할 때 사용됨',
+      ],
+    },
+  },
+  {
+    label: 'Supabase',
+    desc: 'DB + 인증 + 스토리지 (무료)',
+    icon: Database,
+    url: 'https://supabase.com',
+    color: 'text-emerald-400',
+    afterSignup: {
+      title: '가입 후 조치',
+      steps: [
+        '① supabase.com → New Project 생성',
+        '② Project Settings → API → Project URL 복사',
+        '③ anon public key 복사 → 아래 STEP 5에 입력',
+      ],
+    },
+  },
+  {
+    label: 'Vercel',
+    desc: '프론트엔드 배포 (무료)',
+    icon: Globe,
+    url: 'https://vercel.com',
+    color: 'text-[#e4e4e7]',
+    afterSignup: {
+      title: '가입 후 조치',
+      steps: [
+        '① vercel.com → Account Settings → Tokens → Create Token',
+        '③ Infra Bot의 배포 자동화에 사용됨',
+      ],
+    },
+  },
+]
 
 function ToolBadge({ version, label }: { version: string | null | undefined; label: string }) {
   if (version === undefined) return null
@@ -554,8 +632,15 @@ function DevSetupStep({
   const isMac = platform === 'darwin'
   const ic = toolStatus?.install_commands
 
+  const [expandedAccount, setExpandedAccount] = useState<string | null>(null)
+
   const openUrl = (url: string) => {
-    (window as { electronAPI?: { openExternal?: (u: string) => void } }).electronAPI?.openExternal?.(url)
+    const el = window as { electronAPI?: { openExternal?: (u: string) => void } }
+    if (el.electronAPI?.openExternal) {
+      el.electronAPI.openExternal(url)
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer')
+    }
   }
 
   return (
@@ -569,24 +654,46 @@ function DevSetupStep({
 
         {/* ── 섹션 A: 필수 계정 ── */}
         <div className="bg-[#111113] border border-[#1c1c20] rounded-2xl p-5">
-          <p className="text-[11px] font-semibold text-[#52525b] uppercase tracking-wide mb-3">STEP 1 — 필수 계정 만들기</p>
-          <div className="grid grid-cols-2 gap-2">
+          <p className="text-[11px] font-semibold text-[#52525b] uppercase tracking-wide mb-3">STEP 1 — 필수 계정 만들기 (가입 후 ▼ 클릭 → API 키 발급 안내)</p>
+          <div className="space-y-2">
             {ACCOUNT_LINKS.map(a => {
               const Icon = a.icon
+              const isExpanded = expandedAccount === a.label
               return (
-                <button
-                  key={a.label}
-                  type="button"
-                  onClick={() => openUrl(a.url)}
-                  className="flex items-center gap-2 p-2.5 rounded-lg border border-[#1c1c20] hover:border-[#27272a] bg-[#0d0d0f] text-left transition-all group"
-                >
-                  <Icon size={13} className={a.color} />
-                  <div>
-                    <div className="text-[12px] font-medium text-[#e4e4e7] group-hover:text-white transition-colors">{a.label}</div>
-                    <div className="text-[10px] text-[#52525b]">{a.desc}</div>
+                <div key={a.label} className="rounded-lg border border-[#1c1c20] bg-[#0d0d0f] overflow-hidden">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openUrl(a.url)}
+                      className="flex items-center gap-2 flex-1 p-2.5 text-left transition-all group hover:bg-[#111113]"
+                    >
+                      <Icon size={13} className={a.color} />
+                      <div>
+                        <div className="text-[12px] font-medium text-[#e4e4e7] group-hover:text-white transition-colors">{a.label}</div>
+                        <div className="text-[10px] text-[#52525b]">{a.desc}</div>
+                      </div>
+                      <ExternalLink size={10} className="ml-2 text-[#3f3f46] group-hover:text-[#52525b] shrink-0" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedAccount(isExpanded ? null : a.label)}
+                      className="px-3 py-2.5 text-[10px] text-[#52525b] hover:text-primary transition-colors shrink-0 border-l border-[#1c1c20]"
+                      title="가입 후 API 키 발급 안내"
+                    >
+                      {isExpanded ? '▲ 닫기' : '▼ 안내'}
+                    </button>
                   </div>
-                  <ExternalLink size={10} className="ml-auto text-[#3f3f46] group-hover:text-[#52525b]" />
-                </button>
+                  {isExpanded && (
+                    <div className="px-3 pb-3 pt-1 border-t border-[#1c1c20] bg-[#111113]">
+                      <p className="text-[10px] font-semibold text-primary mb-1.5">{a.afterSignup.title}</p>
+                      <div className="space-y-1">
+                        {a.afterSignup.steps.map((step, i) => (
+                          <p key={i} className="text-[11px] text-[#71717a] leading-relaxed">{step}</p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )
             })}
           </div>
