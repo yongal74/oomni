@@ -294,8 +294,8 @@ POLAR_ACCESS_TOKEN=
       openDesignProc.on('exit', () => { openDesignProc = null })
       openDesignProc.on('error', () => { openDesignProc = null })
 
-      // 최대 15초 대기 (서버 기동 시간 고려)
-      for (let i = 0; i < 15; i++) {
+      // 최대 45초 대기 (첫 실행 시 npx 패키지 다운로드 포함)
+      for (let i = 0; i < 45; i++) {
         await sleep(1000)
         if (await isPortOpen(OPEN_DESIGN_PORT)) {
           res.json({ success: true, status: 'running', port: OPEN_DESIGN_PORT, url: `http://localhost:${OPEN_DESIGN_PORT}` })
@@ -303,7 +303,10 @@ POLAR_ACCESS_TOKEN=
         }
       }
 
-      res.status(504).json({ success: false, error: '서버 시작 시간 초과 (15s). npx 캐시 없으면 첫 실행 시 시간이 걸립니다.' })
+      res.status(504).json({
+        success: false,
+        error: '서버 시작 시간 초과 (45s). 터미널에서 직접 실행: npx open-design-ade --port 7456',
+      })
     } catch (err) {
       res.status(500).json({ success: false, error: err instanceof Error ? err.message : '실행 실패' })
     }

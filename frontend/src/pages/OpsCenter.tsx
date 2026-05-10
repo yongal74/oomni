@@ -1,16 +1,16 @@
 /**
- * OpsCenter.tsx — 자동화 지원 센터 v5.6.0
+ * OpsCenter.tsx — 자동화 지원 센터 v5.12.0
  * Top: 도메인 드롭다운 + 빠른실행 → Right 채팅에 프롬프트 주입
  * Left: AI 생성 프로세스 카드 (기본 빈 상태)
  * Center: 선택된 카드 상세 (실행순서·FIELD·주의사항·가이드)
- * Right: AI 채팅
+ * Right: AI 채팅 + n8n JSON 생성 + n8n 직접 전송
  */
 import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Workflow, Zap, Check,
   MessageSquare, Send, RefreshCw,
   ChevronDown, Copy, CheckCheck, Download,
-  AlertTriangle, Info, Layers,
+  AlertTriangle, Info, Layers, Upload, ExternalLink,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useAppStore } from '../store/app.store'
@@ -372,6 +372,8 @@ export default function OpsCenter() {
   const [streaming, setStreaming] = useState(false)
   const [workflow, setWorkflow] = useState<{ name: string; json: string } | null>(null)
   const [copied, setCopied] = useState(false)
+  const [n8nPushStatus, setN8nPushStatus] = useState<'idle' | 'pushing' | 'success' | 'error'>('idle')
+  const [n8nPushMsg, setN8nPushMsg] = useState('')
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -548,22 +550,72 @@ export default function OpsCenter() {
     URL.revokeObjectURL(url)
   }, [workflow])
 
+  const pushToN8n = useCallback(async () => {
+    if (!workflow?.json || n8nPushStatus === 'pushing') return
+    setN8nPushStatus('pushing')
+    setN8nPushMsg('')
+    try {
+      // n8n REST API — POST /rest/workflows (로컬 기본 포트 5678)
+      const resp = await fetch('http://localhost:5678/rest/workflows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: workflow.json,
+      })
+      if (resp.ok) {
+        const data = await resp.json() as { id?: string; name?: string }
+        setN8nPushStatus('success')
+        setN8nPushMsg(`전송 완료${data.id ? ` (ID: ${data.id})` : ''}`)
+        setTimeout(() => setN8nPushStatus('idle'), 4000)
+      } else {
+        const err = await resp.json().catch(() => ({})) as { message?: string }
+        setN8nPushStatus('error')
+        setN8nPushMsg(err.message ?? `HTTP ${resp.status}`)
+        setTimeout(() => setN8nPushStatus('idle'), 5000)
+      }
+    } catch {
+      setN8nPushStatus('error')
+      setN8nPushMsg('n8n 연결 실패 — localhost:5678에서 n8n을 먼저 실행하세요')
+      setTimeout(() => setN8nPushStatus('idle'), 6000)
+    }
+  }, [workflow, n8nPushStatus])
+
   // ── render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col h-full bg-[#0d0d0f] text-white overflow-hidden">
 
       {/* ── 헤더 ─────────────────────────────────────────────────────────── */}
-      <div className="shrink-0 border-b border-[#1c1c20] px-5 py-3 flex items-center gap-3">
+      <div className="shrink-0 border-b border-[#1c1c20] px-5 py-3 flex items-center gap-3 flex-wrap">
         <Workflow size={16} className="text-yellow-400" />
         <span className="text-sm font-semibold text-[#e4e4e7]">Ops Bot</span>
         <span className="text-[11px] text-[#52525b] bg-[#111113] border border-[#27272a] px-2 py-0.5 rounded-full">
           자동화 지원 센터
         </span>
+        {/* n8n 빠른 접속 링크 */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          <a
+            href="http://localhost:5678"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] text-[#71717a] border border-[#27272a] hover:text-orange-400 hover:border-orange-500/30 transition-colors"
+            title="n8n 로컬 접속"
+          >
+            <ExternalLink size={9} /> n8n 로컬
+          </a>
+          <a
+            href="https://app.n8n.cloud"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] text-[#71717a] border border-[#27272a] hover:text-orange-400 hover:border-orange-500/30 transition-colors"
+            title="n8n 클라우드"
+          >
+            <ExternalLink size={9} /> n8n 클라우드
+          </a>
+        </div>
         {processCards.length > 0 && (
           <button
             onClick={() => { setProcessCards([]); setSelectedCard(null); setWorkflow(null) }}
-            className="ml-auto text-[11px] text-[#52525b] hover:text-[#a1a1aa] transition-colors"
+            className="text-[11px] text-[#52525b] hover:text-[#a1a1aa] transition-colors"
           >
             초기화
           </button>
@@ -638,7 +690,7 @@ export default function OpsCenter() {
       <div className="flex flex-1 min-h-0">
 
         {/* ── Left: AI 프로세스 카드 (기본 빈 상태) ────────────────────── */}
-        <aside className="w-[280px] flex-shrink-0 border-r border-[#1c1c20] bg-[#0a0a10] flex flex-col overflow-hidden">
+        <aside className="w-[220px] lg:w-[260px] xl:w-[290px] 2xl:w-[320px] flex-shrink-0 border-r border-[#1c1c20] bg-[#0a0a10] flex flex-col overflow-hidden">
           <div className="px-3 pt-3 pb-2 border-b border-white/5 shrink-0 flex items-center justify-between">
             <p className="text-[10px] font-bold text-[#3f3f46] uppercase tracking-widest">자동화 프로세스</p>
             {processCards.length > 0 && (
@@ -848,7 +900,7 @@ export default function OpsCenter() {
         </div>
 
         {/* ── Right: AI 채팅 ────────────────────────────────────────────── */}
-        <div className="w-[320px] shrink-0 flex flex-col bg-[#0a0a10]">
+        <div className="w-[270px] lg:w-[300px] xl:w-[330px] 2xl:w-[360px] shrink-0 flex flex-col bg-[#0a0a10]">
           <div className="px-4 py-2.5 border-b border-[#1c1c20] flex items-center gap-1.5 shrink-0">
             <MessageSquare size={12} className="text-primary" />
             <span className="text-[10px] font-semibold text-[#52525b] uppercase tracking-widest">AI 자동화 설계</span>
@@ -886,7 +938,7 @@ export default function OpsCenter() {
           {workflow && (
             <div className="px-3 pb-2 shrink-0 border-t border-[#1c1c20] pt-2">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] text-green-400 font-semibold truncate max-w-[180px]">n8n — {workflow.name}</span>
+                <span className="text-[10px] text-green-400 font-semibold truncate max-w-[140px]">n8n — {workflow.name}</span>
                 <div className="flex gap-1">
                   <button onClick={copyJson} className="p-1 text-[#52525b] hover:text-slate-300 transition-colors" title="JSON 복사">
                     {copied ? <CheckCheck size={12} className="text-green-400" /> : <Copy size={12} />}
@@ -896,9 +948,35 @@ export default function OpsCenter() {
                   </button>
                 </div>
               </div>
-              <div className="bg-[#111113] border border-green-500/20 rounded-lg px-2 py-1.5 max-h-20 overflow-y-auto">
+              {/* n8n 직접 전송 버튼 */}
+              <button
+                onClick={pushToN8n}
+                disabled={n8nPushStatus === 'pushing'}
+                className={cn(
+                  'w-full flex items-center justify-center gap-1.5 mb-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors',
+                  n8nPushStatus === 'success'
+                    ? 'bg-green-500/15 border-green-500/30 text-green-400'
+                    : n8nPushStatus === 'error'
+                    ? 'bg-red-500/10 border-red-500/20 text-red-400'
+                    : n8nPushStatus === 'pushing'
+                    ? 'bg-orange-500/10 border-orange-500/20 text-orange-400'
+                    : 'bg-orange-500/15 border-orange-500/30 text-orange-400 hover:bg-orange-500/25',
+                )}
+              >
+                {n8nPushStatus === 'pushing'
+                  ? <><RefreshCw size={11} className="animate-spin" /> 전송 중...</>
+                  : n8nPushStatus === 'success'
+                  ? <><CheckCheck size={11} /> {n8nPushMsg}</>
+                  : n8nPushStatus === 'error'
+                  ? <><AlertTriangle size={11} /> 오류</>
+                  : <><Upload size={11} /> n8n에 바로 전송</>}
+              </button>
+              {n8nPushStatus === 'error' && n8nPushMsg && (
+                <p className="text-[9px] text-red-400/80 mb-1.5 leading-relaxed">{n8nPushMsg}</p>
+              )}
+              <div className="bg-[#111113] border border-green-500/20 rounded-lg px-2 py-1.5 max-h-16 overflow-y-auto">
                 <pre className="text-[9px] text-green-400/70 leading-relaxed whitespace-pre-wrap break-all">
-                  {workflow.json.slice(0, 300)}…
+                  {workflow.json.slice(0, 200)}…
                 </pre>
               </div>
             </div>

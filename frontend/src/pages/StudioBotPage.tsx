@@ -704,15 +704,24 @@ export default function StudioBotPage() {
                 </p>
               </div>
               {odStatus === 'error' && (
-                <div className="flex items-center gap-2 px-4 py-2 bg-red-900/20 border border-red-800/40 rounded-xl text-[12px] text-red-400">
-                  <AlertCircle size={13} />
-                  {odError || '서버 시작 실패'}
+                <div className="w-full max-w-sm space-y-2">
+                  <div className="flex items-start gap-2 px-4 py-3 bg-red-900/20 border border-red-800/40 rounded-xl text-[12px] text-red-400">
+                    <AlertCircle size={13} className="shrink-0 mt-0.5" />
+                    <span>{odError || '서버 시작 실패 (45초 초과)'}</span>
+                  </div>
+                  <div className="px-4 py-3 bg-surface border border-border rounded-xl text-left text-[11px]">
+                    <p className="text-muted font-semibold mb-1.5">수동 실행 방법 (터미널에서)</p>
+                    <code className="block bg-[#111] rounded p-2 text-primary font-mono text-[10px] mb-1.5">
+                      npx open-design-ade --port {OPEN_DESIGN_PORT}
+                    </code>
+                    <p className="text-muted/60">실행 후 아래 "시작" 버튼 대신 새로고침(↺)을 클릭하세요</p>
+                  </div>
                 </div>
               )}
               {odStatus === 'starting' || odStatus === 'checking' ? (
                 <div className="flex items-center gap-2 px-5 py-3 bg-surface border border-border rounded-xl text-[13px] text-muted">
                   <Loader2 size={14} className="animate-spin text-primary" />
-                  {odStatus === 'starting' ? 'Open Design 서버 시작 중... (첫 실행은 30초 이상 소요될 수 있습니다)' : '상태 확인 중...'}
+                  {odStatus === 'starting' ? 'Open Design 서버 시작 중... (최대 45초 소요)' : '상태 확인 중...'}
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-3">

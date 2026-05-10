@@ -53,19 +53,22 @@ export default function GrowthStudio() {
 
   return (
     <div className="flex flex-col h-full bg-[#0d0d0f]">
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-[#1c1c20] shrink-0">
-        <Rocket size={16} className="text-pink-400" />
-        <span className="text-[14px] font-semibold text-[#e4e4e7]">AI Lead Generation</span>
-        <div className="flex items-center gap-1 text-[10px] text-pink-400/70 bg-pink-500/10 border border-pink-500/20 px-2 py-0.5 rounded-full">
-          <Zap size={9} />v5.2.0
+      <div className="flex flex-col shrink-0">
+        <div className="flex items-center gap-3 px-6 py-3 border-b border-[#1c1c20]">
+          <Rocket size={16} className="text-pink-400" />
+          <span className="text-[14px] font-semibold text-[#e4e4e7]">AI Lead Generation</span>
+          <div className="flex items-center gap-1 text-[10px] text-pink-400/70 bg-pink-500/10 border border-pink-500/20 px-2 py-0.5 rounded-full">
+            <Zap size={9} />v5.2.0
+          </div>
         </div>
-        <div className="ml-auto flex gap-1">
+        {/* 탭 바 — 별도 행으로 분리하여 반응형 처리 */}
+        <div className="flex items-center gap-1 px-4 py-2 border-b border-[#1c1c20] overflow-x-auto scrollbar-hide">
           {TABS.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] transition-colors border',
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] transition-colors border whitespace-nowrap shrink-0',
                 tab === t.id
                   ? 'bg-primary/20 text-primary border-primary/30'
                   : 'text-[#52525b] hover:text-[#a1a1aa] border-transparent',
