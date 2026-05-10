@@ -1,6 +1,6 @@
 {
   "name": "oomni",
-  "version": "5.12.0",
+  "version": "5.13.0",
   "description": "OOMNI 멀티에이전트 AI 플랫폼",
   "main": "electron/main.js",
   "scripts": {
