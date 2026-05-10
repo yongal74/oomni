@@ -8,13 +8,44 @@
 
 | 항목 | 내용 |
 |------|------|
-| **최신 버전** | v5.6.0 |
-| **다음 버전** | v5.7.0 (미정) |
+| **최신 버전** | v5.12.0 |
+| **다음 버전** | v5.13.0 (피드백 기반 OPS 가이드 확장) |
 | **tsc --noEmit** | ✅ 0 errors (백엔드 + 프론트엔드) |
-| **GitHub Release** | 🔄 v5.6.0 빌드 중 |
-| **랜딩페이지** | 🔄 v5.6.0 업데이트 필요 |
+| **GitHub Release** | 🔄 v5.12.0 패키징 중 |
+| **랜딩페이지** | ✅ v5.12.0 다운로드 URL 업데이트 완료 |
 | **IDE** | VS Code + Claude Code 익스텐션 |
-| **마지막 작업일** | 2026-05-06 |
+| **마지막 작업일** | 2026-05-10 |
+
+---
+
+## 2026-05-10 — v5.12.0 7가지 이슈 수정 + UX 개선
+
+### 변경 파일
+| 파일 | 변경 내용 |
+|---|---|
+| `frontend/src/pages/DashboardPage.tsx` | CEO 봇 중복 제거, 템플릿 설명 모달 |
+| `frontend/src/pages/OnboardingPage.tsx` | 계정 링크 수정, 가입 후 API 안내 아코디언 |
+| `frontend/src/pages/DesignStudio.tsx` | Open Design 데몬 상태 UI + 시작/종료/에디터 버튼 |
+| `frontend/src/pages/UnifiedBotPage.tsx` | 반응형 패널 폭 (lg/xl/2xl) |
+| `frontend/src/pages/PtyBotPage.tsx` | OPS center → ResizableSplit (OpsNodeGuidePanel + XTerminal) |
+| `frontend/src/components/layout/AppLayout.tsx` | min-w-0 + overflow-hidden 개선 |
+| `frontend/src/components/bot/panels/OpsPanel.tsx` | 전면 재작성: 순서도, 노드 가이드, AX-Clinic 크로스셀 |
+| `package.json` (3개) | v5.12.0 |
+| `docs/index.html` | v5.12.0 다운로드 URL |
+
+### 주요 변경사항
+
+**Issue 1 — CEO 봇 중복**: 대시보드 봇 목록 `filter(role !== 'ceo')` 적용 + 템플릿 정보 모달  
+**Issue 2 — DevEnv 링크**: `electronAPI.openExternal` fallback 수정 + 계정별 가입후 API 설정 아코디언  
+**Issue 3 — 반응형 레이아웃**: 모든 봇 페이지 `lg:w-60 xl:w-64 2xl:w-72` 브레이크포인트  
+**Issue 4 — Open Design**: 헤더 상태 표시 + 8초 폴링 + 시작/종료/에디터 버튼  
+**Issue 5 — OPS 순서도**: n8n JSON 파싱 → WorkflowFlowchart + OpsNodeGuidePanel (11 노드 타입 가이드)  
+**Issue 6 — AX-Clinic 크로스셀**: OPS "연동" 탭에 ax-clinic 카드 추가  
+
+### 다음 할 일
+- v5.13.0: OPS 노드 가이드 더 추가 (driveNode, supabase, github, discord 등)
+- n8n JSON import 실제 파일 선택 → 임포트 API 연동
+- PTY 터미널 크기 자동 조정
 
 ---
 

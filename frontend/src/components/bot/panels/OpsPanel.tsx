@@ -738,6 +738,11 @@ const OPS_SKILLS = [
   { label: '세금 준비',       prompt: '/tax-prep 이번 분기 세금 신고를 위한 수입/지출 데이터를 정리해줘' },
 ]
 
+// ── CENTER (alias for UnifiedBotPage compatibility) ──────────────────────────
+export function OpsCenterPanel({ agentId }: { agentId: string; streamOutput?: string; isRunning?: boolean }) {
+  return <OpsNodeGuidePanel node={null} agentId={agentId} />
+}
+
 // ── RIGHT: n8n 워크플로우 관리 + import + AX-Clinic + 다음봇 ─────────────────
 export function OpsRightPanel({ agentId, onSkillSelect, currentRole = 'ops', content = '' }: {
   agentId: string
