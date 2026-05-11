@@ -1,4 +1,4 @@
-/**
+﻿/**
  * OpsCenter.tsx — 자동화 지원 센터 v5.12.0
  * Top: 도메인 드롭다운 + 빠른실행 → Right 채팅에 프롬프트 주입
  * Left: AI 생성 프로세스 카드 (기본 빈 상태)
@@ -299,6 +299,27 @@ function CopyFieldBtn({ value }: { value: string }) {
   )
 }
 
+function parseGuideCards(guide: string): { title: string; body: string }[] {
+  const sections: { title: string; body: string }[] = []
+  let currentTitle = ''
+  let currentLines: string[] = []
+  for (const line of guide.split('\n')) {
+    if (line.startsWith('## ')) {
+      if (currentTitle || currentLines.some(l => l.trim())) {
+        sections.push({ title: currentTitle, body: currentLines.join('\n').trim() })
+      }
+      currentTitle = line.slice(3).trim()
+      currentLines = []
+    } else {
+      currentLines.push(line)
+    }
+  }
+  if (currentTitle || currentLines.some(l => l.trim())) {
+    sections.push({ title: currentTitle, body: currentLines.join('\n').trim() })
+  }
+  return sections.length > 0 ? sections : [{ title: '', body: guide }]
+}
+
 function GuideMd({ text }: { text: string }) {
   return (
     <div className="space-y-1.5 text-xs text-[#e4e4e7] leading-relaxed">
@@ -325,7 +346,7 @@ function ChatBubble({ message }: { message: ChatMessage }) {
   return (
     <div className={cn('flex gap-2', isUser && 'flex-row-reverse')}>
       <div className={cn(
-        'flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-[12px] font-bold',
+        'flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-[13px] font-bold',
         isUser ? 'bg-primary/30 text-primary' : 'bg-orange-600/20 text-orange-300',
       )}>
         {isUser ? 'U' : 'AI'}
@@ -590,7 +611,7 @@ export default function OpsCenter() {
       <div className="shrink-0 border-b border-[#1c1c20] px-5 py-3 flex items-center gap-3 flex-wrap">
         <Workflow size={18} className="text-yellow-400" />
         <span className="text-sm font-semibold text-[#e4e4e7]">Ops Bot</span>
-        <span className="text-[13px] text-[#52525b] bg-[#111113] border border-[#27272a] px-2 py-0.5 rounded-full">
+        <span className="text-[14px] text-[#52525b] bg-[#111113] border border-[#27272a] px-2 py-0.5 rounded-full">
           자동화 지원 센터
         </span>
         {/* n8n 빠른 접속 링크 */}
@@ -599,7 +620,7 @@ export default function OpsCenter() {
             href="http://localhost:5678"
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[12px] text-[#71717a] border border-[#27272a] hover:text-orange-400 hover:border-orange-500/30 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[13px] text-[#71717a] border border-[#27272a] hover:text-orange-400 hover:border-orange-500/30 transition-colors"
             title="n8n 로컬 접속"
           >
             <ExternalLink size={9} /> n8n 로컬
@@ -608,7 +629,7 @@ export default function OpsCenter() {
             href="https://app.n8n.cloud"
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[12px] text-[#71717a] border border-[#27272a] hover:text-orange-400 hover:border-orange-500/30 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[13px] text-[#71717a] border border-[#27272a] hover:text-orange-400 hover:border-orange-500/30 transition-colors"
             title="n8n 클라우드"
           >
             <ExternalLink size={9} /> n8n 클라우드
@@ -617,7 +638,7 @@ export default function OpsCenter() {
         {processCards.length > 0 && (
           <button
             onClick={() => { setProcessCards([]); setSelectedCard(null); setWorkflow(null) }}
-            className="text-[13px] text-[#52525b] hover:text-[#a1a1aa] transition-colors"
+            className="text-[14px] text-[#52525b] hover:text-[#a1a1aa] transition-colors"
           >
             초기화
           </button>
@@ -627,7 +648,7 @@ export default function OpsCenter() {
       {/* ── 상단 바: 도메인 드롭다운 + 빠른 실행 ─────────────────────────── */}
       <div ref={topBarRef} className="shrink-0 border-b border-[#1c1c20] bg-[#0a0a10] px-4 py-2.5 flex items-center gap-3 flex-wrap">
         {/* 도메인 드롭다운 */}
-        <span className="text-[12px] text-[#3f3f46] uppercase tracking-widest shrink-0">도메인</span>
+        <span className="text-[13px] text-[#3f3f46] uppercase tracking-widest shrink-0">도메인</span>
         {DOMAINS.map(domain => {
           const domainProcesses = PROCESSES.filter(p => p.domain === domain)
           const isOpen = openDomain === domain
@@ -636,7 +657,7 @@ export default function OpsCenter() {
               <button
                 onClick={() => setOpenDomain(isOpen ? null : domain)}
                 className={cn(
-                  'flex items-center gap-1 text-[12px] px-2.5 py-1 rounded-lg border transition-all',
+                  'flex items-center gap-1 text-[13px] px-2.5 py-1 rounded-lg border transition-all',
                   isOpen
                     ? 'bg-primary/15 border-primary/40 text-primary'
                     : 'bg-white/3 border-white/10 text-[#71717a] hover:text-[#a1a1aa] hover:border-white/20',
@@ -660,9 +681,9 @@ export default function OpsCenter() {
                             style={{ color: tColor, background: `${tColor}20` }}>
                             {p.tCode}
                           </span>
-                          <span className="text-[13px] font-medium text-[#a1a1aa] group-hover:text-white transition-colors">{p.title}</span>
+                          <span className="text-[14px] font-medium text-[#a1a1aa] group-hover:text-white transition-colors">{p.title}</span>
                         </div>
-                        <p className="text-[12px] text-[#52525b] leading-snug pl-6">{p.desc}</p>
+                        <p className="text-[13px] text-[#52525b] leading-snug pl-6">{p.desc}</p>
                       </button>
                     )
                   })}
@@ -676,12 +697,12 @@ export default function OpsCenter() {
         <div className="w-px h-3.5 bg-[#27272a] shrink-0" />
 
         {/* 빠른 실행 */}
-        <span className="text-[12px] text-[#3f3f46] uppercase tracking-widest shrink-0">빠른 실행</span>
+        <span className="text-[13px] text-[#3f3f46] uppercase tracking-widest shrink-0">빠른 실행</span>
         {QUICK_PROMPTS.map(qp => (
           <button
             key={qp}
             onClick={() => injectPrompt(qp)}
-            className="text-[12px] text-[#52525b] bg-[#111113] border border-[#1c1c20] rounded-lg px-2.5 py-1 hover:border-amber-500/30 hover:text-[#a1a1aa] transition-colors whitespace-nowrap"
+            className="text-[13px] text-[#52525b] bg-[#111113] border border-[#1c1c20] rounded-lg px-2.5 py-1 hover:border-amber-500/30 hover:text-[#a1a1aa] transition-colors whitespace-nowrap"
           >
             {qp.length > 18 ? qp.slice(0, 18) + '…' : qp}
           </button>
@@ -694,7 +715,7 @@ export default function OpsCenter() {
         {/* ── Left: AI 프로세스 카드 (기본 빈 상태) ────────────────────── */}
         <aside className="w-[220px] lg:w-[260px] xl:w-[290px] 2xl:w-[320px] flex-shrink-0 border-r border-[#1c1c20] bg-[#0a0a10] flex flex-col overflow-hidden">
           <div className="px-3 pt-3 pb-2 border-b border-white/5 shrink-0 flex items-center justify-between">
-            <p className="text-[12px] font-bold text-[#3f3f46] uppercase tracking-widest">자동화 프로세스</p>
+            <p className="text-[13px] font-bold text-[#3f3f46] uppercase tracking-widest">자동화 프로세스</p>
             {processCards.length > 0 && (
               <span className="text-[9px] text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-full">
                 {processCards.length}개
@@ -708,8 +729,8 @@ export default function OpsCenter() {
                 <Layers size={22} className="text-[#3f3f46]" />
               </div>
               <div>
-                <p className="text-[14px] text-[#52525b] mb-1.5">아직 프로세스가 없어요</p>
-                <p className="text-[13px] text-[#3f3f46] leading-relaxed">
+                <p className="text-[15px] text-[#52525b] mb-1.5">아직 프로세스가 없어요</p>
+                <p className="text-[14px] text-[#3f3f46] leading-relaxed">
                   오른쪽 채팅에서 자동화를<br />요청하면 여기에 카드가 생성됩니다
                 </p>
               </div>
@@ -738,10 +759,10 @@ export default function OpsCenter() {
                       )}>
                         STEP {idx + 1}
                       </span>
-                      <p className={cn('font-bold text-[14px] leading-tight mt-1 mb-1.5', isSelected ? 'text-white' : 'text-[#d4d4d8]')}>
+                      <p className={cn('font-bold text-[15px] leading-tight mt-1 mb-1.5', isSelected ? 'text-white' : 'text-[#d4d4d8]')}>
                         {card.title}
                       </p>
-                      <p className={cn('text-[12px] leading-relaxed', isSelected ? 'text-orange-200/80' : 'text-[#71717a]')}>
+                      <p className={cn('text-[13px] leading-relaxed', isSelected ? 'text-orange-200/80' : 'text-[#71717a]')}>
                         {card.role}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
@@ -782,8 +803,8 @@ export default function OpsCenter() {
               <div className="px-4 pt-4 pb-0 shrink-0">
                 <div className="flex items-center gap-2 mb-3">
                   <Workflow size={16} className="text-primary" />
-                  <span className="text-[14px] font-bold text-white">n8n 연동 가이드</span>
-                  <span className="text-[11px] text-primary/60 bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">초보자용</span>
+                  <span className="text-[15px] font-bold text-white">n8n 연동 가이드</span>
+                  <span className="text-[14px] text-primary/60 bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">초보자용</span>
                 </div>
                 <div className="flex gap-1 border-b border-[#1c1c20] pb-0">
                   {(['roles','methods','cases','mistakes'] as const).map(tab => (
@@ -791,7 +812,7 @@ export default function OpsCenter() {
                       key={tab}
                       onClick={() => { setN8nTab(tab); setN8nCase(null) }}
                       className={cn(
-                        'px-3 py-2 text-[12px] font-medium rounded-t-lg transition-colors border-b-2 -mb-px',
+                        'px-3 py-2 text-[13px] font-medium rounded-t-lg transition-colors border-b-2 -mb-px',
                         n8nTab === tab
                           ? 'text-primary border-primary bg-primary/5'
                           : 'text-[#52525b] border-transparent hover:text-[#a1a1aa]'
@@ -809,7 +830,7 @@ export default function OpsCenter() {
                 {/* ── 탭 1: 노드 역할 ── */}
                 {n8nTab === 'roles' && (
                   <div className="space-y-3">
-                    <p className="text-[12px] text-[#52525b]">n8n의 모든 노드는 3가지 역할 중 하나를 담당합니다</p>
+                    <p className="text-[13px] text-[#52525b]">n8n의 모든 노드는 3가지 역할 중 하나를 담당합니다</p>
                     {[
                       {
                         color: 'blue', label: 'Trigger', sub: '시작 노드',
@@ -837,18 +858,18 @@ export default function OpsCenter() {
                         'border-emerald-700/30 bg-emerald-900/10'
                       )}>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className={cn('text-[13px] font-black', r.color === 'blue' ? 'text-blue-400' : r.color === 'amber' ? 'text-amber-400' : 'text-emerald-400')}>{r.label}</span>
-                          <span className="text-[11px] text-[#52525b]">{r.sub}</span>
+                          <span className={cn('text-[14px] font-black', r.color === 'blue' ? 'text-blue-400' : r.color === 'amber' ? 'text-amber-400' : 'text-emerald-400')}>{r.label}</span>
+                          <span className="text-[14px] text-[#52525b]">{r.sub}</span>
                         </div>
-                        <p className="text-[12px] text-[#a1a1aa] mb-2">{r.desc}</p>
+                        <p className="text-[13px] text-[#a1a1aa] mb-2">{r.desc}</p>
                         <div className="flex flex-wrap gap-1.5 mb-2">
                           {r.examples.map(e => (
-                            <span key={e} className="text-[11px] bg-white/5 border border-white/10 px-2 py-0.5 rounded-full text-[#71717a]">{e}</span>
+                            <span key={e} className="text-[14px] bg-white/5 border border-white/10 px-2 py-0.5 rounded-full text-[#71717a]">{e}</span>
                           ))}
                         </div>
                         <div className="flex items-start gap-1.5 px-2 py-1.5 bg-white/3 rounded-lg">
                           <Info size={11} className="text-primary/60 shrink-0 mt-0.5" />
-                          <span className="text-[11px] text-primary/70">{r.tip}</span>
+                          <span className="text-[14px] text-primary/70">{r.tip}</span>
                         </div>
                       </div>
                     ))}
@@ -858,7 +879,7 @@ export default function OpsCenter() {
                 {/* ── 탭 2: 연결 방식 ── */}
                 {n8nTab === 'methods' && (
                   <div className="space-y-3">
-                    <p className="text-[12px] text-[#52525b]">n8n이 외부 서비스와 연결하는 5가지 방식</p>
+                    <p className="text-[13px] text-[#52525b]">n8n이 외부 서비스와 연결하는 5가지 방식</p>
                     {[
                       {
                         no: '01', label: 'Webhook 수신',
@@ -898,22 +919,22 @@ export default function OpsCenter() {
                     ].map(m => (
                       <div key={m.no} className="rounded-xl border border-[#1c1c20] bg-[#0e0e12] p-4">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-[11px] font-mono text-primary/50">{m.no}</span>
-                          <span className="text-[13px] font-bold text-white">{m.label}</span>
+                          <span className="text-[14px] font-mono text-primary/50">{m.no}</span>
+                          <span className="text-[14px] font-bold text-white">{m.label}</span>
                         </div>
-                        <p className="text-[12px] text-[#a1a1aa] mb-2">{m.desc}</p>
-                        <p className="text-[11px] text-[#52525b] mb-3">→ {m.when}</p>
+                        <p className="text-[13px] text-[#a1a1aa] mb-2">{m.desc}</p>
+                        <p className="text-[14px] text-[#52525b] mb-3">→ {m.when}</p>
                         <div className="space-y-1 mb-3">
                           {m.steps.map((s, i) => (
                             <div key={i} className="flex items-start gap-2">
-                              <span className="text-[10px] font-bold text-primary/60 shrink-0 mt-0.5">{i+1}.</span>
-                              <span className="text-[12px] text-[#71717a]">{s}</span>
+                              <span className="text-[13px] font-bold text-primary/60 shrink-0 mt-0.5">{i+1}.</span>
+                              <span className="text-[13px] text-[#71717a]">{s}</span>
                             </div>
                           ))}
                         </div>
                         <div className="flex items-start gap-1.5 px-2 py-1.5 bg-amber-500/5 border border-amber-500/15 rounded-lg">
                           <AlertTriangle size={11} className="text-amber-400/70 shrink-0 mt-0.5" />
-                          <span className="text-[11px] text-amber-400/70">{m.warn}</span>
+                          <span className="text-[14px] text-amber-400/70">{m.warn}</span>
                         </div>
                       </div>
                     ))}
@@ -923,7 +944,7 @@ export default function OpsCenter() {
                 {/* ── 탭 3: 케이스 가이드 ── */}
                 {n8nTab === 'cases' && (
                   <div className="space-y-2">
-                    <p className="text-[12px] text-[#52525b] mb-3">실전 케이스별 단계별 설정 가이드</p>
+                    <p className="text-[13px] text-[#52525b] mb-3">실전 케이스별 단계별 설정 가이드</p>
                     {[
                       { title: '웹훅 → Google Sheets 자동 기록', tag: 'Webhook', steps: ['Webhook Trigger 추가 → Test URL 복사 → 외부 서비스에 등록', 'Google Sheets 노드 추가 → Credential(OAuth) 설정', 'Operation: Append Row → Spreadsheet ID 입력', 'Webhook 데이터 필드를 시트 열에 매핑', 'Test → Production URL 전환'] },
                       { title: '이메일 수신 → Slack 자동 알림', tag: 'Schedule', steps: ['Gmail Trigger 추가 → Credential 설정 → Filters(발신자/제목) 지정', 'IF 노드: 중요 키워드 포함 여부 분기', 'Slack 노드 → Credential 설정 → 채널 선택', 'Message에 {{$json.subject}} {{$json.from}} 삽입', '5분 폴링 or 즉시 수신(Gmail Trigger)'] },
@@ -940,9 +961,9 @@ export default function OpsCenter() {
                           onClick={() => setN8nCase(n8nCase === i ? null : i)}
                           className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/3 transition-colors text-left"
                         >
-                          <span className="text-[11px] font-mono text-primary/50 shrink-0">CASE {String(i+1).padStart(2,'0')}</span>
-                          <span className="text-[13px] text-[#a1a1aa] flex-1">{c.title}</span>
-                          <span className="text-[10px] text-sky-400/60 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded-full shrink-0">{c.tag}</span>
+                          <span className="text-[14px] font-mono text-primary/50 shrink-0">CASE {String(i+1).padStart(2,'0')}</span>
+                          <span className="text-[14px] text-[#a1a1aa] flex-1">{c.title}</span>
+                          <span className="text-[13px] text-sky-400/60 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded-full shrink-0">{c.tag}</span>
                           <ChevronDown size={13} className={cn('text-[#52525b] transition-transform shrink-0', n8nCase === i && 'rotate-180')} />
                         </button>
                         {n8nCase === i && (
@@ -951,9 +972,9 @@ export default function OpsCenter() {
                               {c.steps.map((s, si) => (
                                 <div key={si} className="flex items-start gap-2">
                                   <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center">
-                                    <span className="text-[10px] text-primary font-bold">{si+1}</span>
+                                    <span className="text-[13px] text-primary font-bold">{si+1}</span>
                                   </span>
-                                  <span className="text-[12px] text-[#a1a1aa] leading-relaxed">{s}</span>
+                                  <span className="text-[13px] text-[#a1a1aa] leading-relaxed">{s}</span>
                                 </div>
                               ))}
                             </div>
@@ -967,7 +988,7 @@ export default function OpsCenter() {
                 {/* ── 탭 4: TOP 7 실수 ── */}
                 {n8nTab === 'mistakes' && (
                   <div className="space-y-3">
-                    <p className="text-[12px] text-[#52525b]">초보자가 반드시 겪는 7가지 실수와 해결법</p>
+                    <p className="text-[13px] text-[#52525b]">초보자가 반드시 겪는 7가지 실수와 해결법</p>
                     {[
                       { no: '01', title: 'Webhook URL 외부 수신 불가', desc: '로컬 n8n(localhost)은 인터넷에서 접근 불가. 외부 서비스가 웹훅을 보내도 수신 안 됨.', fix: 'ngrok으로 터널 생성 (무료) 또는 n8n Cloud / VPS 사용', color: 'red' },
                       { no: '02', title: 'Credentials 미설정 → 401 오류', desc: 'API 키 없이 노드 실행 → Authentication failed. 자격 증명을 노드에 연결해야 함.', fix: 'Credentials → Create New → API Key / OAuth 인증 완료 후 노드에 연결', color: 'red' },
@@ -982,13 +1003,13 @@ export default function OpsCenter() {
                         m.color === 'red' ? 'border-red-700/25 bg-red-900/8' : 'border-amber-700/25 bg-amber-900/8'
                       )}>
                         <div className="flex items-center gap-2 mb-1.5">
-                          <span className="text-[11px] font-mono text-[#52525b]">#{m.no}</span>
-                          <span className={cn('text-[13px] font-bold', m.color === 'red' ? 'text-red-400' : 'text-amber-400')}>{m.title}</span>
+                          <span className="text-[14px] font-mono text-[#52525b]">#{m.no}</span>
+                          <span className={cn('text-[14px] font-bold', m.color === 'red' ? 'text-red-400' : 'text-amber-400')}>{m.title}</span>
                         </div>
-                        <p className="text-[12px] text-[#71717a] mb-2">{m.desc}</p>
+                        <p className="text-[13px] text-[#71717a] mb-2">{m.desc}</p>
                         <div className="flex items-start gap-1.5 px-2 py-1.5 bg-emerald-500/8 border border-emerald-500/20 rounded-lg">
                           <Check size={11} className="text-emerald-400 shrink-0 mt-0.5" />
-                          <span className="text-[12px] text-emerald-300/80">{m.fix}</span>
+                          <span className="text-[13px] text-emerald-300/80">{m.fix}</span>
                         </div>
                       </div>
                     ))}
@@ -1005,16 +1026,16 @@ export default function OpsCenter() {
                   <Zap className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] text-primary uppercase tracking-widest mb-1">프로세스 상세</p>
+                  <p className="text-[13px] text-primary uppercase tracking-widest mb-1">프로세스 상세</p>
                   <p className="text-base font-bold text-white mb-1">{selectedCard.title}</p>
-                  <p className="text-[14px] text-[#71717a] leading-snug">{selectedCard.role}</p>
+                  <p className="text-[15px] text-[#71717a] leading-snug">{selectedCard.role}</p>
                 </div>
               </div>
 
               {/* 실행 순서 */}
               {selectedCard.steps.length > 0 && (
                 <div className="mb-5">
-                  <p className="text-[12px] font-bold text-[#52525b] uppercase tracking-widest mb-3">실행 순서</p>
+                  <p className="text-[13px] font-bold text-[#52525b] uppercase tracking-widest mb-3">실행 순서</p>
                   <div className="space-y-2">
                     {selectedCard.steps.map((step, idx) => (
                       <button
@@ -1048,11 +1069,36 @@ export default function OpsCenter() {
                 </div>
               )}
 
+              {/* 상세 구현 가이드 — 노드별 카드 */}
+              {selectedCard.guide && (
+                <div className="mb-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <p className="text-[13px] font-bold text-[#52525b] uppercase tracking-widest">상세 구현 가이드</p>
+                    <span className="text-[9px] text-emerald-400/60 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">노드별 클릭 경로</span>
+                  </div>
+                  <div className="space-y-2">
+                    {parseGuideCards(selectedCard.guide).map((card, i) => (
+                      <div key={i} className="rounded-xl border border-[#1c1c20] bg-[#0e0e12] overflow-hidden">
+                        {card.title && (
+                          <div className="flex items-center gap-2 px-3 py-2 bg-[#111115] border-b border-[#1c1c20]">
+                            <span className="text-[11px] font-mono text-primary/50">{String(i + 1).padStart(2, '0')}</span>
+                            <span className="text-[14px] font-semibold text-emerald-300">{card.title}</span>
+                          </div>
+                        )}
+                        <div className="px-3 py-3">
+                          <GuideMd text={card.body} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* FIELD / 설정값 — 복사 가능 */}
               {selectedCard.fields?.length > 0 && (
                 <div className="mb-5">
                   <div className="flex items-center gap-2 mb-3">
-                    <p className="text-[12px] font-bold text-[#52525b] uppercase tracking-widest">FIELD / 설정값</p>
+                    <p className="text-[13px] font-bold text-[#52525b] uppercase tracking-widest">FIELD / 설정값</p>
                     <span className="text-[9px] text-sky-400/60 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded-full">복사해서 바로 사용</span>
                   </div>
                   <div className="space-y-2">
@@ -1060,17 +1106,17 @@ export default function OpsCenter() {
                       <div key={idx} className="rounded-lg border border-[#1c1c20] bg-[#0e0e12] overflow-hidden">
                         {/* 필드명 행 */}
                         <div className="flex items-center justify-between px-3 py-1.5 bg-[#111115] border-b border-[#1c1c20]">
-                          <span className="text-[12px] font-mono font-bold text-amber-300/80 uppercase tracking-wide">{field.name}</span>
+                          <span className="text-[13px] font-mono font-bold text-amber-300/80 uppercase tracking-wide">{field.name}</span>
                           <CopyFieldBtn value={field.value} />
                         </div>
                         {/* 값 행 */}
                         <div className="px-3 py-2">
-                          <code className="text-[14px] text-sky-300 font-mono break-all leading-relaxed">{field.value}</code>
+                          <code className="text-[15px] text-sky-300 font-mono break-all leading-relaxed">{field.value}</code>
                         </div>
                         {field.note && (
                           <div className="px-3 pb-2 flex items-start gap-1">
                             <Info size={9} className="text-blue-400/50 shrink-0 mt-0.5" />
-                            <p className="text-[12px] text-[#52525b] leading-relaxed">{field.note}</p>
+                            <p className="text-[13px] text-[#52525b] leading-relaxed">{field.note}</p>
                           </div>
                         )}
                       </div>
@@ -1082,30 +1128,18 @@ export default function OpsCenter() {
               {/* 주의사항 */}
               {selectedCard.warnings?.length > 0 && (
                 <div className="mb-5">
-                  <p className="text-[12px] font-bold text-[#52525b] uppercase tracking-widest mb-3">주의사항</p>
+                  <p className="text-[13px] font-bold text-[#52525b] uppercase tracking-widest mb-3">주의사항</p>
                   <div className="space-y-1.5">
                     {selectedCard.warnings.map((w, idx) => (
                       <div key={idx} className="flex items-start gap-2 px-3 py-2 bg-amber-500/5 border border-amber-500/15 rounded-lg">
                         <AlertTriangle size={13} className="text-amber-400/70 shrink-0 mt-0.5" />
-                        <span className="text-[13px] text-[#a1a1aa] leading-relaxed">{w}</span>
+                        <span className="text-[14px] text-[#a1a1aa] leading-relaxed">{w}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* 상세 가이드 — 단계별 클릭 경로 포함 */}
-              {selectedCard.guide && (
-                <div className="mb-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <p className="text-[12px] font-bold text-[#52525b] uppercase tracking-widest">상세 구현 가이드</p>
-                    <span className="text-[9px] text-emerald-400/60 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">단계별 클릭 경로</span>
-                  </div>
-                  <div className="bg-[#0e0e12] border border-[#1c1c20] rounded-xl px-4 py-3">
-                    <GuideMd text={selectedCard.guide} />
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -1114,14 +1148,14 @@ export default function OpsCenter() {
         <div className="w-[270px] lg:w-[300px] xl:w-[330px] 2xl:w-[360px] shrink-0 flex flex-col bg-[#0a0a10]">
           <div className="px-4 py-2.5 border-b border-[#1c1c20] flex items-center gap-1.5 shrink-0">
             <MessageSquare size={14} className="text-primary" />
-            <span className="text-[12px] font-semibold text-[#52525b] uppercase tracking-widest">AI 자동화 설계</span>
+            <span className="text-[13px] font-semibold text-[#52525b] uppercase tracking-widest">AI 자동화 설계</span>
             {workflow && (
-              <span className="ml-auto text-[12px] text-green-500 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded-full normal-case tracking-normal">
+              <span className="ml-auto text-[13px] text-green-500 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded-full normal-case tracking-normal">
                 JSON 생성됨
               </span>
             )}
             {streaming && (
-              <div className={cn('flex items-center gap-1 text-[12px] text-primary', workflow ? 'ml-1' : 'ml-auto')}>
+              <div className={cn('flex items-center gap-1 text-[13px] text-primary', workflow ? 'ml-1' : 'ml-auto')}>
                 <RefreshCw size={12} className="animate-spin" />
               </div>
             )}
@@ -1149,7 +1183,7 @@ export default function OpsCenter() {
           {workflow && (
             <div className="px-3 pb-2 shrink-0 border-t border-[#1c1c20] pt-2">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[12px] text-green-400 font-semibold truncate max-w-[140px]">n8n — {workflow.name}</span>
+                <span className="text-[13px] text-green-400 font-semibold truncate max-w-[140px]">n8n — {workflow.name}</span>
                 <div className="flex gap-1">
                   <button onClick={copyJson} className="p-1 text-[#52525b] hover:text-slate-300 transition-colors" title="JSON 복사">
                     {copied ? <CheckCheck size={14} className="text-green-400" /> : <Copy size={14} />}
@@ -1164,7 +1198,7 @@ export default function OpsCenter() {
                 onClick={pushToN8n}
                 disabled={n8nPushStatus === 'pushing'}
                 className={cn(
-                  'w-full flex items-center justify-center gap-1.5 mb-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold border transition-colors',
+                  'w-full flex items-center justify-center gap-1.5 mb-1.5 px-3 py-1.5 rounded-lg text-[14px] font-semibold border transition-colors',
                   n8nPushStatus === 'success'
                     ? 'bg-green-500/15 border-green-500/30 text-green-400'
                     : n8nPushStatus === 'error'

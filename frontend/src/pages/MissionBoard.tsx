@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MissionBoard.tsx — Mission Board (앱의 심장)
  * v5.0.1
  *
@@ -172,8 +172,8 @@ export function MissionBoard() {
         {/* 헤더 */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-[#1c1c20] shrink-0">
           <CheckSquare size={15} className="text-primary" />
-          <span className="text-[13px] font-semibold text-[#e4e4e7]">Mission Board</span>
-          <span className="text-[11px] text-[#52525b] ml-1">
+          <span className="text-[16px] font-semibold text-[#e4e4e7]">Mission Board</span>
+          <span className="text-[14px] text-[#52525b] ml-1">
             {filteredTasks.length}개 태스크
           </span>
 
@@ -186,7 +186,7 @@ export function MissionBoard() {
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
               placeholder="검색..."
-              className="bg-[#111113] border border-[#27272a] rounded-lg pl-7 pr-3 py-1.5 text-[11px] text-[#e4e4e7] placeholder-[#52525b] outline-none focus:border-primary/40 w-40"
+              className="bg-[#111113] border border-[#27272a] rounded-lg pl-7 pr-3 py-1.5 text-[14px] text-[#e4e4e7] placeholder-[#52525b] outline-none focus:border-primary/40 w-40"
             />
             {searchValue && (
               <button onClick={() => setSearchValue('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#52525b] hover:text-[#a1a1aa]">
@@ -199,7 +199,7 @@ export function MissionBoard() {
           <button
             onClick={() => setShowFilters(o => !o)}
             className={cn(
-              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] border transition-colors',
+              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[14px] border transition-colors',
               showFilters || activeFiltersCount > 0
                 ? 'bg-primary/10 text-primary border-primary/30'
                 : 'text-[#52525b] border-[#27272a] hover:text-[#e4e4e7]',
@@ -215,7 +215,7 @@ export function MissionBoard() {
           {/* 새 태스크 버튼 */}
           <button
             onClick={() => selectTask('__new__')}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] bg-primary text-white hover:bg-primary/90 transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[14px] bg-primary text-white hover:bg-primary/90 transition-colors"
           >
             <Plus size={12} />
             태스크 추가
@@ -246,7 +246,7 @@ export function MissionBoard() {
             <select
               value={filters.layer ?? ''}
               onChange={(e) => setFilters({ layer: (e.target.value as TaskLayer) || undefined })}
-              className="bg-[#111113] border border-[#27272a] text-[11px] text-[#e4e4e7] rounded-lg px-2 py-1 outline-none"
+              className="bg-[#111113] border border-[#27272a] text-[14px] text-[#e4e4e7] rounded-lg px-2 py-1 outline-none"
             >
               {LAYER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
@@ -254,7 +254,7 @@ export function MissionBoard() {
             <select
               value={filters.engine ?? ''}
               onChange={(e) => setFilters({ engine: (e.target.value as TaskEngine) || undefined })}
-              className="bg-[#111113] border border-[#27272a] text-[11px] text-[#e4e4e7] rounded-lg px-2 py-1 outline-none"
+              className="bg-[#111113] border border-[#27272a] text-[14px] text-[#e4e4e7] rounded-lg px-2 py-1 outline-none"
             >
               {ENGINE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
@@ -262,7 +262,7 @@ export function MissionBoard() {
             <select
               value={filters.priority ?? ''}
               onChange={(e) => setFilters({ priority: (e.target.value as TaskPriority) || undefined })}
-              className="bg-[#111113] border border-[#27272a] text-[11px] text-[#e4e4e7] rounded-lg px-2 py-1 outline-none"
+              className="bg-[#111113] border border-[#27272a] text-[14px] text-[#e4e4e7] rounded-lg px-2 py-1 outline-none"
             >
               <option value="">모든 우선순위</option>
               <option value="P0">P0 — 긴급</option>
@@ -273,7 +273,7 @@ export function MissionBoard() {
             {activeFiltersCount > 0 && (
               <button
                 onClick={clearFilters}
-                className="text-[11px] text-[#52525b] hover:text-red-400 flex items-center gap-1"
+                className="text-[14px] text-[#52525b] hover:text-red-400 flex items-center gap-1"
               >
                 <X size={10} />필터 초기화
               </button>
@@ -349,10 +349,10 @@ function KanbanView({
             <div key={status} className="flex flex-col w-64 shrink-0">
               {/* 컬럼 헤더 */}
               <div className="flex items-center gap-2 mb-2 px-1">
-                <span className={cn('text-[11px] font-semibold uppercase tracking-widest', color)}>
+                <span className={cn('text-[14px] font-semibold uppercase tracking-widest', color)}>
                   {label}
                 </span>
-                <span className="text-[10px] text-[#52525b] bg-[#111113] px-1.5 py-0.5 rounded-full border border-[#27272a]">
+                <span className="text-[13px] text-[#52525b] bg-[#111113] px-1.5 py-0.5 rounded-full border border-[#27272a]">
                   {colTasks.length}
                 </span>
               </div>

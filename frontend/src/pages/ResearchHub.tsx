@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ResearchHub.tsx — Research Hub 재설계
  * v5.0.1
  *
@@ -129,14 +129,14 @@ function ItemDetailPanel({
       <div className="flex items-start justify-between px-5 py-4 border-b border-[#1c1c20]">
         <div className="flex-1 mr-3">
           <div className="flex items-center gap-2 mb-1">
-            <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded border', DECISION_STYLES[item.filter_decision])}>
+            <span className={cn('text-[13px] font-medium px-2 py-0.5 rounded border', DECISION_STYLES[item.filter_decision])}>
               {DECISION_LABELS[item.filter_decision]}
             </span>
-            <span className={cn('text-[11px] font-bold px-2 py-0.5 rounded border', scoreBg(item.signal_score), scoreColor(item.signal_score))}>
+            <span className={cn('text-[14px] font-bold px-2 py-0.5 rounded border', scoreBg(item.signal_score), scoreColor(item.signal_score))}>
               {item.signal_score}점
             </span>
           </div>
-          <h2 className="text-[13px] font-semibold text-[#e4e4e7] leading-snug line-clamp-2">
+          <h2 className="text-[16px] font-semibold text-[#e4e4e7] leading-snug line-clamp-2">
             {item.title}
           </h2>
         </div>
@@ -153,19 +153,19 @@ function ItemDetailPanel({
               href={item.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-[11px] text-primary hover:underline mb-2"
+              className="flex items-center gap-1.5 text-[14px] text-primary hover:underline mb-2"
             >
               <ExternalLink size={10} />
               <span className="truncate max-w-xs">{item.source_url}</span>
             </a>
           )}
           {item.summary && (
-            <p className="text-[12px] text-[#a1a1aa] leading-relaxed">{item.summary}</p>
+            <p className="text-[15px] text-[#a1a1aa] leading-relaxed">{item.summary}</p>
           )}
           {(item.tags as string[]).length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2.5">
               {(item.tags as string[]).map((tag: string) => (
-                <span key={tag} className="flex items-center gap-1 text-[10px] text-[#52525b] bg-[#27272a] border border-[#3f3f46] px-1.5 py-0.5 rounded">
+                <span key={tag} className="flex items-center gap-1 text-[13px] text-[#52525b] bg-[#27272a] border border-[#3f3f46] px-1.5 py-0.5 rounded">
                   <Tag size={8} />
                   {tag}
                 </span>
@@ -176,14 +176,14 @@ function ItemDetailPanel({
 
         {/* 필터 결정 버튼 */}
         <div className="px-5 py-3 border-b border-[#1c1c20]">
-          <p className="text-[10px] text-[#52525b] uppercase tracking-widest mb-2">필터 결정</p>
+          <p className="text-[13px] text-[#52525b] uppercase tracking-widest mb-2">필터 결정</p>
           <div className="flex gap-2">
             {(['keep', 'watch', 'drop'] as const).map(d => (
               <button
                 key={d}
                 onClick={() => onFilter(item.id, d)}
                 className={cn(
-                  'flex-1 py-1.5 rounded-lg text-[11px] font-medium transition-colors border',
+                  'flex-1 py-1.5 rounded-lg text-[14px] font-medium transition-colors border',
                   item.filter_decision === d
                     ? DECISION_STYLES[d]
                     : 'bg-[#18181b] text-[#71717a] border-[#27272a] hover:text-[#a1a1aa]'
@@ -197,7 +197,7 @@ function ItemDetailPanel({
 
         {/* 변환 버튼 */}
         <div className="px-5 py-3 border-b border-[#1c1c20]">
-          <p className="text-[10px] text-[#52525b] uppercase tracking-widest mb-2">콘텐츠 변환</p>
+          <p className="text-[13px] text-[#52525b] uppercase tracking-widest mb-2">콘텐츠 변환</p>
           <div className="grid grid-cols-3 gap-2">
             {CONVERT_TYPES.map(({ id, label, icon: Icon }) => (
               <button
@@ -205,7 +205,7 @@ function ItemDetailPanel({
                 onClick={() => handleConvert(id)}
                 disabled={converting !== null}
                 className={cn(
-                  'flex flex-col items-center gap-1 px-2 py-2.5 rounded-lg text-[10px] font-medium transition-colors border',
+                  'flex flex-col items-center gap-1 px-2 py-2.5 rounded-lg text-[13px] font-medium transition-colors border',
                   activeConvertType === id
                     ? 'bg-primary/15 text-primary border-primary/40'
                     : 'bg-[#18181b] text-[#71717a] border-[#27272a] hover:text-[#a1a1aa] hover:border-[#52525b]',
@@ -227,7 +227,7 @@ function ItemDetailPanel({
         <div className="px-5 py-3 border-b border-[#1c1c20]">
           <button
             onClick={() => onGrowth(item)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary/10 border border-primary/30 text-primary text-[12px] font-medium hover:bg-primary/15 transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary/10 border border-primary/30 text-primary text-[15px] font-medium hover:bg-primary/15 transition-colors"
           >
             <Rocket size={12} />
             Growth Studio로 보내기
@@ -239,18 +239,18 @@ function ItemDetailPanel({
         {convertedText && (
           <div className="px-5 py-4">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] text-[#52525b] uppercase tracking-widest">
+              <p className="text-[13px] text-[#52525b] uppercase tracking-widest">
                 변환 결과 {activeConvertType ? `(${activeConvertType})` : ''}
               </p>
               <button
                 onClick={copyToClipboard}
-                className="text-[10px] text-[#52525b] hover:text-primary transition-colors"
+                className="text-[13px] text-[#52525b] hover:text-primary transition-colors"
               >
                 복사
               </button>
             </div>
             <div className="bg-[#18181b] border border-[#27272a] rounded-lg p-3 max-h-64 overflow-y-auto">
-              <pre className="text-[11px] text-[#a1a1aa] whitespace-pre-wrap font-mono leading-relaxed">
+              <pre className="text-[14px] text-[#a1a1aa] whitespace-pre-wrap font-mono leading-relaxed">
                 {convertedText}
               </pre>
             </div>
@@ -293,7 +293,7 @@ function CollectModal({
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-[#111113] border border-[#1c1c20] rounded-2xl w-full max-w-md">
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#1c1c20]">
-          <h3 className="text-[13px] font-semibold text-[#e4e4e7]">리서치 수집</h3>
+          <h3 className="text-[16px] font-semibold text-[#e4e4e7]">리서치 수집</h3>
           <button onClick={onClose} className="text-[#52525b] hover:text-[#a1a1aa] p-1 rounded transition-colors">
             <X size={14} />
           </button>
@@ -306,7 +306,7 @@ function CollectModal({
                 key={m}
                 onClick={() => setMode(m)}
                 className={cn(
-                  'flex-1 py-1.5 rounded-lg text-[11px] font-medium transition-colors',
+                  'flex-1 py-1.5 rounded-lg text-[14px] font-medium transition-colors',
                   mode === m ? 'bg-primary/15 text-primary' : 'text-[#71717a] hover:text-[#a1a1aa]'
                 )}
               >
@@ -317,7 +317,7 @@ function CollectModal({
 
           {mode === 'url' && (
             <div className="space-y-1">
-              <label className="text-[11px] text-[#52525b]">URL</label>
+              <label className="text-[14px] text-[#52525b]">URL</label>
               <div className="flex items-center gap-2 bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2">
                 <Link2 size={12} className="text-[#52525b] shrink-0" />
                 <input
@@ -325,7 +325,7 @@ function CollectModal({
                   value={url}
                   onChange={e => setUrl(e.target.value)}
                   placeholder="https://..."
-                  className="flex-1 bg-transparent text-[12px] text-[#e4e4e7] placeholder:text-[#52525b] outline-none"
+                  className="flex-1 bg-transparent text-[15px] text-[#e4e4e7] placeholder:text-[#52525b] outline-none"
                 />
               </div>
             </div>
@@ -333,26 +333,26 @@ function CollectModal({
 
           {mode === 'keyword' && (
             <div className="space-y-1">
-              <label className="text-[11px] text-[#52525b]">키워드</label>
+              <label className="text-[14px] text-[#52525b]">키워드</label>
               <input
                 type="text"
                 value={keyword}
                 onChange={e => setKeyword(e.target.value)}
                 placeholder="AI 에이전트 최신 동향"
-                className="w-full bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2 text-[12px] text-[#e4e4e7] placeholder:text-[#52525b] outline-none"
+                className="w-full bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2 text-[15px] text-[#e4e4e7] placeholder:text-[#52525b] outline-none"
               />
             </div>
           )}
 
           {mode === 'manual' && (
             <div className="space-y-1">
-              <label className="text-[11px] text-[#52525b]">콘텐츠</label>
+              <label className="text-[14px] text-[#52525b]">콘텐츠</label>
               <textarea
                 value={content}
                 onChange={e => setContent(e.target.value)}
                 placeholder="분석할 내용을 직접 입력하세요..."
                 rows={5}
-                className="w-full bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2 text-[12px] text-[#e4e4e7] placeholder:text-[#52525b] outline-none resize-none"
+                className="w-full bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2 text-[15px] text-[#e4e4e7] placeholder:text-[#52525b] outline-none resize-none"
               />
             </div>
           )}
@@ -360,7 +360,7 @@ function CollectModal({
           <button
             onClick={() => collectMut.mutate()}
             disabled={collectMut.isPending || (!url && !keyword && !content)}
-            className="w-full py-2.5 rounded-xl bg-primary text-white text-[12px] font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-xl bg-primary text-white text-[15px] font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
           >
             {collectMut.isPending ? (
               <>
@@ -436,7 +436,7 @@ function SourcesTab() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="소스 검색…"
-            className="bg-[#18181b] border border-[#27272a] rounded-lg pl-7 pr-3 py-1.5 text-[11px] text-[#e4e4e7] placeholder:text-[#52525b] outline-none w-48"
+            className="bg-[#18181b] border border-[#27272a] rounded-lg pl-7 pr-3 py-1.5 text-[14px] text-[#e4e4e7] placeholder:text-[#52525b] outline-none w-48"
           />
         </div>
         <div className="flex gap-1.5">
@@ -448,7 +448,7 @@ function SourcesTab() {
                 key={t}
                 onClick={() => setTypeFilter(t)}
                 className={cn(
-                  'flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-medium transition-colors border',
+                  'flex items-center gap-1.5 px-3 py-1 rounded-lg text-[14px] font-medium transition-colors border',
                   typeFilter === t
                     ? 'bg-primary/15 text-primary border-primary/40'
                     : 'bg-[#18181b] text-[#71717a] border-[#27272a] hover:text-[#a1a1aa]'
@@ -462,7 +462,7 @@ function SourcesTab() {
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/30 text-primary text-[11px] font-medium hover:bg-primary/15 transition-colors"
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/30 text-primary text-[14px] font-medium hover:bg-primary/15 transition-colors"
         >
           <Plus size={12} />
           소스 추가
@@ -485,7 +485,7 @@ function SourcesTab() {
             {/* 헤더 */}
             <div className="grid grid-cols-[40px_1fr_200px_80px_60px] gap-3 px-4 py-2 bg-[#18181b] border-b border-[#1c1c20]">
               {['타입', '이름 / URL', '카테고리', '커스텀', 'ON'].map(h => (
-                <span key={h} className="text-[10px] text-[#52525b] uppercase tracking-widest">{h}</span>
+                <span key={h} className="text-[13px] text-[#52525b] uppercase tracking-widest">{h}</span>
               ))}
             </div>
             {filtered.map((src, i) => {
@@ -503,11 +503,11 @@ function SourcesTab() {
                 >
                   <Icon size={14} className={color} />
                   <div className="min-w-0">
-                    <p className="text-[12px] text-[#e4e4e7] truncate">{src.name}</p>
-                    <p className="text-[10px] text-[#52525b] truncate">{src.url}</p>
+                    <p className="text-[15px] text-[#e4e4e7] truncate">{src.name}</p>
+                    <p className="text-[13px] text-[#52525b] truncate">{src.url}</p>
                   </div>
-                  <span className="text-[10px] text-[#71717a] bg-[#27272a] px-2 py-0.5 rounded w-fit">{src.category}</span>
-                  <span className="text-[10px] text-[#52525b]">
+                  <span className="text-[13px] text-[#71717a] bg-[#27272a] px-2 py-0.5 rounded w-fit">{src.category}</span>
+                  <span className="text-[13px] text-[#52525b]">
                     {src.is_custom === 1 ? '커스텀' : '기본'}
                   </span>
                   <div className="flex items-center gap-2">
@@ -543,7 +543,7 @@ function SourcesTab() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-[#111113] border border-[#1c1c20] rounded-2xl w-full max-w-sm">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#1c1c20]">
-              <h3 className="text-[13px] font-semibold text-[#e4e4e7]">소스 추가</h3>
+              <h3 className="text-[16px] font-semibold text-[#e4e4e7]">소스 추가</h3>
               <button onClick={() => setShowAddForm(false)} className="text-[#52525b] hover:text-[#a1a1aa] p-1 rounded">
                 <X size={14} />
               </button>
@@ -553,19 +553,19 @@ function SourcesTab() {
                 value={newSource.name}
                 onChange={e => setNewSource(s => ({ ...s, name: e.target.value }))}
                 placeholder="소스 이름"
-                className="w-full bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2 text-[12px] text-[#e4e4e7] placeholder:text-[#52525b] outline-none"
+                className="w-full bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2 text-[15px] text-[#e4e4e7] placeholder:text-[#52525b] outline-none"
               />
               <input
                 value={newSource.url}
                 onChange={e => setNewSource(s => ({ ...s, url: e.target.value }))}
                 placeholder="URL (RSS 피드, 채널 등)"
-                className="w-full bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2 text-[12px] text-[#e4e4e7] placeholder:text-[#52525b] outline-none"
+                className="w-full bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2 text-[15px] text-[#e4e4e7] placeholder:text-[#52525b] outline-none"
               />
               <div className="flex gap-2">
                 <select
                   value={newSource.type}
                   onChange={e => setNewSource(s => ({ ...s, type: e.target.value as SourceType }))}
-                  className="flex-1 bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2 text-[12px] text-[#e4e4e7] outline-none"
+                  className="flex-1 bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2 text-[15px] text-[#e4e4e7] outline-none"
                 >
                   <option value="rss">RSS</option>
                   <option value="youtube">YouTube</option>
@@ -576,13 +576,13 @@ function SourcesTab() {
                   value={newSource.category}
                   onChange={e => setNewSource(s => ({ ...s, category: e.target.value }))}
                   placeholder="카테고리"
-                  className="flex-1 bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2 text-[12px] text-[#e4e4e7] placeholder:text-[#52525b] outline-none"
+                  className="flex-1 bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2 text-[15px] text-[#e4e4e7] placeholder:text-[#52525b] outline-none"
                 />
               </div>
               <button
                 onClick={() => addMut.mutate()}
                 disabled={addMut.isPending || !newSource.name || !newSource.url}
-                className="w-full py-2 rounded-xl bg-primary text-white text-[12px] font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors"
+                className="w-full py-2 rounded-xl bg-primary text-white text-[15px] font-medium disabled:opacity-40 hover:bg-primary/90 transition-colors"
               >
                 {addMut.isPending ? '추가 중…' : '추가'}
               </button>
@@ -665,7 +665,7 @@ export default function ResearchHub() {
         <div className="flex items-center gap-2.5">
           <Telescope size={16} className="text-sky-400" />
           <h1 className="text-[15px] font-semibold text-[#e4e4e7]">Research Hub</h1>
-          <span className="text-[11px] text-[#52525b] bg-[#111113] border border-[#27272a] px-2 py-0.5 rounded">
+          <span className="text-[14px] text-[#52525b] bg-[#111113] border border-[#27272a] px-2 py-0.5 rounded">
             {items.length} 아이템
           </span>
         </div>
@@ -673,13 +673,13 @@ export default function ResearchHub() {
           <button
             onClick={() => qc.invalidateQueries({ queryKey: ['research', missionId] })}
             disabled={isFetching}
-            className="flex items-center gap-1.5 text-[11px] text-[#52525b] hover:text-[#a1a1aa] transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 text-[14px] text-[#52525b] hover:text-[#a1a1aa] transition-colors disabled:opacity-50"
           >
             <RefreshCw size={11} className={cn(isFetching && 'animate-spin')} />
           </button>
           <button
             onClick={() => setShowCollect(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/30 text-primary text-[12px] font-medium hover:bg-primary/15 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/30 text-primary text-[15px] font-medium hover:bg-primary/15 transition-colors"
           >
             <Zap size={12} />
             수집하기
@@ -694,7 +694,7 @@ export default function ResearchHub() {
             key={t}
             onClick={() => setTab(t)}
             className={cn(
-              'px-5 py-2.5 text-[12px] font-medium border-b-2 transition-colors',
+              'px-5 py-2.5 text-[15px] font-medium border-b-2 transition-colors',
               tab === t
                 ? 'text-[#e4e4e7] border-primary'
                 : 'text-[#52525b] border-transparent hover:text-[#a1a1aa]'
@@ -722,7 +722,7 @@ export default function ResearchHub() {
                 { label: '대기 중', value: pendingCount, color: 'text-yellow-400' },
               ].map(({ label, value, color }) => (
                 <div key={label} className="bg-[#111113] border border-[#1c1c20] rounded-xl p-3">
-                  <p className="text-[10px] text-[#52525b] mb-1">{label}</p>
+                  <p className="text-[13px] text-[#52525b] mb-1">{label}</p>
                   <p className={cn('text-xl font-bold', color)}>{value}</p>
                 </div>
               ))}
@@ -736,7 +736,7 @@ export default function ResearchHub() {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="검색…"
-                  className="bg-[#18181b] border border-[#27272a] rounded-lg pl-7 pr-3 py-1 text-[11px] text-[#e4e4e7] placeholder:text-[#52525b] outline-none w-32"
+                  className="bg-[#18181b] border border-[#27272a] rounded-lg pl-7 pr-3 py-1 text-[14px] text-[#e4e4e7] placeholder:text-[#52525b] outline-none w-32"
                 />
               </div>
               <div className="flex gap-1">
@@ -745,7 +745,7 @@ export default function ResearchHub() {
                     key={d}
                     onClick={() => setDecisionFilter(d)}
                     className={cn(
-                      'px-2.5 py-1 rounded text-[10px] font-medium transition-colors border',
+                      'px-2.5 py-1 rounded text-[13px] font-medium transition-colors border',
                       decisionFilter === d
                         ? d === 'all' ? 'bg-primary/15 text-primary border-primary/40' : cn(DECISION_STYLES[d])
                         : 'bg-[#18181b] text-[#71717a] border-[#27272a] hover:text-[#a1a1aa]'
@@ -761,7 +761,7 @@ export default function ResearchHub() {
                     key={s}
                     onClick={() => setScoreFilter(s)}
                     className={cn(
-                      'px-2.5 py-1 rounded text-[10px] font-medium transition-colors border',
+                      'px-2.5 py-1 rounded text-[13px] font-medium transition-colors border',
                       scoreFilter === s
                         ? 'bg-primary/15 text-primary border-primary/40'
                         : 'bg-[#18181b] text-[#71717a] border-[#27272a] hover:text-[#a1a1aa]'
@@ -786,7 +786,7 @@ export default function ResearchHub() {
                   {items.length === 0 && (
                     <button
                       onClick={() => setShowCollect(true)}
-                      className="mt-1 text-[11px] text-primary hover:underline"
+                      className="mt-1 text-[14px] text-primary hover:underline"
                     >
                       + 수집 시작하기
                     </button>
@@ -815,17 +815,17 @@ export default function ResearchHub() {
                           {/* 내용 */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded border', DECISION_STYLES[item.filter_decision])}>
+                              <span className={cn('text-[13px] font-medium px-1.5 py-0.5 rounded border', DECISION_STYLES[item.filter_decision])}>
                                 {DECISION_LABELS[item.filter_decision]}
                               </span>
-                              <span className="text-[10px] text-[#52525b]">
+                              <span className="text-[13px] text-[#52525b]">
                                 {item.source_type.toUpperCase()}
                               </span>
-                              <span className="text-[10px] text-[#3f3f46]">{relativeTime(item.created_at)}</span>
+                              <span className="text-[13px] text-[#3f3f46]">{relativeTime(item.created_at)}</span>
                             </div>
-                            <p className="text-[12px] text-[#e4e4e7] font-medium line-clamp-1">{item.title}</p>
+                            <p className="text-[15px] text-[#e4e4e7] font-medium line-clamp-1">{item.title}</p>
                             {item.summary && (
-                              <p className="text-[11px] text-[#71717a] line-clamp-1 mt-0.5">{item.summary}</p>
+                              <p className="text-[14px] text-[#71717a] line-clamp-1 mt-0.5">{item.summary}</p>
                             )}
                             {(item.tags as string[]).length > 0 && (
                               <div className="flex gap-1 mt-1.5 flex-wrap">

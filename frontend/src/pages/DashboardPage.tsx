@@ -350,13 +350,13 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-semibold text-text">{currentMission?.name}</h1>
-          <p className="text-[13px] text-muted mt-0.5">{currentMission?.description}</p>
+          <p className="text-[16px] text-muted mt-0.5">{currentMission?.description}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowTemplateInfo(true)}
             disabled={applyTemplate.isPending}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[13px] hover:bg-primary-hover transition-colors disabled:opacity-60"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[16px] hover:bg-primary-hover transition-colors disabled:opacity-60"
             title="OOMNI 팀 구성 템플릿 — Research·Build·Design·Content·Ops·CEO 6개 봇을 한 번에 생성"
           >
             {applyTemplate.isPending ? <Loader2 size={14} className="animate-spin" /> : <Layers size={14} />}
@@ -364,7 +364,7 @@ export default function DashboardPage() {
           </button>
           <button
             onClick={() => { createBot.reset(); setShowAddBot(true) }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[13px] hover:bg-[#C5664A] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[16px] hover:bg-[#C5664A] transition-colors"
           >
             <Plus size={14} />
             봇 추가
@@ -377,11 +377,11 @@ export default function DashboardPage() {
         {/* 봇 현황 */}
         <div className="bg-surface border border-border rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[13px] font-medium text-text">봇 현황</h3>
+            <h3 className="text-[16px] font-medium text-text">봇 현황</h3>
           </div>
           <div className="space-y-2">
             {agentsLoading ? (
-              <div className="flex items-center gap-2 py-4 text-muted text-[12px]">
+              <div className="flex items-center gap-2 py-4 text-muted text-[15px]">
                 <Loader2 size={14} className="animate-spin" />
                 <span>불러오는 중...</span>
               </div>
@@ -391,22 +391,22 @@ export default function DashboardPage() {
                 <div className="rounded-lg border border-[#D4763B]/50 bg-primary/10 p-3">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-base">🚀</span>
-                    <span className="text-[13px] font-semibold text-primary">OOMNI 팀 구성</span>
+                    <span className="text-[16px] font-semibold text-primary">OOMNI 팀 구성</span>
                   </div>
-                  <p className="text-[11px] text-primary/80 mb-2 leading-relaxed">
+                  <p className="text-[14px] text-primary/80 mb-2 leading-relaxed">
                     6개 AI 봇으로 혼자서 팀처럼 일하기
                   </p>
                   <button
                     onClick={() => applyTemplate.mutate('solo-factory-os')}
                     disabled={applyTemplate.isPending}
-                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[12px] hover:bg-primary-hover transition-colors disabled:opacity-60"
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded text-[15px] hover:bg-primary-hover transition-colors disabled:opacity-60"
                   >
                     {applyTemplate.isPending
                       ? <><Loader2 size={12} className="animate-spin" /> 생성 중...</>
                       : '바로 시작하기'}
                   </button>
                 </div>
-                <div className="text-center text-muted text-[12px]">
+                <div className="text-center text-muted text-[15px]">
                   또는{' '}
                   <button onClick={() => { createBot.reset(); setShowAddBot(true) }} className="text-primary hover:underline">
                     봇 직접 추가하기
@@ -418,7 +418,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2 p-2 rounded hover:bg-bg transition-colors cursor-pointer">
                   <span className="text-muted"><BotRoleIcon role={agent.role} size={14} /></span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[12px] text-text truncate">{agent.name}</div>
+                    <div className="text-[15px] text-text truncate">{agent.name}</div>
                   </div>
                   <button
                     onClick={e => { e.preventDefault(); setRunModalAgent(agent) }}
@@ -435,15 +435,15 @@ export default function DashboardPage() {
           <div className="mt-4 pt-3 border-t border-border grid grid-cols-3 gap-2">
             <div className="text-center">
               <div className="text-lg font-bold text-green-400">{runningBots}</div>
-              <div className="text-[10px] text-muted">활성 봇</div>
+              <div className="text-[13px] text-muted">활성 봇</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-yellow-400">{approvalData?.length ?? 0}</div>
-              <div className="text-[10px] text-muted">승인 대기</div>
+              <div className="text-[13px] text-muted">승인 대기</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-primary">${totalCost.toFixed(2)}</div>
-              <div className="text-[10px] text-muted">이번 달</div>
+              <div className="text-[13px] text-muted">이번 달</div>
             </div>
           </div>
         </div>
@@ -451,15 +451,15 @@ export default function DashboardPage() {
         {/* TODO */}
         <div className="bg-surface border border-border rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[13px] font-medium text-text">📌 TODO</h3>
-            <span className="text-[11px] text-muted">{todoItems.length}개</span>
+            <h3 className="text-[16px] font-medium text-text">📌 TODO</h3>
+            <span className="text-[14px] text-muted">{todoItems.length}개</span>
           </div>
           <div className="space-y-2 max-h-80 overflow-y-auto">
             {todoItems.map(item => (
               <TodoCard key={item.id} item={item} onDone={() => moveItemToDone(item.id)} onDelete={() => deleteTodoItem(item.id)} />
             ))}
             {todoItems.length === 0 && (
-              <p className="text-[12px] text-muted/60 text-center py-4">오늘의 할일을 추가하세요</p>
+              <p className="text-[15px] text-muted/60 text-center py-4">오늘의 할일을 추가하세요</p>
             )}
           </div>
           {showAddTodo && (
@@ -470,14 +470,14 @@ export default function DashboardPage() {
                 onChange={e => setNewTodoText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') addTodoItem(); if (e.key === 'Escape') setShowAddTodo(false) }}
                 placeholder="할일 입력..."
-                className="flex-1 bg-bg border border-border rounded px-2.5 py-1.5 text-[12px] text-text placeholder-muted focus:outline-none focus:border-primary"
+                className="flex-1 bg-bg border border-border rounded px-2.5 py-1.5 text-[15px] text-text placeholder-muted focus:outline-none focus:border-primary"
               />
-              <button onClick={addTodoItem} className="px-2.5 py-1.5 bg-primary text-white rounded text-[12px]">추가</button>
+              <button onClick={addTodoItem} className="px-2.5 py-1.5 bg-primary text-white rounded text-[15px]">추가</button>
             </div>
           )}
           <button
             onClick={() => setShowAddTodo(true)}
-            className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 border border-dashed border-border text-muted hover:border-primary/40 hover:text-primary rounded text-[12px] transition-colors"
+            className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 border border-dashed border-border text-muted hover:border-primary/40 hover:text-primary rounded text-[15px] transition-colors"
           >
             <Plus size={12} /> 태스크 추가
           </button>
@@ -486,15 +486,15 @@ export default function DashboardPage() {
         {/* DONE */}
         <div className="bg-surface border border-border rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[13px] font-medium text-text">✅ DONE</h3>
-            <span className="text-[11px] text-muted">{doneItems.length}개</span>
+            <h3 className="text-[16px] font-medium text-text">✅ DONE</h3>
+            <span className="text-[14px] text-muted">{doneItems.length}개</span>
           </div>
           <div className="space-y-2 max-h-80 overflow-y-auto">
             {doneItems.map(item => (
               <DoneCard key={item.id} item={item} onUndo={() => moveItemToTodo(item.id)} onArchive={() => handleArchiveTodo(item)} />
             ))}
             {doneItems.length === 0 && (
-              <p className="text-[12px] text-muted/60 text-center py-4">완료된 항목이 여기 표시됩니다</p>
+              <p className="text-[15px] text-muted/60 text-center py-4">완료된 항목이 여기 표시됩니다</p>
             )}
           </div>
         </div>
@@ -506,23 +506,23 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <span className="text-base">👑</span>
-              <h3 className="text-[13px] font-medium text-text">CEO Bot — AI 브리핑</h3>
+              <h3 className="text-[16px] font-medium text-text">CEO Bot — AI 브리핑</h3>
               {latestCeoRun?.status === 'completed' && (
-                <span className="text-[10px] text-muted">
+                <span className="text-[13px] text-muted">
                   {new Date(latestCeoRun.started_at).toLocaleString('ko-KR')}
                 </span>
               )}
             </div>
-            <Link to={`/dashboard/bots/${ceoAgent.id}`} className="text-[12px] text-primary hover:underline flex items-center gap-1">
+            <Link to={`/dashboard/bots/${ceoAgent.id}`} className="text-[15px] text-primary hover:underline flex items-center gap-1">
               CEO Bot 열기 →
             </Link>
           </div>
           {latestCeoRun?.output ? (
-            <p className="text-[12px] text-dim leading-relaxed line-clamp-4 whitespace-pre-wrap">
+            <p className="text-[15px] text-dim leading-relaxed line-clamp-4 whitespace-pre-wrap">
               {latestCeoRun.output}
             </p>
           ) : (
-            <div className="flex items-center gap-2 text-[12px] text-muted py-2">
+            <div className="flex items-center gap-2 text-[15px] text-muted py-2">
               <Link to={`/dashboard/bots/${ceoAgent.id}`} className="text-primary hover:underline">
                 브리핑 실행하기
               </Link>
@@ -539,7 +539,7 @@ export default function DashboardPage() {
             <button
               key={t.key}
               onClick={() => setActiveTab(t.key)}
-              className={`px-4 py-3 text-[13px] transition-colors border-b-2 -mb-px ${
+              className={`px-4 py-3 text-[16px] transition-colors border-b-2 -mb-px ${
                 activeTab === t.key
                   ? 'border-primary text-text'
                   : 'border-transparent text-muted hover:text-text'
@@ -547,7 +547,7 @@ export default function DashboardPage() {
             >
               {t.label}
               {t.key === 'issues' && issuesData.filter(i => i.status === 'open').length > 0 && (
-                <span className="ml-1.5 bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                <span className="ml-1.5 bg-primary text-white text-[13px] px-1.5 py-0.5 rounded-full">
                   {issuesData.filter(i => i.status === 'open').length}
                 </span>
               )}
@@ -560,7 +560,7 @@ export default function DashboardPage() {
           {activeTab === 'feed' && (
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {feedItems.length === 0 ? (
-                <div className="text-center text-muted text-[12px] py-6">아직 피드가 없습니다</div>
+                <div className="text-center text-muted text-[15px] py-6">아직 피드가 없습니다</div>
               ) : feedItems.map(item => (
                 <FeedCard
                   key={item.id}
@@ -578,22 +578,22 @@ export default function DashboardPage() {
             <div>
               <div className="space-y-2 max-h-80 overflow-y-auto mb-3">
                 {issuesData.length === 0 ? (
-                  <div className="text-center text-muted text-[12px] py-6">등록된 이슈가 없습니다</div>
+                  <div className="text-center text-muted text-[15px] py-6">등록된 이슈가 없습니다</div>
                 ) : issuesData.slice(0, 8).map(issue => (
                   <div key={issue.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
                     <div className="flex-1 min-w-0">
-                      <span className="text-[13px] text-text">{issue.title}</span>
+                      <span className="text-[16px] text-text">{issue.title}</span>
                     </div>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${PRIORITY_COLORS[issue.priority]}`}>
+                    <span className={`text-[13px] px-1.5 py-0.5 rounded ${PRIORITY_COLORS[issue.priority]}`}>
                       {PRIORITY_LABELS[issue.priority]}
                     </span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${STATUS_COLORS[issue.status]}`}>
+                    <span className={`text-[13px] px-1.5 py-0.5 rounded ${STATUS_COLORS[issue.status]}`}>
                       {STATUS_LABELS[issue.status]}
                     </span>
                   </div>
                 ))}
               </div>
-              <Link to="/dashboard/issues" className="text-[12px] text-primary hover:underline">
+              <Link to="/dashboard/issues" className="text-[15px] text-primary hover:underline">
                 전체 보기 →
               </Link>
             </div>
@@ -603,15 +603,15 @@ export default function DashboardPage() {
           {activeTab === 'cost' && (
             <div className="max-h-80 overflow-y-auto">
               {!missionId ? (
-                <div className="text-center text-muted text-[12px] py-6">미션을 선택하면 비용 데이터를 확인할 수 있습니다</div>
+                <div className="text-center text-muted text-[15px] py-6">미션을 선택하면 비용 데이터를 확인할 수 있습니다</div>
               ) : (() => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const byAgent: Record<string, unknown>[] = (costData?.data as any)?.by_agent ?? []
                 if (byAgent.length === 0) return (
-                  <div className="text-center text-muted text-[12px] py-6">비용 데이터가 없습니다<br/><span className="text-[10px] opacity-60">봇 실행 후 집계됩니다</span></div>
+                  <div className="text-center text-muted text-[15px] py-6">비용 데이터가 없습니다<br/><span className="text-[13px] opacity-60">봇 실행 후 집계됩니다</span></div>
                 )
                 return (
-                  <table className="w-full text-[12px]">
+                  <table className="w-full text-[15px]">
                     <thead>
                       <tr className="text-muted text-left border-b border-border">
                         <th className="pb-2 font-normal">봇</th>
@@ -648,7 +648,7 @@ export default function DashboardPage() {
                 <Layers size={16} className="text-primary" />
                 <h2 className="text-base font-semibold text-text">OOMNI 팀 구성 템플릿</h2>
               </div>
-              <p className="text-[13px] text-dim mb-4 leading-relaxed">
+              <p className="text-[16px] text-dim mb-4 leading-relaxed">
                 솔로프리너를 위한 <span className="text-primary font-medium">6개 AI 봇</span>을 현재 미션에 한 번에 생성합니다.
               </p>
               <div className="space-y-2 mb-5">
@@ -663,20 +663,20 @@ export default function DashboardPage() {
                   <div key={b.name} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-bg border border-border">
                     <span className="text-base">{b.emoji}</span>
                     <div>
-                      <span className="text-[13px] font-medium text-text">{b.name}</span>
-                      <span className="text-[11px] text-muted ml-2">{b.desc}</span>
+                      <span className="text-[16px] font-medium text-text">{b.name}</span>
+                      <span className="text-[14px] text-muted ml-2">{b.desc}</span>
                     </div>
                   </div>
                 ))}
               </div>
-              <p className="text-[11px] text-muted mb-4">이미 존재하는 봇은 중복 생성되지 않습니다.</p>
+              <p className="text-[14px] text-muted mb-4">이미 존재하는 봇은 중복 생성되지 않습니다.</p>
               <div className="flex gap-2">
-                <button onClick={() => setShowTemplateInfo(false)} className="flex-1 py-2 border border-border text-muted rounded text-[13px] hover:text-text transition-colors">
+                <button onClick={() => setShowTemplateInfo(false)} className="flex-1 py-2 border border-border text-muted rounded text-[16px] hover:text-text transition-colors">
                   취소
                 </button>
                 <button
                   onClick={() => { setShowTemplateInfo(false); applyTemplate.mutate('solo-factory-os') }}
-                  className="flex-1 py-2 bg-primary text-white rounded text-[13px] font-medium hover:bg-primary-hover transition-colors flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2 bg-primary text-white rounded text-[16px] font-medium hover:bg-primary-hover transition-colors flex items-center justify-center gap-1.5"
                 >
                   <Layers size={13} /> 팀 구성 시작
                 </button>
@@ -772,13 +772,13 @@ export default function DashboardPage() {
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-muted"><BotRoleIcon role={tmpl.role} size={16} /></span>
-                      <span className="text-[13px] font-medium text-text">{tmpl.name}</span>
+                      <span className="text-[16px] font-medium text-text">{tmpl.name}</span>
                       {existingAgent && (
-                        <span className="ml-auto text-[10px] text-green-400">추가됨 →</span>
+                        <span className="ml-auto text-[13px] text-green-400">추가됨 →</span>
                       )}
                       {creatingRole === tmpl.role && <Loader2 size={12} className="ml-auto animate-spin text-primary" />}
                     </div>
-                    <p className="text-[11px] text-muted">{tmpl.desc}</p>
+                    <p className="text-[14px] text-muted">{tmpl.desc}</p>
                   </button>
                 )
               })}
@@ -855,7 +855,7 @@ function FirstRunTutorial({
               }`}
             />
           ))}
-          <span className="ml-auto text-[10px] text-[#52525b]">{step + 1} / {TUTORIAL_STEPS.length}</span>
+          <span className="ml-auto text-[13px] text-[#52525b]">{step + 1} / {TUTORIAL_STEPS.length}</span>
         </div>
 
         {/* 아이콘 + 내용 */}
@@ -864,10 +864,10 @@ function FirstRunTutorial({
             <Icon size={16} className="text-primary" />
           </div>
           <div>
-            <h3 className="text-[14px] font-semibold text-white mb-1">{current.title}</h3>
-            <p className="text-[12px] text-[#71717a] leading-relaxed">{current.desc}</p>
+            <h3 className="text-[17px] font-semibold text-white mb-1">{current.title}</h3>
+            <p className="text-[15px] text-[#71717a] leading-relaxed">{current.desc}</p>
             {current.tip && (
-              <p className="text-[11px] text-primary/80 mt-2 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1.5 leading-relaxed">
+              <p className="text-[14px] text-primary/80 mt-2 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1.5 leading-relaxed">
                 {current.tip}
               </p>
             )}
@@ -878,13 +878,13 @@ function FirstRunTutorial({
         <div className="flex items-center gap-2">
           <button
             onClick={onSkip}
-            className="text-[12px] text-[#52525b] hover:text-[#71717a] transition-colors px-2 py-1.5"
+            className="text-[15px] text-[#52525b] hover:text-[#71717a] transition-colors px-2 py-1.5"
           >
             건너뛰기
           </button>
           <button
             onClick={onNext}
-            className="ml-auto flex items-center gap-1.5 bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-[13px] font-medium transition-colors"
+            className="ml-auto flex items-center gap-1.5 bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-[16px] font-medium transition-colors"
           >
             {isLast ? '시작하기' : '다음'}
             <ChevronRight size={13} />
@@ -901,7 +901,7 @@ function TodoCard({ item, onDone, onDelete }: { item: TodoItem; onDone: () => vo
       <button onClick={onDone} className="mt-0.5 w-4 h-4 rounded border border-border hover:border-green-500 hover:bg-green-500/10 flex items-center justify-center shrink-0 transition-colors">
         <Check size={10} className="text-transparent group-hover:text-green-400" />
       </button>
-      <span className="text-[12px] text-text flex-1 leading-relaxed">{item.text}</span>
+      <span className="text-[15px] text-text flex-1 leading-relaxed">{item.text}</span>
       <button onClick={onDelete} className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-400 transition-all shrink-0">
         <X size={12} />
       </button>
@@ -915,7 +915,7 @@ function DoneCard({ item, onUndo, onArchive }: { item: TodoItem; onUndo: () => v
       <button onClick={onUndo} className="mt-0.5 w-4 h-4 rounded bg-green-500/20 border border-green-500/40 flex items-center justify-center shrink-0">
         <Check size={10} className="text-green-400" />
       </button>
-      <span className="text-[12px] text-muted line-through flex-1 leading-relaxed">{item.text}</span>
+      <span className="text-[15px] text-muted line-through flex-1 leading-relaxed">{item.text}</span>
       <button onClick={onArchive} title="Obsidian 아카이브" className="opacity-0 group-hover:opacity-100 text-muted hover:text-primary transition-all shrink-0">
         <Archive size={11} />
       </button>
@@ -946,25 +946,25 @@ function FeedCard({
         <span className="text-muted mt-0.5"><BotRoleIcon role={item.agent_role} size={14} /></span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[12px] font-medium text-text">{item.agent_name}</span>
-            <span className="text-[10px] text-muted">
+            <span className="text-[15px] font-medium text-text">{item.agent_name}</span>
+            <span className="text-[13px] text-muted">
               {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: ko })}
             </span>
-            {item.type === 'error' && <span className="text-[10px] text-red-400">오류</span>}
+            {item.type === 'error' && <span className="text-[13px] text-red-400">오류</span>}
           </div>
-          <p className="text-[12px] text-muted leading-relaxed line-clamp-3">{item.content}</p>
+          <p className="text-[15px] text-muted leading-relaxed line-clamp-3">{item.content}</p>
           {item.requires_approval && !item.approved_at && !item.rejected_at && (
             <div className="flex gap-2 mt-2">
-              <button onClick={onApprove} className="flex items-center gap-1 px-2 py-1 bg-green-900/30 text-green-400 rounded text-[11px] hover:bg-green-900/50">
+              <button onClick={onApprove} className="flex items-center gap-1 px-2 py-1 bg-green-900/30 text-green-400 rounded text-[14px] hover:bg-green-900/50">
                 <Check size={10} /> 승인
               </button>
-              <button onClick={onReject} className="flex items-center gap-1 px-2 py-1 bg-red-900/30 text-red-400 rounded text-[11px] hover:bg-red-900/50">
+              <button onClick={onReject} className="flex items-center gap-1 px-2 py-1 bg-red-900/30 text-red-400 rounded text-[14px] hover:bg-red-900/50">
                 <XCircle size={10} /> 거절
               </button>
             </div>
           )}
-          {item.approved_at && <span className="text-[10px] text-green-400 mt-1 block">✓ 승인됨</span>}
-          {item.rejected_at && <span className="text-[10px] text-red-400 mt-1 block">✗ 거절됨</span>}
+          {item.approved_at && <span className="text-[13px] text-green-400 mt-1 block">✓ 승인됨</span>}
+          {item.rejected_at && <span className="text-[13px] text-red-400 mt-1 block">✗ 거절됨</span>}
         </div>
       </div>
     </div>

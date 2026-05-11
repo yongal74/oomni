@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CDPView.tsx — CDP ID-Graphing 360° 뷰
  * v5.1.0 — Obsidian-style force-directed Canvas graph
  *
@@ -471,14 +471,14 @@ function CanvasGraph({ graph, loading, onNodeClick, selectedNodeId }: CanvasGrap
         onDoubleClick={onDblClick}
       />
       {/* legend */}
-      <div className="absolute bottom-3 left-3 flex flex-col gap-1 text-[10px] text-slate-400 pointer-events-none">
+      <div className="absolute bottom-3 left-3 flex flex-col gap-1 text-[13px] text-slate-400 pointer-events-none">
         <LegendItem color="#3b82f6" label="이메일" />
         <LegendItem color="#22c55e" label="전화번호" />
         <LegendItem color="#f59e0b" label="사용자 ID / 고LTV" />
         <LegendItem color="#a855f7" label="Anonymous ID" />
         <LegendItem color="#f97316" label="광고 Click ID" />
       </div>
-      <div className="absolute bottom-3 right-3 flex flex-col gap-1 text-[10px] text-slate-400 pointer-events-none">
+      <div className="absolute bottom-3 right-3 flex flex-col gap-1 text-[13px] text-slate-400 pointer-events-none">
         <div className="flex items-center gap-1.5">
           <div className="w-5 border-t-2 border-slate-300" />
           <span>확정 (1.0)</span>
@@ -493,7 +493,7 @@ function CanvasGraph({ graph, loading, onNodeClick, selectedNodeId }: CanvasGrap
         </div>
       </div>
       {/* hint */}
-      <div className="absolute top-3 right-3 text-[10px] text-slate-600 pointer-events-none">
+      <div className="absolute top-3 right-3 text-[13px] text-slate-600 pointer-events-none">
         드래그=이동 • 스크롤=줌 • 더블클릭=초기화
       </div>
     </div>
@@ -536,11 +536,11 @@ function ProfileListItem({
             ? `Anon ${profile.anonymous_id.slice(0, 10)}`
             : `Profile ${profile.id.slice(0, 8)}`}
         </span>
-        <span className={cn('text-[10px] font-semibold uppercase', tierColor)}>
+        <span className={cn('text-[13px] font-semibold uppercase', tierColor)}>
           {tier}
         </span>
       </div>
-      <div className="flex items-center gap-2 text-[10px] text-slate-500">
+      <div className="flex items-center gap-2 text-[13px] text-slate-500">
         <span>{profile.event_count ?? 0} 이벤트</span>
         <span>·</span>
         <span>{sources.length > 0 ? sources.slice(0, 2).join(', ') : '소스 없음'}</span>
@@ -572,7 +572,7 @@ function ProfileDetailPanel({
       <div className="flex items-start justify-between p-4 border-b border-slate-800 shrink-0">
         <div>
           <div className="text-sm font-semibold text-white mb-1">프로필 상세</div>
-          <div className="text-[10px] text-slate-500 font-mono">{profile.id}</div>
+          <div className="text-[13px] text-slate-500 font-mono">{profile.id}</div>
         </div>
         <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors p-1">
           <X className="w-4 h-4" />
@@ -589,7 +589,7 @@ function ProfileDetailPanel({
           이벤트 <span className="text-white font-medium">{profile.event_count ?? 0}</span>회
           &nbsp;·&nbsp;LTV <span className="text-white font-medium">₩{((profile.ltv ?? 0) / 100).toLocaleString()}</span>
         </div>
-        <div className="mt-1 text-[11px] text-slate-500 flex items-center gap-1">
+        <div className="mt-1 text-[14px] text-slate-500 flex items-center gap-1">
           <Clock className="w-3 h-3" />
           마지막 활동: {relativeTime(profile.last_seen_at)}
         </div>
@@ -597,7 +597,7 @@ function ProfileDetailPanel({
 
       {/* identifier breakdown */}
       <div className="p-4 border-b border-slate-800 shrink-0">
-        <div className="text-[11px] font-medium text-slate-400 mb-2 uppercase tracking-wide">식별자 레이어</div>
+        <div className="text-[14px] font-medium text-slate-400 mb-2 uppercase tracking-wide">식별자 레이어</div>
         <div className="space-y-1.5">
           <IdentifierRow
             color="#3b82f6" icon={<Mail className="w-3 h-3" />}
@@ -617,10 +617,10 @@ function ProfileDetailPanel({
       {/* identifiers list */}
       {graph && graph.nodes.length > 1 && (
         <div className="p-4 border-b border-slate-800 shrink-0">
-          <div className="text-[11px] font-medium text-slate-400 mb-2 uppercase tracking-wide">식별자 목록</div>
+          <div className="text-[14px] font-medium text-slate-400 mb-2 uppercase tracking-wide">식별자 목록</div>
           <div className="space-y-1">
             {graph.nodes.filter(n => n.type !== 'profile').map(n => (
-              <div key={n.id} className="flex items-center justify-between text-[11px]">
+              <div key={n.id} className="flex items-center justify-between text-[14px]">
                 <div className="flex items-center gap-1.5">
                   <div
                     className="w-2 h-2 rounded-full"
@@ -629,9 +629,9 @@ function ProfileDetailPanel({
                   <span className="text-slate-400">{n.type.replace('_', ' ')}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-slate-500 font-mono text-[10px]">{n.label}</span>
+                  <span className="text-slate-500 font-mono text-[13px]">{n.label}</span>
                   {n.confidence !== undefined && n.confidence < 1 && (
-                    <span className="text-slate-600 text-[10px]">{Math.round(n.confidence * 100)}%</span>
+                    <span className="text-slate-600 text-[13px]">{Math.round(n.confidence * 100)}%</span>
                   )}
                 </div>
               </div>
@@ -643,11 +643,11 @@ function ProfileDetailPanel({
       {/* merge history */}
       {graph && graph.mergedFrom.length > 0 && (
         <div className="p-4 border-b border-slate-800 shrink-0">
-          <div className="text-[11px] font-medium text-slate-400 mb-2 uppercase tracking-wide">
+          <div className="text-[14px] font-medium text-slate-400 mb-2 uppercase tracking-wide">
             병합 히스토리 ({graph.mergedFrom.length})
           </div>
           {graph.mergedFrom.map(id => (
-            <div key={id} className="text-[10px] text-slate-500 font-mono truncate">
+            <div key={id} className="text-[13px] text-slate-500 font-mono truncate">
               ← {id}
             </div>
           ))}
@@ -656,7 +656,7 @@ function ProfileDetailPanel({
 
       {/* raw fields */}
       <div className="p-4 shrink-0">
-        <div className="text-[11px] font-medium text-slate-400 mb-2 uppercase tracking-wide">필드</div>
+        <div className="text-[14px] font-medium text-slate-400 mb-2 uppercase tracking-wide">필드</div>
         <div className="space-y-1">
           <RawField label="email" value={profile.email_hash ? '****' + profile.email_hash.slice(-4) : null} />
           <RawField label="phone" value={profile.phone_hash ? '****' + profile.phone_hash.slice(-4) : null} />
@@ -677,7 +677,7 @@ function IdentifierRow({ color, icon, label, count }: {
   color: string; icon: React.ReactNode; label: string; count: number
 }) {
   return (
-    <div className="flex items-center justify-between text-[11px]">
+    <div className="flex items-center justify-between text-[14px]">
       <div className="flex items-center gap-1.5" style={{ color }}>
         {icon}
         <span className="text-slate-400">{label}</span>
@@ -690,7 +690,7 @@ function IdentifierRow({ color, icon, label, count }: {
 function RawField({ label, value }: { label: string; value: string | null | undefined }) {
   if (!value) return null
   return (
-    <div className="flex items-start gap-2 text-[11px]">
+    <div className="flex items-start gap-2 text-[14px]">
       <span className="text-slate-500 w-20 shrink-0">{label}</span>
       <span className="text-slate-300 truncate">{value}</span>
     </div>
@@ -807,7 +807,7 @@ export default function CDPView() {
                 key={t}
                 onClick={() => setTierFilter(t)}
                 className={cn(
-                  'flex-1 py-1 text-[10px] rounded transition-all border',
+                  'flex-1 py-1 text-[13px] rounded transition-all border',
                   tierFilter === t
                     ? 'bg-primary border-primary/80 text-white'
                     : 'bg-slate-800/60 border-slate-700 text-slate-500 hover:border-slate-600',

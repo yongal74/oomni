@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SnsSettingsPage.tsx — SNS & AI 미디어 설정
  * v5.2.0
  *
@@ -30,7 +30,7 @@ type MsgState = { type: 'success' | 'error'; text: string }
 
 function MsgBox({ msg }: { msg: MsgState }) {
   return (
-    <div className={`flex items-center gap-2 mt-4 p-3 rounded-lg text-[13px] ${
+    <div className={`flex items-center gap-2 mt-4 p-3 rounded-lg text-[16px] ${
       msg.type === 'success'
         ? 'bg-green-900/20 border border-green-800/30 text-green-400'
         : 'bg-red-900/20 border border-red-800/30 text-red-400'
@@ -47,8 +47,8 @@ function StatusBadge({ ok, label }: { ok: boolean; label: string }) {
       ok ? 'bg-green-900/10 border-green-800/30' : 'bg-yellow-900/10 border-yellow-800/30'
     }`}>
       {ok
-        ? <><CheckCircle size={14} className="text-green-400" /><span className="text-[13px] text-green-400">{label} 설정됨</span></>
-        : <><AlertTriangle size={14} className="text-yellow-400" /><span className="text-[13px] text-yellow-400">{label} 미설정</span></>
+        ? <><CheckCircle size={14} className="text-green-400" /><span className="text-[16px] text-green-400">{label} 설정됨</span></>
+        : <><AlertTriangle size={14} className="text-yellow-400" /><span className="text-[16px] text-yellow-400">{label} 미설정</span></>
       }
     </div>
   )
@@ -183,7 +183,7 @@ export default function SnsSettingsPage() {
               onChange={e => setIdeogramKey(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleIdeogramSave()}
               placeholder="ideogram API key..."
-              className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[16px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary"
             />
             <button onClick={() => setShowIdeogramKey(v => !v)} tabIndex={-1}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text">
@@ -191,7 +191,7 @@ export default function SnsSettingsPage() {
             </button>
           </div>
           <button onClick={handleIdeogramSave} disabled={ideogramSaving}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium disabled:opacity-50 shrink-0">
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[16px] font-medium disabled:opacity-50 shrink-0">
             {ideogramSaving ? <Loader2 size={13} className="animate-spin" /> : null}저장
           </button>
         </div>
@@ -217,7 +217,7 @@ export default function SnsSettingsPage() {
               onChange={e => setGeminiKey(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleGeminiSave()}
               placeholder="AIza..."
-              className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[16px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary"
             />
             <button onClick={() => setShowGeminiKey(v => !v)} tabIndex={-1}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text">
@@ -225,7 +225,7 @@ export default function SnsSettingsPage() {
             </button>
           </div>
           <button onClick={handleGeminiSave} disabled={geminiSaving}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium disabled:opacity-50 shrink-0">
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[16px] font-medium disabled:opacity-50 shrink-0">
             {geminiSaving ? <Loader2 size={13} className="animate-spin" /> : null}저장
           </button>
         </div>
@@ -240,10 +240,10 @@ export default function SnsSettingsPage() {
         </p>
         <div className="space-y-3">
           <div>
-            <label className="block text-[12px] text-muted mb-1">
+            <label className="block text-[15px] text-muted mb-1">
               Instagram Webhook URL
               {snsStatus?.n8n_instagram_webhook && (
-                <span className="ml-2 text-green-400 text-[10px]">✓ 설정됨</span>
+                <span className="ml-2 text-green-400 text-[13px]">✓ 설정됨</span>
               )}
             </label>
             <input
@@ -254,10 +254,10 @@ export default function SnsSettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-[12px] text-muted mb-1">
+            <label className="block text-[15px] text-muted mb-1">
               TikTok Webhook URL
               {snsStatus?.n8n_tiktok_webhook && (
-                <span className="ml-2 text-green-400 text-[10px]">✓ 설정됨</span>
+                <span className="ml-2 text-green-400 text-[13px]">✓ 설정됨</span>
               )}
             </label>
             <input
@@ -268,7 +268,7 @@ export default function SnsSettingsPage() {
             />
           </div>
           <button onClick={handleN8nSave} disabled={n8nSaving}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-[13px] font-medium disabled:opacity-40">
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-[16px] font-medium disabled:opacity-40">
             {n8nSaving ? <Loader2 size={13} className="animate-spin" /> : null}저장
           </button>
         </div>
@@ -289,22 +289,22 @@ export default function SnsSettingsPage() {
             { label: '네이버 블로그', idState: naverClientId, setId: setNaverClientId, secretState: naverClientSecret, setSecret: setNaverClientSecret, ok: snsStatus?.naver_configured },
           ].map(p => (
             <div key={p.label} className="p-3 bg-bg border border-border rounded-lg">
-              <p className="text-[12px] font-medium text-text mb-2 flex items-center gap-2">
+              <p className="text-[15px] font-medium text-text mb-2 flex items-center gap-2">
                 {p.label}
-                {p.ok && <span className="text-green-400 text-[10px]">✓ 설정됨</span>}
+                {p.ok && <span className="text-green-400 text-[13px]">✓ 설정됨</span>}
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <input value={p.idState} onChange={e => p.setId(e.target.value)}
                   placeholder="Client ID"
-                  className="bg-surface border border-border rounded-lg px-3 py-2 text-[12px] text-text placeholder:text-muted/50 focus:outline-none focus:border-primary/60" />
+                  className="bg-surface border border-border rounded-lg px-3 py-2 text-[15px] text-text placeholder:text-muted/50 focus:outline-none focus:border-primary/60" />
                 <input type="password" value={p.secretState} onChange={e => p.setSecret(e.target.value)}
                   placeholder="Client Secret"
-                  className="bg-surface border border-border rounded-lg px-3 py-2 text-[12px] text-text placeholder:text-muted/50 focus:outline-none focus:border-primary/60" />
+                  className="bg-surface border border-border rounded-lg px-3 py-2 text-[15px] text-text placeholder:text-muted/50 focus:outline-none focus:border-primary/60" />
               </div>
             </div>
           ))}
           <button onClick={handleOAuthSave} disabled={oauthSaving}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-[13px] font-medium disabled:opacity-40">
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-[16px] font-medium disabled:opacity-40">
             {oauthSaving ? <Loader2 size={13} className="animate-spin" /> : null}OAuth 자격증명 저장
           </button>
         </div>

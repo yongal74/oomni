@@ -1,4 +1,4 @@
-/**
+﻿/**
  * OnboardingPage.tsx — OOMNI v5.7.0 온보딩
  *
  * 레이아웃: 좌측 브랜드 패널 | 우측 4-step 폼
@@ -213,7 +213,7 @@ export default function OnboardingPage() {
 
         {/* 기능 목록 */}
         <div className="space-y-4 my-8">
-          <p className="text-[11px] text-[#52525b] uppercase tracking-widest mb-4">AI 팀 구성</p>
+          <p className="text-[14px] text-[#52525b] uppercase tracking-widest mb-4">AI 팀 구성</p>
           {FEATURES.map(f => {
             const Icon = f.icon
             return (
@@ -222,8 +222,8 @@ export default function OnboardingPage() {
                   <Icon size={13} className="text-primary" />
                 </div>
                 <div>
-                  <div className="text-[13px] font-medium text-[#e4e4e7]">{f.label}</div>
-                  <div className="text-[11px] text-[#52525b]">{f.desc}</div>
+                  <div className="text-[16px] font-medium text-[#e4e4e7]">{f.label}</div>
+                  <div className="text-[14px] text-[#52525b]">{f.desc}</div>
                 </div>
               </div>
             )
@@ -231,7 +231,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* 하단 */}
-        <div className="text-[11px] text-[#3f3f46] space-y-1">
+        <div className="text-[14px] text-[#3f3f46] space-y-1">
           <p>API 키는 이 기기에만 저장됩니다</p>
           <p>외부로 전송되지 않습니다</p>
         </div>
@@ -255,7 +255,7 @@ export default function OnboardingPage() {
             {Array.from({ length: TOTAL_STEPS }, (_, i) => i).map(n => (
               <div key={n} className="flex items-center gap-1.5">
                 <div className={cn(
-                  'w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold transition-all',
+                  'w-6 h-6 rounded-full flex items-center justify-center text-[14px] font-semibold transition-all',
                   step > n
                     ? 'bg-primary text-white'
                     : step === n
@@ -272,7 +272,7 @@ export default function OnboardingPage() {
                 )}
               </div>
             ))}
-            <span className="ml-2 text-[11px] text-[#52525b]">
+            <span className="ml-2 text-[14px] text-[#52525b]">
               {step === 0 ? '환경 세팅' : step === 1 ? 'API 키' : step === 2 ? '미션' : step === 3 ? '팀 구성' : '완료'}
             </span>
           </div>
@@ -306,7 +306,7 @@ export default function OnboardingPage() {
             <StepCard title="Claude API 키 설정" desc="봇을 실행하려면 Anthropic API 키가 필요합니다">
               <div className="space-y-4">
                 <div>
-                  <label className="text-[11px] text-[#52525b] uppercase tracking-wide block mb-1.5">
+                  <label className="text-[14px] text-[#52525b] uppercase tracking-wide block mb-1.5">
                     Anthropic API 키
                   </label>
                   <div className="relative">
@@ -327,7 +327,7 @@ export default function OnboardingPage() {
                       {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
                   </div>
-                  <p className="text-[11px] text-[#3f3f46] mt-1.5">
+                  <p className="text-[14px] text-[#3f3f46] mt-1.5">
                     <a
                       href="https://console.anthropic.com"
                       target="_blank"
@@ -346,7 +346,7 @@ export default function OnboardingPage() {
                 <button
                   type="button"
                   onClick={() => { setStep(2); setError('') }}
-                  className="w-full text-center text-[11px] text-[#3f3f46] hover:text-[#52525b] transition-colors"
+                  className="w-full text-center text-[14px] text-[#3f3f46] hover:text-[#52525b] transition-colors"
                 >
                   나중에 설정하기
                 </button>
@@ -359,7 +359,7 @@ export default function OnboardingPage() {
             <StepCard title="첫 미션 만들기" desc="AI 팀이 달성할 목표를 설정하세요">
               <div className="space-y-4">
                 <div>
-                  <label className="text-[11px] text-[#52525b] uppercase tracking-wide block mb-1.5">
+                  <label className="text-[14px] text-[#52525b] uppercase tracking-wide block mb-1.5">
                     미션 이름
                   </label>
                   <input
@@ -373,7 +373,7 @@ export default function OnboardingPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] text-[#52525b] uppercase tracking-wide block mb-1.5">
+                  <label className="text-[14px] text-[#52525b] uppercase tracking-wide block mb-1.5">
                     설명 (선택)
                   </label>
                   <textarea
@@ -386,7 +386,7 @@ export default function OnboardingPage() {
                 </div>
                 {/* 프리셋 */}
                 <div>
-                  <p className="text-[11px] text-[#52525b] mb-2">빠른 선택</p>
+                  <p className="text-[14px] text-[#52525b] mb-2">빠른 선택</p>
                   <div className="grid grid-cols-2 gap-2">
                     {PRESETS.map(p => (
                       <button
@@ -394,7 +394,7 @@ export default function OnboardingPage() {
                         type="button"
                         onClick={() => { setMissionName(p.name); setMissionDesc(p.desc) }}
                         className={cn(
-                          'text-left px-3 py-2 rounded-lg border text-[11px] transition-all',
+                          'text-left px-3 py-2 rounded-lg border text-[14px] transition-all',
                           missionName === p.name
                             ? 'border-primary/60 bg-primary/10 text-primary'
                             : 'border-[#1c1c20] text-[#52525b] hover:border-[#27272a] hover:text-[#e4e4e7]',
@@ -569,7 +569,7 @@ function ToolBadge({ version, label }: { version: string | null | undefined; lab
   if (version === undefined) return null
   return (
     <div className={cn(
-      'flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg border',
+      'flex items-center gap-1.5 text-[14px] px-2 py-1 rounded-lg border',
       version
         ? 'bg-green-500/10 border-green-500/20 text-green-400'
         : 'bg-[#1c1c20] border-[#27272a] text-[#52525b]',
@@ -587,7 +587,7 @@ function CopyBtn({ cmd, label, copied, onCopy }: { cmd: string; label?: string; 
     <button
       onClick={() => onCopy(cmd)}
       className={cn(
-        'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] border transition-all font-mono',
+        'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[14px] border transition-all font-mono',
         isCopied
           ? 'bg-green-500/10 border-green-500/20 text-green-400'
           : 'bg-[#0d0d0f] border-[#1c1c20] text-[#71717a] hover:text-[#a1a1aa] hover:border-[#27272a]',
@@ -654,7 +654,7 @@ function DevSetupStep({
 
         {/* ── 섹션 A: 필수 계정 ── */}
         <div className="bg-[#111113] border border-[#1c1c20] rounded-2xl p-5">
-          <p className="text-[11px] font-semibold text-[#52525b] uppercase tracking-wide mb-3">STEP 1 — 필수 계정 만들기 (가입 후 ▼ 클릭 → API 키 발급 안내)</p>
+          <p className="text-[14px] font-semibold text-[#52525b] uppercase tracking-wide mb-3">STEP 1 — 필수 계정 만들기 (가입 후 ▼ 클릭 → API 키 발급 안내)</p>
           <div className="space-y-2">
             {ACCOUNT_LINKS.map(a => {
               const Icon = a.icon
@@ -669,15 +669,15 @@ function DevSetupStep({
                     >
                       <Icon size={13} className={a.color} />
                       <div>
-                        <div className="text-[12px] font-medium text-[#e4e4e7] group-hover:text-white transition-colors">{a.label}</div>
-                        <div className="text-[10px] text-[#52525b]">{a.desc}</div>
+                        <div className="text-[15px] font-medium text-[#e4e4e7] group-hover:text-white transition-colors">{a.label}</div>
+                        <div className="text-[13px] text-[#52525b]">{a.desc}</div>
                       </div>
                       <ExternalLink size={10} className="ml-2 text-[#3f3f46] group-hover:text-[#52525b] shrink-0" />
                     </button>
                     <button
                       type="button"
                       onClick={() => setExpandedAccount(isExpanded ? null : a.label)}
-                      className="px-3 py-2.5 text-[10px] text-[#52525b] hover:text-primary transition-colors shrink-0 border-l border-[#1c1c20]"
+                      className="px-3 py-2.5 text-[13px] text-[#52525b] hover:text-primary transition-colors shrink-0 border-l border-[#1c1c20]"
                       title="가입 후 API 키 발급 안내"
                     >
                       {isExpanded ? '▲ 닫기' : '▼ 안내'}
@@ -685,10 +685,10 @@ function DevSetupStep({
                   </div>
                   {isExpanded && (
                     <div className="px-3 pb-3 pt-1 border-t border-[#1c1c20] bg-[#111113]">
-                      <p className="text-[10px] font-semibold text-primary mb-1.5">{a.afterSignup.title}</p>
+                      <p className="text-[13px] font-semibold text-primary mb-1.5">{a.afterSignup.title}</p>
                       <div className="space-y-1">
                         {a.afterSignup.steps.map((step, i) => (
-                          <p key={i} className="text-[11px] text-[#71717a] leading-relaxed">{step}</p>
+                          <p key={i} className="text-[14px] text-[#71717a] leading-relaxed">{step}</p>
                         ))}
                       </div>
                     </div>
@@ -702,12 +702,12 @@ function DevSetupStep({
         {/* ── 섹션 B: 개발 도구 ── */}
         <div className="bg-[#111113] border border-[#1c1c20] rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-semibold text-[#52525b] uppercase tracking-wide">STEP 2-4 — 개발 도구 설치 확인 (nvm · Node · Python · Git · Claude Code)</p>
+            <p className="text-[14px] font-semibold text-[#52525b] uppercase tracking-wide">STEP 2-4 — 개발 도구 설치 확인 (nvm · Node · Python · Git · Claude Code)</p>
             <button
               type="button"
               onClick={onRefresh}
               disabled={toolsLoading}
-              className="flex items-center gap-1 text-[10px] text-[#52525b] hover:text-primary transition-colors"
+              className="flex items-center gap-1 text-[13px] text-[#52525b] hover:text-primary transition-colors"
             >
               {toolsLoading ? <Loader2 size={10} className="animate-spin" /> : <Terminal size={10} />}
               재확인
@@ -729,7 +729,7 @@ function DevSetupStep({
                 <ToolBadge version={toolStatus.code}   label="VS Code" />
                 {isWin && (
                   <div className={cn(
-                    'flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg border',
+                    'flex items-center gap-1.5 text-[14px] px-2 py-1 rounded-lg border',
                     toolStatus.wsl
                       ? 'bg-green-500/10 border-green-500/20 text-green-400'
                       : 'bg-[#1c1c20] border-[#27272a] text-[#52525b]',
@@ -745,7 +745,7 @@ function DevSetupStep({
                 !toolStatus.pnpm || (isMac && !toolStatus.brew) || !toolStatus.git || !toolStatus.claude || !toolStatus.code ||
                 (isWin && !toolStatus.wsl)) && ic && (
                 <div className="space-y-1.5 pt-2 border-t border-[#1c1c20]">
-                  <p className="text-[10px] text-[#52525b] mb-2">미설치 항목 — 복사해서 터미널에 붙여넣으세요</p>
+                  <p className="text-[13px] text-[#52525b] mb-2">미설치 항목 — 복사해서 터미널에 붙여넣으세요</p>
                   {isWin && !toolStatus.wsl && (
                     <CopyBtn cmd={ic.wsl_windows} label="WSL2 설치 (PowerShell 관리자)" copied={copiedCmd} onCopy={onCopy} />
                   )}
@@ -788,7 +788,7 @@ function DevSetupStep({
               {/* VS Code 확장 */}
               {toolStatus.code && (
                 <div className="pt-2 border-t border-[#1c1c20]">
-                  <p className="text-[10px] text-[#52525b] mb-2">VS Code 확장 — 터미널에서 실행 (선택사항)</p>
+                  <p className="text-[13px] text-[#52525b] mb-2">VS Code 확장 — 터미널에서 실행 (선택사항)</p>
                   <div className="flex flex-wrap gap-1.5">
                     {toolStatus.vscode_extensions.map(ext => (
                       <CopyBtn key={ext.id} cmd={ext.cmd} label={ext.name} copied={copiedCmd} onCopy={onCopy} />
@@ -798,25 +798,25 @@ function DevSetupStep({
               )}
             </div>
           ) : toolsLoading ? (
-            <div className="flex items-center gap-2 text-[#52525b] text-[12px]">
+            <div className="flex items-center gap-2 text-[#52525b] text-[15px]">
               <Loader2 size={12} className="animate-spin" /> 설치 상태 확인 중...
             </div>
           ) : (
-            <div className="text-[#52525b] text-[12px]">백엔드 연결 후 재확인 버튼을 눌러보세요.</div>
+            <div className="text-[#52525b] text-[15px]">백엔드 연결 후 재확인 버튼을 눌러보세요.</div>
           )}
         </div>
 
         {/* ── 섹션 C: 프로젝트 파일 생성 ── */}
         <div className="bg-[#111113] border border-[#1c1c20] rounded-2xl p-5">
-          <p className="text-[11px] font-semibold text-[#52525b] uppercase tracking-wide mb-3">STEP 5 — 프로젝트 파일 자동 생성 (선택)</p>
-          <p className="text-[11px] text-[#52525b] mb-3">프로젝트 폴더를 지정하면 CLAUDE.md + .gitignore + .env.local을 자동 생성합니다.</p>
+          <p className="text-[14px] font-semibold text-[#52525b] uppercase tracking-wide mb-3">STEP 5 — 프로젝트 파일 자동 생성 (선택)</p>
+          <p className="text-[14px] text-[#52525b] mb-3">프로젝트 폴더를 지정하면 CLAUDE.md + .gitignore + .env.local을 자동 생성합니다.</p>
           <div className="space-y-2">
             <input
               type="text"
               value={projectPath}
               onChange={e => setProjectPath(e.target.value)}
               placeholder={isWin ? 'C:\\Users\\me\\my-project' : '~/my-project'}
-              className="w-full bg-[#0d0d0f] border border-[#1c1c20] rounded-lg px-3 py-2 text-[12px] text-[#e4e4e7] placeholder-[#3f3f46] focus:outline-none focus:border-primary/50 transition-colors"
+              className="w-full bg-[#0d0d0f] border border-[#1c1c20] rounded-lg px-3 py-2 text-[15px] text-[#e4e4e7] placeholder-[#3f3f46] focus:outline-none focus:border-primary/50 transition-colors"
             />
             <div className="grid grid-cols-2 gap-2">
               <input
@@ -824,14 +824,14 @@ function DevSetupStep({
                 value={projectName}
                 onChange={e => setProjectName(e.target.value)}
                 placeholder="프로젝트 이름 (선택)"
-                className="bg-[#0d0d0f] border border-[#1c1c20] rounded-lg px-3 py-2 text-[12px] text-[#e4e4e7] placeholder-[#3f3f46] focus:outline-none focus:border-primary/50 transition-colors"
+                className="bg-[#0d0d0f] border border-[#1c1c20] rounded-lg px-3 py-2 text-[15px] text-[#e4e4e7] placeholder-[#3f3f46] focus:outline-none focus:border-primary/50 transition-colors"
               />
               <input
                 type="text"
                 value={supabaseUrl}
                 onChange={e => setSupabaseUrl(e.target.value)}
                 placeholder="Supabase URL (선택)"
-                className="bg-[#0d0d0f] border border-[#1c1c20] rounded-lg px-3 py-2 text-[12px] text-[#e4e4e7] placeholder-[#3f3f46] focus:outline-none focus:border-primary/50 transition-colors"
+                className="bg-[#0d0d0f] border border-[#1c1c20] rounded-lg px-3 py-2 text-[15px] text-[#e4e4e7] placeholder-[#3f3f46] focus:outline-none focus:border-primary/50 transition-colors"
               />
             </div>
             <input
@@ -839,10 +839,10 @@ function DevSetupStep({
               value={supabaseAnon}
               onChange={e => setSupabaseAnon(e.target.value)}
               placeholder="Supabase Anon Key (선택)"
-              className="w-full bg-[#0d0d0f] border border-[#1c1c20] rounded-lg px-3 py-2 text-[12px] text-[#e4e4e7] placeholder-[#3f3f46] focus:outline-none focus:border-primary/50 transition-colors"
+              className="w-full bg-[#0d0d0f] border border-[#1c1c20] rounded-lg px-3 py-2 text-[15px] text-[#e4e4e7] placeholder-[#3f3f46] focus:outline-none focus:border-primary/50 transition-colors"
             />
             {genResult ? (
-              <div className="flex items-center gap-2 text-[11px] text-green-400 bg-green-400/10 border border-green-400/20 rounded-lg px-3 py-2">
+              <div className="flex items-center gap-2 text-[14px] text-green-400 bg-green-400/10 border border-green-400/20 rounded-lg px-3 py-2">
                 <CheckCircle size={11} /> {genResult}
               </div>
             ) : (
@@ -850,7 +850,7 @@ function DevSetupStep({
                 type="button"
                 onClick={onGenerate}
                 disabled={genLoading || !projectPath.trim()}
-                className="flex items-center gap-1.5 px-3 py-2 bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30 rounded-lg text-[12px] font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 px-3 py-2 bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30 rounded-lg text-[15px] font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {genLoading ? <Loader2 size={11} className="animate-spin" /> : <FolderOpen size={11} />}
                 파일 자동 생성 (CLAUDE.md + .gitignore + .env.local)
@@ -865,14 +865,14 @@ function DevSetupStep({
           <button
             type="button"
             onClick={onNext}
-            className="flex-1 text-center text-[11px] text-[#3f3f46] hover:text-[#52525b] transition-colors py-2"
+            className="flex-1 text-center text-[14px] text-[#3f3f46] hover:text-[#52525b] transition-colors py-2"
           >
             건너뛰기
           </button>
           <button
             type="button"
             onClick={onNext}
-            className="flex items-center gap-1.5 bg-primary hover:bg-primary-hover text-white px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-colors"
+            className="flex items-center gap-1.5 bg-primary hover:bg-primary-hover text-white px-5 py-2.5 rounded-lg text-[16px] font-semibold transition-colors"
           >
             다음 단계로 <ChevronRight size={13} />
           </button>
@@ -940,12 +940,12 @@ function TemplateOption({ selected, onClick, badge, title, desc }: {
           <div className="flex items-center gap-2 mb-1">
             <span className="text-sm font-semibold text-white">{title}</span>
             {badge && (
-              <span className="text-[10px] bg-primary text-white px-1.5 py-0.5 rounded font-medium">
+              <span className="text-[13px] bg-primary text-white px-1.5 py-0.5 rounded font-medium">
                 {badge}
               </span>
             )}
           </div>
-          <p className="text-[12px] text-[#52525b]">{desc}</p>
+          <p className="text-[15px] text-[#52525b]">{desc}</p>
         </div>
         <div className={cn(
           'w-4 h-4 rounded-full border-2 mt-0.5 shrink-0 flex items-center justify-center transition-colors',
@@ -960,7 +960,7 @@ function TemplateOption({ selected, onClick, badge, title, desc }: {
 
 function SummaryRow({ done, label }: { done: boolean; label: string }) {
   return (
-    <div className="flex items-center gap-2 text-[12px]">
+    <div className="flex items-center gap-2 text-[15px]">
       <CheckCircle size={13} className={done ? 'text-primary' : 'text-[#3f3f46]'} />
       <span className={done ? 'text-[#e4e4e7]' : 'text-[#3f3f46]'}>{label}</span>
     </div>
@@ -969,7 +969,7 @@ function SummaryRow({ done, label }: { done: boolean; label: string }) {
 
 function ErrorMsg({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 text-[12px] text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
+    <div className="flex items-center gap-2 text-[15px] text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
       <span>⚠</span>
       <span>{children}</span>
     </div>

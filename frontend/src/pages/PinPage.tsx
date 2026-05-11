@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { authApi } from '../lib/api'
 
@@ -77,7 +77,7 @@ export default function PinPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-[12px] text-muted mb-1.5">
+              <label className="block text-[15px] text-muted mb-1.5">
                 {isSetup ? 'PIN (4~6자리 숫자)' : 'PIN'}
               </label>
               <input
@@ -95,7 +95,7 @@ export default function PinPage() {
 
             {isSetup && (
               <div>
-                <label className="block text-[12px] text-muted mb-1.5">PIN 확인</label>
+                <label className="block text-[15px] text-muted mb-1.5">PIN 확인</label>
                 <input
                   type="password"
                   inputMode="numeric"
@@ -110,7 +110,7 @@ export default function PinPage() {
             )}
 
             {error && (
-              <div className="text-[12px] text-red-400 bg-red-900/20 border border-red-800/30 rounded-lg px-3 py-2 text-center">
+              <div className="text-[15px] text-red-400 bg-red-900/20 border border-red-800/30 rounded-lg px-3 py-2 text-center">
                 {error}
               </div>
             )}
@@ -118,7 +118,7 @@ export default function PinPage() {
             <button
               type="submit"
               disabled={loading || pin.length < 4}
-              className="w-full py-2.5 bg-primary text-white rounded-lg text-[13px] font-medium hover:bg-[#C5664A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-2.5 bg-primary text-white rounded-lg text-[16px] font-medium hover:bg-[#C5664A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">

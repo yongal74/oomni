@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { feedApi, type FeedItem } from '../lib/api'
 import { useAppStore } from '../store/app.store'
@@ -94,39 +94,39 @@ function ApprovalCard({
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-lg shrink-0">{BOT_EMOJI[role] ?? '🤖'}</span>
-          <span className="text-[13px] font-medium text-text truncate">{item.agent_name}</span>
+          <span className="text-[16px] font-medium text-text truncate">{item.agent_name}</span>
           {role && (
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${badgeColor}`}>
+            <span className={`text-[13px] px-1.5 py-0.5 rounded-full shrink-0 ${badgeColor}`}>
               {role}
             </span>
           )}
         </div>
-        <span className="text-[11px] text-muted shrink-0">
+        <span className="text-[14px] text-muted shrink-0">
           {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: ko })}
         </span>
       </div>
 
       {/* Action label as card title */}
       {item.action_label && (
-        <p className="text-[13px] font-semibold text-text mb-2">{item.action_label}</p>
+        <p className="text-[16px] font-semibold text-text mb-2">{item.action_label}</p>
       )}
 
       {/* Content preview */}
       {item.content && (
         <div className="mb-3">
           {isCode ? (
-            <pre className="bg-bg rounded-lg p-3 text-[11px] text-green-300 font-mono whitespace-pre-wrap overflow-x-auto leading-relaxed">
+            <pre className="bg-bg rounded-lg p-3 text-[14px] text-green-300 font-mono whitespace-pre-wrap overflow-x-auto leading-relaxed">
               {displayContent}{hasMore && !state.expanded ? '…' : ''}
             </pre>
           ) : (
-            <p className="text-[12px] text-muted leading-relaxed whitespace-pre-wrap bg-surface-2 rounded-lg p-3">
+            <p className="text-[15px] text-muted leading-relaxed whitespace-pre-wrap bg-surface-2 rounded-lg p-3">
               {displayContent}{hasMore && !state.expanded ? '…' : ''}
             </p>
           )}
           {hasMore && (
             <button
               onClick={() => set({ expanded: !state.expanded })}
-              className="flex items-center gap-1 mt-1 text-[11px] text-primary hover:text-primary/80 transition-colors"
+              className="flex items-center gap-1 mt-1 text-[14px] text-primary hover:text-primary/80 transition-colors"
             >
               {state.expanded ? (
                 <><ChevronUp size={12} /> 접기</>
@@ -146,7 +146,7 @@ function ApprovalCard({
               value={state.editedContent}
               onChange={(e: { target: { value: string } }) => set({ editedContent: e.target.value })}
               rows={6}
-              className="w-full mb-3 bg-bg border border-border rounded-lg p-3 text-[12px] text-text font-mono resize-y focus:outline-none focus:border-primary"
+              className="w-full mb-3 bg-bg border border-border rounded-lg p-3 text-[15px] text-text font-mono resize-y focus:outline-none focus:border-primary"
             />
           )}
 
@@ -155,7 +155,7 @@ function ApprovalCard({
             <button
               onClick={handleApprove}
               disabled={state.approving || state.rejecting}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-900/30 text-green-400 rounded text-[12px] hover:bg-green-900/50 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-900/30 text-green-400 rounded text-[15px] hover:bg-green-900/50 disabled:opacity-50 transition-colors"
             >
               {state.approving ? (
                 <span className="w-3 h-3 border border-green-400 border-t-transparent rounded-full animate-spin" />
@@ -167,7 +167,7 @@ function ApprovalCard({
             <button
               onClick={handleReject}
               disabled={state.approving || state.rejecting}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/30 text-red-400 rounded text-[12px] hover:bg-red-900/50 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/30 text-red-400 rounded text-[15px] hover:bg-red-900/50 disabled:opacity-50 transition-colors"
             >
               {state.rejecting ? (
                 <span className="w-3 h-3 border border-red-400 border-t-transparent rounded-full animate-spin" />
@@ -178,7 +178,7 @@ function ApprovalCard({
             </button>
             <button
               onClick={() => set({ editing: !state.editing, editedContent: item.content ?? '' })}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-border/40 text-muted rounded text-[12px] hover:bg-border/60 hover:text-text transition-colors ml-auto"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-border/40 text-muted rounded text-[15px] hover:bg-border/60 hover:text-text transition-colors ml-auto"
             >
               <Edit2 size={12} />
               {state.editing ? '취소' : '✏️ 수정하기'}
@@ -191,8 +191,8 @@ function ApprovalCard({
       {isProcessed && (
         <div className="mt-2">
           {item.approved_at
-            ? <span className="text-[11px] text-green-400">✓ 승인됨</span>
-            : <span className="text-[11px] text-red-400">✗ 거절됨</span>
+            ? <span className="text-[14px] text-green-400">✓ 승인됨</span>
+            : <span className="text-[14px] text-red-400">✗ 거절됨</span>
           }
         </div>
       )}
@@ -273,12 +273,12 @@ export default function ApprovalPage() {
   ]
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="p-6 w-full max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-5 flex-wrap">
         <h1 className="text-xl font-semibold text-text">승인 인박스</h1>
         {pending.length > 0 && (
-          <span className="bg-primary text-white text-[11px] px-2 py-0.5 rounded-full">
+          <span className="bg-primary text-white text-[14px] px-2 py-0.5 rounded-full">
             {pending.length}
           </span>
         )}
@@ -286,14 +286,14 @@ export default function ApprovalPage() {
           <button
             onClick={handleBulkApprove}
             disabled={pending.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-900/30 text-green-400 rounded-lg text-[12px] hover:bg-green-900/50 disabled:opacity-30 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-900/30 text-green-400 rounded-lg text-[15px] hover:bg-green-900/50 disabled:opacity-30 transition-colors"
           >
             <Check size={12} /> 전체 승인
           </button>
           <button
             onClick={handleBulkReject}
             disabled={pending.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/30 text-red-400 rounded-lg text-[12px] hover:bg-red-900/50 disabled:opacity-30 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/30 text-red-400 rounded-lg text-[15px] hover:bg-red-900/50 disabled:opacity-30 transition-colors"
           >
             <X size={12} /> 전체 거절
           </button>
@@ -306,7 +306,7 @@ export default function ApprovalPage() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-[12px] transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-[15px] transition-colors ${
               activeTab === tab.key
                 ? 'bg-primary/20 text-primary font-medium'
                 : 'text-muted hover:text-text'
@@ -314,7 +314,7 @@ export default function ApprovalPage() {
           >
             {tab.label}
             {tab.count !== undefined && tab.count > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+              <span className={`text-[13px] px-1.5 py-0.5 rounded-full ${
                 activeTab === tab.key ? 'bg-primary/30 text-primary' : 'bg-border text-muted'
               }`}>
                 {tab.count}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { costApi } from '../lib/api'
 import { useAppStore } from '../store/app.store'
@@ -108,7 +108,7 @@ export default function CostPage() {
   const maxDailyCost = Math.max(...daily.map(d => d.cost_usd), 0.001)
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6 w-full max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold text-text">비용 추적</h1>
@@ -117,7 +117,7 @@ export default function CostPage() {
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-3 py-1 rounded text-[12px] transition-colors ${
+              className={`px-3 py-1 rounded text-[15px] transition-colors ${
                 period === p
                   ? 'bg-primary text-white'
                   : 'bg-surface border border-border text-muted hover:text-text'
@@ -132,25 +132,25 @@ export default function CostPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <div className="bg-surface border border-border rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2 text-muted text-[12px]">
+          <div className="flex items-center gap-2 mb-2 text-muted text-[15px]">
             <DollarSign size={13} /> 총 비용
           </div>
           <div className="text-2xl font-bold text-primary">{fmtUsd(totalCost)}</div>
         </div>
         <div className="bg-surface border border-border rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2 text-muted text-[12px]">
+          <div className="flex items-center gap-2 mb-2 text-muted text-[15px]">
             <Zap size={13} /> 입력 토큰
           </div>
           <div className="text-2xl font-bold text-text">{fmtTokens(totalInput)}</div>
         </div>
         <div className="bg-surface border border-border rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2 text-muted text-[12px]">
+          <div className="flex items-center gap-2 mb-2 text-muted text-[15px]">
             <Activity size={13} /> 출력 토큰
           </div>
           <div className="text-2xl font-bold text-text">{fmtTokens(totalOutput)}</div>
         </div>
         <div className="bg-surface border border-border rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2 text-muted text-[12px]">
+          <div className="flex items-center gap-2 mb-2 text-muted text-[15px]">
             <BarChart2 size={13} /> 이번 달 예산
           </div>
           <div className="text-2xl font-bold text-text">{fmtBudget(totalBudgetCents)}</div>
@@ -160,7 +160,7 @@ export default function CostPage() {
       {/* Budget alerts */}
       {budgetAlerts.length > 0 && (
         <div className="mb-6 space-y-2">
-          <h3 className="text-[13px] font-medium text-text mb-2 flex items-center gap-1.5">
+          <h3 className="text-[16px] font-medium text-text mb-2 flex items-center gap-1.5">
             <AlertTriangle size={14} className="text-yellow-400" /> 예산 경보
           </h3>
           {budgetAlerts.map(alert => (
@@ -174,12 +174,12 @@ export default function CostPage() {
             >
               <div className="flex items-center gap-2">
                 <AlertTriangle size={14} />
-                <span className="text-[13px] font-medium">{alert.agent_name}</span>
-                <span className="text-[11px] opacity-70">
+                <span className="text-[16px] font-medium">{alert.agent_name}</span>
+                <span className="text-[14px] opacity-70">
                   {alert.pct > 100 ? '예산 초과!' : `예산 ${alert.pct}% 소진`}
                 </span>
               </div>
-              <div className="text-[12px]">
+              <div className="text-[15px]">
                 {fmtUsd(alert.spent_cents / 100)} / {fmtBudget(alert.budget_cents)}
               </div>
             </div>
@@ -189,17 +189,17 @@ export default function CostPage() {
 
       {/* Per-bot breakdown */}
       <div className="bg-surface border border-border rounded-xl p-5 mb-4">
-        <h3 className="text-[13px] font-medium text-text mb-4">봇별 비용 분석</h3>
+        <h3 className="text-[16px] font-medium text-text mb-4">봇별 비용 분석</h3>
         {isLoading ? (
           <div className="flex justify-center py-8">
             <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : byAgent.length === 0 ? (
-          <p className="text-center text-muted text-[13px] py-6">아직 비용 데이터가 없습니다</p>
+          <p className="text-center text-muted text-[16px] py-6">아직 비용 데이터가 없습니다</p>
         ) : (
           <>
             {/* Table header */}
-            <div className="grid grid-cols-[1fr_80px_80px_50px_140px] gap-2 text-[11px] text-muted mb-3 px-1">
+            <div className="grid grid-cols-[1fr_80px_80px_50px_140px] gap-2 text-[14px] text-muted mb-3 px-1">
               <span>봇</span>
               <span className="text-right">비용</span>
               <span className="text-right">토큰</span>
@@ -216,13 +216,13 @@ export default function CostPage() {
                     <div className="grid grid-cols-[1fr_80px_80px_50px_140px] gap-2 items-center mb-1">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-sm flex-shrink-0">{emoji}</span>
-                        <span className="text-[12px] text-text truncate">{row.agent_name}</span>
+                        <span className="text-[15px] text-text truncate">{row.agent_name}</span>
                       </div>
-                      <span className="text-[12px] text-primary text-right">{fmtUsd(row.cost_usd)}</span>
-                      <span className="text-[11px] text-muted text-right">
+                      <span className="text-[15px] text-primary text-right">{fmtUsd(row.cost_usd)}</span>
+                      <span className="text-[14px] text-muted text-right">
                         {fmtTokens(row.input_tokens + row.output_tokens)}
                       </span>
-                      <span className="text-[11px] text-muted text-right">{row.run_count}회</span>
+                      <span className="text-[14px] text-muted text-right">{row.run_count}회</span>
                       <div className="flex items-center gap-1.5">
                         <div className="flex-1 h-1.5 bg-[#2A2A2C] rounded-full overflow-hidden">
                           <div
@@ -230,7 +230,7 @@ export default function CostPage() {
                             style={{ width: `${budgetPct}%` }}
                           />
                         </div>
-                        <span className={`text-[10px] flex-shrink-0 ${
+                        <span className={`text-[13px] flex-shrink-0 ${
                           row.budget_used_pct > 100 ? 'text-red-400' :
                           row.budget_used_pct >= 80 ? 'text-yellow-400' : 'text-muted'
                         }`}>
@@ -249,7 +249,7 @@ export default function CostPage() {
       {/* Daily cost chart */}
       {daily.length > 0 && (
         <div className="bg-surface border border-border rounded-xl p-5 mb-4">
-          <h3 className="text-[13px] font-medium text-text mb-4">일별 비용</h3>
+          <h3 className="text-[16px] font-medium text-text mb-4">일별 비용</h3>
           <div className="flex items-end gap-1 h-24">
             {daily.map(d => {
               const heightPct = maxDailyCost > 0 ? (d.cost_usd / maxDailyCost) * 100 : 0
@@ -274,9 +274,9 @@ export default function CostPage() {
       <div className="bg-surface border border-border rounded-lg p-4">
         <div className="flex items-center gap-2 mb-2">
           <TrendingUp size={14} className="text-green-400" />
-          <span className="text-[12px] font-medium text-text">비용 최적화 팁</span>
+          <span className="text-[15px] font-medium text-text">비용 최적화 팁</span>
         </div>
-        <ul className="text-[11px] text-muted space-y-1 list-disc list-inside">
+        <ul className="text-[14px] text-muted space-y-1 list-disc list-inside">
           <li>단순 작업(리서치 요약, 콘텐츠)은 claude-haiku로 80% 절감 가능</li>
           <li>OpenRouter 연동 시 모델 자동 라우팅으로 추가 절감</li>
           <li>봇 월 예산 한도 설정으로 초과 방지</li>

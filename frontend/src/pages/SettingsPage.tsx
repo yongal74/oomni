@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 import {
   Download, Upload, AlertTriangle, CheckCircle, Loader2,
   User, CreditCard, Key, Database, ExternalLink, X, Bot, Eye, EyeOff, FolderOpen, Info, RefreshCw, MessageSquare,
@@ -48,7 +48,7 @@ function MsgBox({ msg }: { msg: MsgState }) {
   return (
     <div
       className={
-        'flex items-center gap-2 mt-4 p-3 rounded-lg text-[13px] ' +
+        'flex items-center gap-2 mt-4 p-3 rounded-lg text-[16px] ' +
         (msg.type === 'success'
           ? 'bg-green-900/20 border border-green-800/30 text-green-400'
           : 'bg-red-900/20 border border-red-800/30 text-red-400')
@@ -464,7 +464,7 @@ export default function SettingsPage() {
   // ── 렌더 ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="p-6 max-w-2xl">
+    <div className="p-6 w-full max-w-5xl">
       <h1 className="text-xl font-semibold text-text mb-6">설정</h1>
 
       {/* ── 0. 화면 설정 ────────────────────────────────────────────── */}
@@ -472,13 +472,13 @@ export default function SettingsPage() {
         <SectionTitle icon={<Monitor size={16} />} title="화면 설정" />
         <p className="text-muted text-sm mb-4">UI 크기와 폰트를 조정합니다.</p>
         <div>
-          <label className="block text-[12px] text-muted mb-2">UI 크기 (현재: {ZOOM_LEVELS.find(z => z.value === uiZoom)?.label ?? '기본'})</label>
+          <label className="block text-[15px] text-muted mb-2">UI 크기 (현재: {ZOOM_LEVELS.find(z => z.value === uiZoom)?.label ?? '기본'})</label>
           <div className="flex gap-2 flex-wrap">
             {ZOOM_LEVELS.map(z => (
               <button
                 key={z.value}
                 onClick={() => { setUiZoom(z.value); applyZoom(z.value) }}
-                className={`px-3 py-1.5 rounded-lg text-[13px] border transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-[16px] border transition-colors ${
                   uiZoom === z.value
                     ? 'bg-primary text-white border-primary'
                     : 'bg-bg border-border text-muted hover:border-primary/40 hover:text-text'
@@ -504,19 +504,19 @@ export default function SettingsPage() {
           <div className="space-y-4">
             {/* 이름 */}
             <div>
-              <label className="block text-[12px] text-muted mb-1">이름</label>
+              <label className="block text-[15px] text-muted mb-1">이름</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="표시 이름 입력"
-                  className="flex-1 px-3 py-2 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted focus:outline-none focus:border-primary"
+                  className="flex-1 px-3 py-2 bg-bg border border-border rounded-lg text-[16px] text-text placeholder:text-muted focus:outline-none focus:border-primary"
                 />
                 <button
                   onClick={handleProfileSave}
                   disabled={profileSaving}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[16px] font-medium transition-colors disabled:opacity-50 shrink-0"
                 >
                   {profileSaving ? <Loader2 size={13} className="animate-spin" /> : null}
                   저장
@@ -527,8 +527,8 @@ export default function SettingsPage() {
             {/* 이메일 */}
             {sub?.email && (
               <div>
-                <label className="block text-[12px] text-muted mb-1">이메일</label>
-                <div className="px-3 py-2 bg-bg border border-border rounded-lg text-[13px] text-muted">
+                <label className="block text-[15px] text-muted mb-1">이메일</label>
+                <div className="px-3 py-2 bg-bg border border-border rounded-lg text-[16px] text-muted">
                   {sub.email}
                 </div>
               </div>
@@ -537,8 +537,8 @@ export default function SettingsPage() {
             {/* 역할 배지 */}
             {sub && (
               <div className="flex items-center gap-2">
-                <span className="text-[12px] text-muted">역할</span>
-                <span className="px-2 py-0.5 bg-primary/10 border border-primary/20 text-primary rounded-full text-[11px] font-medium">
+                <span className="text-[15px] text-muted">역할</span>
+                <span className="px-2 py-0.5 bg-primary/10 border border-primary/20 text-primary rounded-full text-[14px] font-medium">
                   {currentPlan === 'free' ? 'user' : currentPlan}
                 </span>
               </div>
@@ -563,17 +563,17 @@ export default function SettingsPage() {
             {/* 현재 플랜 표시 */}
             <div className="p-4 bg-bg border border-border rounded-lg">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[14px] font-medium text-text">
+                <span className="text-[17px] font-medium text-text">
                   {currentPlanInfo.name} 플랜
                   {currentPlanInfo.price > 0 && (
-                    <span className="ml-2 text-[12px] text-muted font-normal">
+                    <span className="ml-2 text-[15px] text-muted font-normal">
                       {currentPlanInfo.price.toLocaleString()}원/{currentPlanInfo.period}
                     </span>
                   )}
                 </span>
                 <span
                   className={
-                    'px-2 py-0.5 rounded-full text-[11px] font-medium ' +
+                    'px-2 py-0.5 rounded-full text-[14px] font-medium ' +
                     (isActive
                       ? 'bg-green-900/20 border border-green-800/30 text-green-400'
                       : 'bg-surface border border-border text-muted')
@@ -582,9 +582,9 @@ export default function SettingsPage() {
                   {isActive ? '활성' : sub?.status === 'cancelled' ? '취소됨' : '무료'}
                 </span>
               </div>
-              <div className="text-[12px] text-muted">{currentPlanInfo.description}</div>
+              <div className="text-[15px] text-muted">{currentPlanInfo.description}</div>
               {sub?.current_period_end && isActive && (
-                <div className="mt-2 text-[12px] text-muted">
+                <div className="mt-2 text-[15px] text-muted">
                   만료일: {formatDate(sub.current_period_end)}
                 </div>
               )}
@@ -597,15 +597,15 @@ export default function SettingsPage() {
                   onClick={() => setPayModal({ plan: 'personal' })}
                   className="p-3 bg-primary/10 border border-primary/20 hover:bg-primary/20 rounded-lg text-left transition-colors"
                 >
-                  <div className="text-[13px] font-medium text-primary mb-0.5">개인 플랜</div>
-                  <div className="text-[12px] text-muted">9,900원/월</div>
+                  <div className="text-[16px] font-medium text-primary mb-0.5">개인 플랜</div>
+                  <div className="text-[15px] text-muted">9,900원/월</div>
                 </button>
                 <button
                   onClick={() => setPayModal({ plan: 'team' })}
                   className="p-3 bg-primary/10 border border-primary/20 hover:bg-primary/20 rounded-lg text-left transition-colors"
                 >
-                  <div className="text-[13px] font-medium text-primary mb-0.5">팀 플랜</div>
-                  <div className="text-[12px] text-muted">29,000원/월</div>
+                  <div className="text-[16px] font-medium text-primary mb-0.5">팀 플랜</div>
+                  <div className="text-[15px] text-muted">29,000원/월</div>
                 </button>
               </div>
             )}
@@ -615,7 +615,7 @@ export default function SettingsPage() {
               <button
                 onClick={handleCancelSub}
                 disabled={cancelLoading}
-                className="flex items-center gap-2 px-4 py-2 bg-red-900/20 border border-red-800/30 text-red-400 hover:bg-red-900/40 rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-red-900/20 border border-red-800/30 text-red-400 hover:bg-red-900/40 rounded-lg text-[16px] font-medium transition-colors disabled:opacity-50"
               >
                 {cancelLoading ? <Loader2 size={13} className="animate-spin" /> : null}
                 구독 취소
@@ -645,8 +645,8 @@ export default function SettingsPage() {
         {/* 현재 설정 상태 */}
         <div className={`flex items-center gap-2 p-3 rounded-lg border mb-4 ${claudeApiKeySet ? 'bg-green-900/10 border-green-800/30' : 'bg-yellow-900/10 border-yellow-800/30'}`}>
           {claudeApiKeySet
-            ? <><CheckCircle size={14} className="text-green-400 shrink-0" /><span className="text-[13px] text-green-400">API 키 설정됨 — 봇이 정상 동작합니다</span></>
-            : <><AlertTriangle size={14} className="text-yellow-400 shrink-0" /><span className="text-[13px] text-yellow-400">API 키 미설정 — 봇 실행 시 오류가 발생합니다</span></>
+            ? <><CheckCircle size={14} className="text-green-400 shrink-0" /><span className="text-[16px] text-green-400">API 키 설정됨 — 봇이 정상 동작합니다</span></>
+            : <><AlertTriangle size={14} className="text-yellow-400 shrink-0" /><span className="text-[16px] text-yellow-400">API 키 미설정 — 봇 실행 시 오류가 발생합니다</span></>
           }
         </div>
 
@@ -658,7 +658,7 @@ export default function SettingsPage() {
               onChange={(e) => setClaudeApiKey(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleClaudeApiKeySave()}
               placeholder="sk-ant-api03-..."
-              className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[16px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary"
             />
             <button
               onClick={() => setShowClaudeKey(v => !v)}
@@ -671,7 +671,7 @@ export default function SettingsPage() {
           <button
             onClick={handleClaudeApiKeySave}
             disabled={claudeSaving}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0"
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[16px] font-medium transition-colors disabled:opacity-50 shrink-0"
           >
             {claudeSaving ? <Loader2 size={13} className="animate-spin" /> : null}
             저장
@@ -689,21 +689,21 @@ export default function SettingsPage() {
         {/* Kling API */}
         <div className="mb-5 pb-5 border-b border-border">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[13px] font-medium text-text">Kling 3.0 API</span>
-            <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">영상 자동 생성 (ModelsLab)</span>
-            {klingKeySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+            <span className="text-[16px] font-medium text-text">Kling 3.0 API</span>
+            <span className="text-[14px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">영상 자동 생성 (ModelsLab)</span>
+            {klingKeySet && <span className="flex items-center gap-1 text-[13px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
           </div>
-          <p className="text-[12px] text-muted mb-3">쇼츠 영상 자동 생성 (20초/60초/5분). modelslab.com에서 발급.</p>
+          <p className="text-[15px] text-muted mb-3">쇼츠 영상 자동 생성 (20초/60초/5분). modelslab.com에서 발급.</p>
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <input type={showKlingKey ? 'text' : 'password'} value={klingApiKey} onChange={e => setKlingApiKey(e.target.value)}
-                placeholder="ml-..." className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
+                placeholder="ml-..." className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[16px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
               <button onClick={() => setShowKlingKey(v => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text" tabIndex={-1}>
                 {showKlingKey ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
             <button onClick={async () => { setKlingSaving(true); setKlingMsg(null); try { await settingsApi.setKlingKey(klingApiKey.trim()); setKlingKeySet(true); setKlingApiKey(''); setKlingMsg({ type: 'success', text: 'Kling API 키가 저장되었습니다' }); } catch { setKlingMsg({ type: 'error', text: '저장 실패' }); } setKlingSaving(false); }} disabled={klingSaving || !klingApiKey.trim()}
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0">
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[16px] font-medium transition-colors disabled:opacity-50 shrink-0">
               {klingSaving ? <Loader2 size={13} className="animate-spin" /> : null}저장
             </button>
           </div>
@@ -713,21 +713,21 @@ export default function SettingsPage() {
         {/* Gemini API */}
         <div className="mb-5 pb-5 border-b border-border">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[13px] font-medium text-text">Gemini API</span>
-            <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">이미지 생성 (Imagen 4)</span>
-            {geminiKeySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+            <span className="text-[16px] font-medium text-text">Gemini API</span>
+            <span className="text-[14px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">이미지 생성 (Imagen 4)</span>
+            {geminiKeySet && <span className="flex items-center gap-1 text-[13px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
           </div>
-          <p className="text-[12px] text-muted mb-3">마케팅 이미지 자동 생성. aistudio.google.com에서 발급.</p>
+          <p className="text-[15px] text-muted mb-3">마케팅 이미지 자동 생성. aistudio.google.com에서 발급.</p>
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <input type={showGeminiKey ? 'text' : 'password'} value={geminiApiKey} onChange={e => setGeminiApiKey(e.target.value)}
-                placeholder="AIza..." className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
+                placeholder="AIza..." className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[16px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
               <button onClick={() => setShowGeminiKey(v => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text" tabIndex={-1}>
                 {showGeminiKey ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
             <button onClick={async () => { setGeminiSaving(true); setGeminiMsg(null); try { await settingsApi.setGeminiKey(geminiApiKey.trim()); setGeminiKeySet(true); setGeminiApiKey(''); setGeminiMsg({ type: 'success', text: 'Gemini API 키가 저장되었습니다' }); } catch { setGeminiMsg({ type: 'error', text: '저장 실패' }); } setGeminiSaving(false); }} disabled={geminiSaving || !geminiApiKey.trim()}
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0">
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[16px] font-medium transition-colors disabled:opacity-50 shrink-0">
               {geminiSaving ? <Loader2 size={13} className="animate-spin" /> : null}저장
             </button>
           </div>
@@ -737,21 +737,21 @@ export default function SettingsPage() {
         {/* v0 API */}
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[13px] font-medium text-text">v0 Platform API</span>
-            <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">Studio Bot UI 디자인</span>
-            {v0KeySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+            <span className="text-[16px] font-medium text-text">v0 Platform API</span>
+            <span className="text-[14px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">Studio Bot UI 디자인</span>
+            {v0KeySet && <span className="flex items-center gap-1 text-[13px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
           </div>
-          <p className="text-[12px] text-muted mb-3">React + shadcn/ui 프로토타입 생성 (Studio Bot). v0.dev에서 발급.</p>
+          <p className="text-[15px] text-muted mb-3">React + shadcn/ui 프로토타입 생성 (Studio Bot). v0.dev에서 발급.</p>
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <input type={showV0Key ? 'text' : 'password'} value={v0ApiKey} onChange={e => setV0ApiKey(e.target.value)}
-                placeholder="v0_..." className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
+                placeholder="v0_..." className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[16px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
               <button onClick={() => setShowV0Key(v => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text" tabIndex={-1}>
                 {showV0Key ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
             <button onClick={async () => { setV0Saving(true); setV0Msg(null); try { await settingsApi.setV0Key(v0ApiKey.trim()); setV0KeySet(true); setV0ApiKey(''); setV0Msg({ type: 'success', text: 'v0 API 키가 저장되었습니다' }); } catch { setV0Msg({ type: 'error', text: '저장 실패' }); } setV0Saving(false); }} disabled={v0Saving || !v0ApiKey.trim()}
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0">
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[16px] font-medium transition-colors disabled:opacity-50 shrink-0">
               {v0Saving ? <Loader2 size={13} className="animate-spin" /> : null}저장
             </button>
           </div>
@@ -767,36 +767,36 @@ export default function SettingsPage() {
         {/* Ideogram API */}
         <div className="mb-5 pb-5 border-b border-border">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[13px] font-medium text-text">Ideogram API</span>
-            <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">AI 이미지 생성</span>
-            {ideogramKeySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+            <span className="text-[16px] font-medium text-text">Ideogram API</span>
+            <span className="text-[14px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">AI 이미지 생성</span>
+            {ideogramKeySet && <span className="flex items-center gap-1 text-[13px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
           </div>
-          <p className="text-[12px] text-muted mb-3">마케팅 이미지 자동 생성. ideogram.ai에서 발급.</p>
+          <p className="text-[15px] text-muted mb-3">마케팅 이미지 자동 생성. ideogram.ai에서 발급.</p>
           <div className="flex gap-2">
-            <input type="password" placeholder="ideogram_api_..." className="flex-1 px-3 py-2 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary"
+            <input type="password" placeholder="ideogram_api_..." className="flex-1 px-3 py-2 bg-bg border border-border rounded-lg text-[16px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary"
               onChange={async (e) => { if (e.target.value.length > 8) { try { await settingsApi.setIdeogramKey(e.target.value.trim()); setIdeogramKeySet(true) } catch { /* noop */ } } }} />
-            <span className="text-[11px] text-muted self-center">ideogram.ai</span>
+            <span className="text-[14px] text-muted self-center">ideogram.ai</span>
           </div>
         </div>
 
         {/* Pexels API */}
         <div className="mb-5 pb-5 border-b border-border">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[13px] font-medium text-text">Pexels API</span>
-            <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">무료 스톡 이미지/영상</span>
-            {pexelsKeySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+            <span className="text-[16px] font-medium text-text">Pexels API</span>
+            <span className="text-[14px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">무료 스톡 이미지/영상</span>
+            {pexelsKeySet && <span className="flex items-center gap-1 text-[13px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
           </div>
-          <p className="text-[12px] text-muted mb-3">무료 고퀄리티 스톡 사진/영상. pexels.com/api에서 무료 발급.</p>
+          <p className="text-[15px] text-muted mb-3">무료 고퀄리티 스톡 사진/영상. pexels.com/api에서 무료 발급.</p>
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <input type={showPexelsKey ? 'text' : 'password'} value={pexelsApiKey} onChange={e => setPexelsApiKey(e.target.value)}
-                placeholder="pexels_api_key" className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
+                placeholder="pexels_api_key" className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[16px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
               <button onClick={() => setShowPexelsKey(v => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text" tabIndex={-1}>
                 {showPexelsKey ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
             <button onClick={async () => { setPexelsSaving(true); setPexelsMsg(null); try { await settingsApi.setPexelsKey(pexelsApiKey.trim()); setPexelsKeySet(true); setPexelsApiKey(''); setPexelsMsg({ type: 'success', text: 'Pexels API 키가 저장되었습니다' }); } catch { setPexelsMsg({ type: 'error', text: '저장 실패' }); } setPexelsSaving(false); }} disabled={pexelsSaving || !pexelsApiKey.trim()}
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0">
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[16px] font-medium transition-colors disabled:opacity-50 shrink-0">
               {pexelsSaving ? <Loader2 size={13} className="animate-spin" /> : null}저장
             </button>
           </div>
@@ -806,21 +806,21 @@ export default function SettingsPage() {
         {/* ElevenLabs API */}
         <div className="mb-5 pb-5 border-b border-border">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[13px] font-medium text-text">ElevenLabs API</span>
-            <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">AI 음성 합성 (TTS)</span>
-            {elevenLabsKeySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+            <span className="text-[16px] font-medium text-text">ElevenLabs API</span>
+            <span className="text-[14px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">AI 음성 합성 (TTS)</span>
+            {elevenLabsKeySet && <span className="flex items-center gap-1 text-[13px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
           </div>
-          <p className="text-[12px] text-muted mb-3">영상 나레이션·팟캐스트·TTS 자동화. elevenlabs.io에서 발급.</p>
+          <p className="text-[15px] text-muted mb-3">영상 나레이션·팟캐스트·TTS 자동화. elevenlabs.io에서 발급.</p>
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <input type={showElevenLabsKey ? 'text' : 'password'} value={elevenLabsApiKey} onChange={e => setElevenLabsApiKey(e.target.value)}
-                placeholder="sk_..." className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
+                placeholder="sk_..." className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[16px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
               <button onClick={() => setShowElevenLabsKey(v => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text" tabIndex={-1}>
                 {showElevenLabsKey ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
             <button onClick={async () => { setElevenLabsSaving(true); setElevenLabsMsg(null); try { await settingsApi.setElevenLabsKey(elevenLabsApiKey.trim()); setElevenLabsKeySet(true); setElevenLabsApiKey(''); setElevenLabsMsg({ type: 'success', text: 'ElevenLabs API 키가 저장되었습니다' }); } catch { setElevenLabsMsg({ type: 'error', text: '저장 실패' }); } setElevenLabsSaving(false); }} disabled={elevenLabsSaving || !elevenLabsApiKey.trim()}
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0">
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[16px] font-medium transition-colors disabled:opacity-50 shrink-0">
               {elevenLabsSaving ? <Loader2 size={13} className="animate-spin" /> : null}저장
             </button>
           </div>
@@ -830,21 +830,21 @@ export default function SettingsPage() {
         {/* Canva API */}
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[13px] font-medium text-text">Canva API</span>
-            <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">디자인 자동화</span>
-            {canvaKeySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+            <span className="text-[16px] font-medium text-text">Canva API</span>
+            <span className="text-[14px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">디자인 자동화</span>
+            {canvaKeySet && <span className="flex items-center gap-1 text-[13px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
           </div>
-          <p className="text-[12px] text-muted mb-3">SNS 콘텐츠 자동 디자인. developer.canva.com에서 발급.</p>
+          <p className="text-[15px] text-muted mb-3">SNS 콘텐츠 자동 디자인. developer.canva.com에서 발급.</p>
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <input type={showCanvaKey ? 'text' : 'password'} value={canvaApiKey} onChange={e => setCanvaApiKey(e.target.value)}
-                placeholder="OAuthClientID 또는 API Key" className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
+                placeholder="OAuthClientID 또는 API Key" className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[16px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
               <button onClick={() => setShowCanvaKey(v => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text" tabIndex={-1}>
                 {showCanvaKey ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
             <button onClick={async () => { setCanvaSaving(true); setCanvaMsg(null); try { await settingsApi.setCanvaKey(canvaApiKey.trim()); setCanvaKeySet(true); setCanvaApiKey(''); setCanvaMsg({ type: 'success', text: 'Canva API 키가 저장되었습니다' }); } catch { setCanvaMsg({ type: 'error', text: '저장 실패' }); } setCanvaSaving(false); }} disabled={canvaSaving || !canvaApiKey.trim()}
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0">
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[16px] font-medium transition-colors disabled:opacity-50 shrink-0">
               {canvaSaving ? <Loader2 size={13} className="animate-spin" /> : null}저장
             </button>
           </div>
@@ -853,7 +853,7 @@ export default function SettingsPage() {
 
         {/* ── 영상 AI (Google Veo 2 / Runway / Luma / HeyGen) ── */}
         <div className="mt-6 mb-2">
-          <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">영상 생성 AI</p>
+          <p className="text-[14px] font-semibold text-muted uppercase tracking-wider">영상 생성 AI</p>
         </div>
 
         {/* Google AI (Veo 2) */}
@@ -865,21 +865,21 @@ export default function SettingsPage() {
         ].map((item, idx, arr) => (
           <div key={item.label} className={`mb-5 ${idx < arr.length - 1 ? 'pb-5 border-b border-border' : ''}`}>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[13px] font-medium text-text">{item.label}</span>
-              <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">{item.badge}</span>
-              {item.keySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+              <span className="text-[16px] font-medium text-text">{item.label}</span>
+              <span className="text-[14px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">{item.badge}</span>
+              {item.keySet && <span className="flex items-center gap-1 text-[13px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
             </div>
-            <p className="text-[12px] text-muted mb-3">{item.desc}</p>
+            <p className="text-[15px] text-muted mb-3">{item.desc}</p>
             <div className="flex gap-2">
               <div className="flex-1 relative">
                 <input type={item.showKey ? 'text' : 'password'} value={item.apiKey} onChange={e => item.setApiKey(e.target.value)}
-                  placeholder={item.placeholder} className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
+                  placeholder={item.placeholder} className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[16px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
                 <button onClick={() => item.setShow((v: boolean) => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text" tabIndex={-1}>
                   {item.showKey ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
               <button onClick={item.onSave} disabled={item.saving || !item.apiKey.trim()}
-                className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0">
+                className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[16px] font-medium transition-colors disabled:opacity-50 shrink-0">
                 {item.saving ? <Loader2 size={13} className="animate-spin" /> : null}저장
               </button>
             </div>
@@ -889,7 +889,7 @@ export default function SettingsPage() {
 
         {/* ── 이미지 AI (Flux / Stability AI) ── */}
         <div className="mt-4 mb-2">
-          <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">이미지 생성 AI</p>
+          <p className="text-[14px] font-semibold text-muted uppercase tracking-wider">이미지 생성 AI</p>
         </div>
 
         {[
@@ -898,21 +898,21 @@ export default function SettingsPage() {
         ].map((item, idx, arr) => (
           <div key={item.label} className={`mb-5 ${idx < arr.length - 1 ? 'pb-5 border-b border-border' : ''}`}>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[13px] font-medium text-text">{item.label}</span>
-              <span className="text-[11px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">{item.badge}</span>
-              {item.keySet && <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
+              <span className="text-[16px] font-medium text-text">{item.label}</span>
+              <span className="text-[14px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">{item.badge}</span>
+              {item.keySet && <span className="flex items-center gap-1 text-[13px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />설정됨</span>}
             </div>
-            <p className="text-[12px] text-muted mb-3">{item.desc}</p>
+            <p className="text-[15px] text-muted mb-3">{item.desc}</p>
             <div className="flex gap-2">
               <div className="flex-1 relative">
                 <input type={item.showKey ? 'text' : 'password'} value={item.apiKey} onChange={e => item.setApiKey(e.target.value)}
-                  placeholder={item.placeholder} className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
+                  placeholder={item.placeholder} className="w-full px-3 py-2 pr-9 bg-bg border border-border rounded-lg text-[16px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary" />
                 <button onClick={() => item.setShow((v: boolean) => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text" tabIndex={-1}>
                   {item.showKey ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
               <button onClick={item.onSave} disabled={item.saving || !item.apiKey.trim()}
-                className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0">
+                className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[16px] font-medium transition-colors disabled:opacity-50 shrink-0">
                 {item.saving ? <Loader2 size={13} className="animate-spin" /> : null}저장
               </button>
             </div>
@@ -929,20 +929,20 @@ export default function SettingsPage() {
         <div className="space-y-4">
           {/* n8n 웹훅 */}
           <div>
-            <label className="block text-[12px] text-muted mb-1">n8n 웹훅 URL</label>
-            <p className="text-[11px] text-muted/70 mb-2">콘텐츠 발행 이벤트를 n8n으로 전달합니다. 없으면 OOMNI 내장 플로우 사용.</p>
+            <label className="block text-[15px] text-muted mb-1">n8n 웹훅 URL</label>
+            <p className="text-[14px] text-muted/70 mb-2">콘텐츠 발행 이벤트를 n8n으로 전달합니다. 없으면 OOMNI 내장 플로우 사용.</p>
             <input value={n8nWebhookUrl} onChange={e => setN8nWebhookUrl(e.target.value)}
               placeholder="https://your-n8n.app/webhook/xxxxxx"
-              className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-text placeholder:text-muted/50 focus:outline-none focus:border-primary/60" />
+              className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-[16px] text-text placeholder:text-muted/50 focus:outline-none focus:border-primary/60" />
           </div>
 
           {/* GA4 */}
           <div>
-            <label className="block text-[12px] text-muted mb-1">GA4 Measurement ID</label>
-            <p className="text-[11px] text-muted/70 mb-2">웹사이트 방문자 분석 + 퍼포먼스 마케팅 지표 수집.</p>
+            <label className="block text-[15px] text-muted mb-1">GA4 Measurement ID</label>
+            <p className="text-[14px] text-muted/70 mb-2">웹사이트 방문자 분석 + 퍼포먼스 마케팅 지표 수집.</p>
             <input value={ga4MeasurementId} onChange={e => setGa4MeasurementId(e.target.value)}
               placeholder="G-XXXXXXXXXX"
-              className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-text placeholder:text-muted/50 focus:outline-none focus:border-primary/60" />
+              className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-[16px] text-text placeholder:text-muted/50 focus:outline-none focus:border-primary/60" />
           </div>
 
           <button
@@ -955,7 +955,7 @@ export default function SettingsPage() {
               setGrowthSaving(false)
             }}
             disabled={growthSaving}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[16px] font-medium transition-colors disabled:opacity-50"
           >
             {growthSaving ? <Loader2 size={13} className="animate-spin" /> : null}저장
           </button>
@@ -964,10 +964,10 @@ export default function SettingsPage() {
 
           {/* 채널 API 키 안내 */}
           <div className="p-3 bg-bg border border-border rounded-lg">
-            <p className="text-[12px] text-muted mb-2">채널별 API 키 (GrowthStudio 설정 탭에서 관리)</p>
+            <p className="text-[15px] text-muted mb-2">채널별 API 키 (GrowthStudio 설정 탭에서 관리)</p>
             <div className="flex flex-wrap gap-2">
               {['Instagram', 'X (Twitter)', 'YouTube', 'TikTok', 'LinkedIn', 'Naver', 'Reddit'].map(ch => (
-                <span key={ch} className="px-2 py-0.5 bg-surface border border-border text-[11px] text-muted rounded-full">{ch}</span>
+                <span key={ch} className="px-2 py-0.5 bg-surface border border-border text-[14px] text-muted rounded-full">{ch}</span>
               ))}
             </div>
           </div>
@@ -985,7 +985,7 @@ export default function SettingsPage() {
         {sub?.license_valid_until && (
           <div className="flex items-center gap-2 p-3 bg-bg border border-border rounded-lg mb-4">
             <CheckCircle size={14} className="text-green-400 shrink-0" />
-            <span className="text-[13px] text-text">
+            <span className="text-[16px] text-text">
               라이선스 유효: <span className="text-green-400 font-medium">{formatDate(sub.license_valid_until)}</span>까지
             </span>
           </div>
@@ -997,12 +997,12 @@ export default function SettingsPage() {
             value={licenseKey}
             onChange={(e) => setLicenseKey(e.target.value.toUpperCase())}
             placeholder="OOMNI-XXXX-XXXX-XXXX"
-            className="flex-1 px-3 py-2 bg-bg border border-border rounded-lg text-[13px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary"
+            className="flex-1 px-3 py-2 bg-bg border border-border rounded-lg text-[16px] text-text placeholder:text-muted font-mono focus:outline-none focus:border-primary"
           />
           <button
             onClick={handleActivateLicense}
             disabled={licenseLoading}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0"
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[16px] font-medium transition-colors disabled:opacity-50 shrink-0"
           >
             {licenseLoading ? <Loader2 size={13} className="animate-spin" /> : null}
             활성화
@@ -1023,13 +1023,13 @@ export default function SettingsPage() {
           {/* 내보내기 */}
           <div className="flex items-center justify-between p-4 bg-bg rounded-lg border border-border">
             <div>
-              <div className="text-[14px] font-medium text-text mb-0.5">데이터 내보내기</div>
-              <div className="text-[12px] text-muted">미션, 봇, 이슈, 리서치 등 모든 데이터를 JSON으로 저장</div>
+              <div className="text-[17px] font-medium text-text mb-0.5">데이터 내보내기</div>
+              <div className="text-[15px] text-muted">미션, 봇, 이슈, 리서치 등 모든 데이터를 JSON으로 저장</div>
             </div>
             <button
               onClick={handleExport}
               disabled={exportLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0"
+              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[16px] font-medium transition-colors disabled:opacity-50 shrink-0"
             >
               {exportLoading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
               내보내기
@@ -1039,13 +1039,13 @@ export default function SettingsPage() {
           {/* 가져오기 */}
           <div className="flex items-center justify-between p-4 bg-bg rounded-lg border border-border">
             <div>
-              <div className="text-[14px] font-medium text-text mb-0.5">데이터 가져오기</div>
-              <div className="text-[12px] text-muted">백업 JSON 파일에서 데이터를 복원합니다</div>
+              <div className="text-[17px] font-medium text-text mb-0.5">데이터 가져오기</div>
+              <div className="text-[15px] text-muted">백업 JSON 파일에서 데이터를 복원합니다</div>
             </div>
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={importLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-surface hover:bg-border border border-border text-text rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 shrink-0"
+              className="flex items-center gap-2 px-4 py-2 bg-surface hover:bg-border border border-border text-text rounded-lg text-[16px] font-medium transition-colors disabled:opacity-50 shrink-0"
             >
               {importLoading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
               가져오기
@@ -1079,7 +1079,7 @@ export default function SettingsPage() {
               <span className="text-xs text-muted line-through">월 29,000원</span>
               <span className="text-xs font-bold text-yellow-400">월 14,500원</span>
               {integrations?.cdp_configured && (
-                <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20">
+                <span className="flex items-center gap-1 text-[13px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-400" />연동됨
                 </span>
               )}
@@ -1140,7 +1140,7 @@ export default function SettingsPage() {
               <span className="text-xs text-muted line-through">월 19,000원</span>
               <span className="text-xs font-bold text-yellow-400">월 9,500원</span>
               {integrations?.video_configured && (
-                <span className="flex items-center gap-1 text-[10px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20">
+                <span className="flex items-center gap-1 text-[13px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-400" />연동됨
                 </span>
               )}
@@ -1217,7 +1217,7 @@ export default function SettingsPage() {
               } catch { /* ignore */ } finally { setVaultSaving(false) }
             }}
             disabled={!vaultPath || vaultSaving}
-            className={`px-4 py-2 rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50 ${
+            className={`px-4 py-2 rounded-lg text-[16px] font-medium transition-colors disabled:opacity-50 ${
               vaultSaved ? 'bg-green-900/20 text-green-400 border border-green-800/30' : 'bg-primary text-white hover:bg-primary/90'
             }`}
           >
@@ -1242,7 +1242,7 @@ export default function SettingsPage() {
 
         <div className="space-y-2">
           <div>
-            <label className="block text-[12px] text-muted mb-1">클라이언트 ID</label>
+            <label className="block text-[15px] text-muted mb-1">클라이언트 ID</label>
             <input
               value={googleClientId}
               onChange={e => setGoogleClientId(e.target.value)}
@@ -1251,7 +1251,7 @@ export default function SettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-[12px] text-muted mb-1">클라이언트 Secret</label>
+            <label className="block text-[15px] text-muted mb-1">클라이언트 Secret</label>
             <input
               type="password"
               value={googleClientSecret}
@@ -1263,7 +1263,7 @@ export default function SettingsPage() {
           <button
             onClick={handleGoogleOAuthSave}
             disabled={googleSaving || !googleClientId.trim() || !googleClientSecret.trim()}
-            className="mt-1 flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-40"
+            className="mt-1 flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-[16px] font-medium transition-colors disabled:opacity-40"
           >
             {googleSaving ? <Loader2 size={13} className="animate-spin" /> : null}
             저장
@@ -1290,19 +1290,19 @@ export default function SettingsPage() {
             </div>
 
             <div className="p-4 bg-bg border border-border rounded-lg mb-4">
-              <div className="text-[14px] font-medium text-text mb-1">
+              <div className="text-[17px] font-medium text-text mb-1">
                 {PLANS[payModal.plan]?.name} 플랜
               </div>
-              <div className="text-[13px] text-muted mb-2">
+              <div className="text-[16px] text-muted mb-2">
                 {PLANS[payModal.plan]?.description}
               </div>
               <div className="text-[20px] font-bold text-primary">
                 {PLANS[payModal.plan]?.price.toLocaleString()}원
-                <span className="text-[13px] font-normal text-muted">/{PLANS[payModal.plan]?.period}</span>
+                <span className="text-[16px] font-normal text-muted">/{PLANS[payModal.plan]?.period}</span>
               </div>
             </div>
 
-            <div className="flex items-start gap-2 p-3 bg-amber-900/10 border border-amber-800/20 rounded-lg mb-5 text-[12px] text-amber-400">
+            <div className="flex items-start gap-2 p-3 bg-amber-900/10 border border-amber-800/20 rounded-lg mb-5 text-[15px] text-amber-400">
               <AlertTriangle size={13} className="shrink-0 mt-0.5" />
               결제 페이지는 외부 브라우저에서 열립니다. 결제 완료 후 앱을 재시작하면 구독이 활성화됩니다.
             </div>
@@ -1310,13 +1310,13 @@ export default function SettingsPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setPayModal(null)}
-                className="flex-1 py-2 border border-border rounded-lg text-[13px] text-muted hover:text-text transition-colors"
+                className="flex-1 py-2 border border-border rounded-lg text-[16px] text-muted hover:text-text transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={() => handleOpenPayment(payModal.plan)}
-                className="flex-1 flex items-center justify-center gap-2 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[13px] font-medium transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[16px] font-medium transition-colors"
               >
                 <ExternalLink size={13} />
                 결제 페이지 열기
@@ -1333,8 +1333,8 @@ export default function SettingsPage() {
           {/* 버전 정보 */}
           <div className="flex items-center justify-between p-4 bg-bg border border-border rounded-lg">
             <div>
-              <div className="text-[14px] font-medium text-text mb-0.5">OOMNI</div>
-              <div className="text-[12px] text-muted">버전 4.2.0</div>
+              <div className="text-[17px] font-medium text-text mb-0.5">OOMNI</div>
+              <div className="text-[15px] text-muted">버전 4.2.0</div>
             </div>
             <button
               onClick={() => {
@@ -1345,7 +1345,7 @@ export default function SettingsPage() {
                   window.open('https://github.com/yongal74/oomni/releases', '_blank')
                 }
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-dim hover:border-primary/40 hover:text-text text-[12px] rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-dim hover:border-primary/40 hover:text-text text-[15px] rounded-lg transition-colors"
             >
               <RefreshCw size={12} />
               업데이트 확인
@@ -1355,14 +1355,14 @@ export default function SettingsPage() {
           {/* 피드백 */}
           <div className="flex items-center justify-between p-4 bg-bg border border-border rounded-lg">
             <div>
-              <div className="text-[14px] font-medium text-text mb-0.5">피드백 보내기</div>
-              <div className="text-[12px] text-muted">버그 제보, 기능 요청, 개선 의견</div>
+              <div className="text-[17px] font-medium text-text mb-0.5">피드백 보내기</div>
+              <div className="text-[15px] text-muted">버그 제보, 기능 요청, 개선 의견</div>
             </div>
             <a
               href="https://github.com/yongal74/oomni/issues"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-dim hover:border-primary/40 hover:text-text text-[12px] rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-dim hover:border-primary/40 hover:text-text text-[15px] rounded-lg transition-colors"
             >
               <MessageSquare size={12} />
               GitHub 이슈
@@ -1375,7 +1375,7 @@ export default function SettingsPage() {
               href="https://yongal74.github.io/oomni/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] text-muted hover:text-primary transition-colors inline-flex items-center gap-1"
+              className="text-[14px] text-muted hover:text-primary transition-colors inline-flex items-center gap-1"
             >
               <ExternalLink size={10} />
               yongal74.github.io/oomni
@@ -1400,13 +1400,13 @@ export default function SettingsPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => { setShowConfirm(false); setPendingFile(null) }}
-                className="flex-1 py-2 border border-border rounded-lg text-[13px] text-muted hover:text-text transition-colors"
+                className="flex-1 py-2 border border-border rounded-lg text-[16px] text-muted hover:text-text transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={handleImportConfirm}
-                className="flex-1 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-[13px] font-medium transition-colors"
+                className="flex-1 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-[16px] font-medium transition-colors"
               >
                 덮어쓰기
               </button>

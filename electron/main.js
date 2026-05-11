@@ -164,6 +164,7 @@ function createWindow() {
       sandbox: true,               // preload는 contextBridge/ipcRenderer만 사용 — sandbox 안전
       webSecurity: true,
       allowRunningInsecureContent: false,
+      webviewTag: true,            // Open Design 인앱 임베드용
     },
     show: false,
   })

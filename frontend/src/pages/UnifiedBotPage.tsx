@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react'
+﻿import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentsApi, paymentsApi, type Agent, type HeartbeatRun } from '../lib/api'
@@ -335,7 +335,7 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
         {/* 빈 상태 */}
         {isEmpty && (
           <div className="h-full flex items-center justify-center">
-            <p className="text-[12px] text-muted/50 text-center leading-relaxed">
+            <p className="text-[15px] text-muted/50 text-center leading-relaxed">
               지시사항을 입력하거나<br />우측 빠른 실행 버튼을 눌러보세요
             </p>
           </div>
@@ -349,7 +349,7 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="text-[9px] text-primary/50 uppercase tracking-widest font-medium">나</span>
               </div>
-              <p className="text-[13px] text-text leading-relaxed whitespace-pre-wrap">{pair.userMsg}</p>
+              <p className="text-[16px] text-text leading-relaxed whitespace-pre-wrap">{pair.userMsg}</p>
             </div>
             {/* AI 응답 — 전체 너비 박스 */}
             <div className="w-full bg-bg border border-border rounded-lg px-3 py-2.5">
@@ -366,7 +366,7 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
                 </div>
               </div>
               <pre className={cn(
-                'text-[13px] leading-[1.75] whitespace-pre-wrap font-sans break-words',
+                'text-[16px] leading-[1.75] whitespace-pre-wrap font-sans break-words',
                 pair.isError ? 'text-red-400' : 'text-dim'
               )}>
                 {pair.assistantMsg}
@@ -383,7 +383,7 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="text-[9px] text-primary/50 uppercase tracking-widest font-medium">나</span>
               </div>
-              <p className="text-[13px] text-text leading-relaxed whitespace-pre-wrap">{pendingUserMsg}</p>
+              <p className="text-[16px] text-text leading-relaxed whitespace-pre-wrap">{pendingUserMsg}</p>
             </div>
             {/* AI 스트리밍 응답 */}
             <div className="w-full bg-bg border border-border rounded-lg px-3 py-2.5">
@@ -391,7 +391,7 @@ const AntigravityRightPanel = forwardRef<AntigravityRightPanelRef, {
                 <span className="text-[9px] text-muted/50 uppercase tracking-widest font-medium">AI</span>
               </div>
               {streamOutput ? (
-                <pre className="text-[13px] text-dim leading-[1.75] whitespace-pre-wrap font-sans break-words">
+                <pre className="text-[16px] text-dim leading-[1.75] whitespace-pre-wrap font-sans break-words">
                   {streamOutput}
                   {isChatRunning && (
                     <span className="inline-block w-0.5 h-[1.1em] bg-primary ml-0.5 animate-pulse align-text-bottom" />
@@ -796,7 +796,7 @@ export default function UnifiedBotPage() {
                 <div className="border-t border-border px-4 py-3 space-y-3">
                   {run.task && (
                     <div>
-                      <p className="text-[10px] text-muted uppercase tracking-widest mb-1">입력 지시사항</p>
+                      <p className="text-[13px] text-muted uppercase tracking-widest mb-1">입력 지시사항</p>
                       <div className="bg-bg border border-border rounded-lg px-3 py-2 text-xs text-dim whitespace-pre-wrap">
                         {run.task}
                       </div>
@@ -804,7 +804,7 @@ export default function UnifiedBotPage() {
                   )}
                   {run.error && (
                     <div>
-                      <p className="text-[10px] text-muted uppercase tracking-widest mb-1">오류</p>
+                      <p className="text-[13px] text-muted uppercase tracking-widest mb-1">오류</p>
                       <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-xs text-red-400 font-mono whitespace-pre-wrap break-words">
                         {run.error}
                       </div>
@@ -813,10 +813,10 @@ export default function UnifiedBotPage() {
                   {run.output && (
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-[10px] text-muted uppercase tracking-widest">실행 결과</p>
+                        <p className="text-[13px] text-muted uppercase tracking-widest">실행 결과</p>
                         <button
                           onClick={() => navigator.clipboard.writeText(run.output ?? '')}
-                          className="flex items-center gap-1 text-[10px] text-muted hover:text-primary transition-colors"
+                          className="flex items-center gap-1 text-[13px] text-muted hover:text-primary transition-colors"
                           title="결과 복사"
                         >
                           <Copy size={10} /> 복사

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+﻿import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { agentsApi, paymentsApi, type Agent, type HeartbeatRun } from '../lib/api'
@@ -302,7 +302,7 @@ export default function PtyBotPage() {
                 <div className="border-t border-border px-4 py-3 space-y-3">
                   {run.task && (
                     <div>
-                      <p className="text-[10px] text-muted uppercase tracking-widest mb-1">입력 지시사항</p>
+                      <p className="text-[13px] text-muted uppercase tracking-widest mb-1">입력 지시사항</p>
                       <div className="bg-bg border border-border rounded-lg px-3 py-2 text-xs text-dim whitespace-pre-wrap">
                         {run.task}
                       </div>
@@ -310,7 +310,7 @@ export default function PtyBotPage() {
                   )}
                   {run.error && (
                     <div>
-                      <p className="text-[10px] text-muted uppercase tracking-widest mb-1">오류</p>
+                      <p className="text-[13px] text-muted uppercase tracking-widest mb-1">오류</p>
                       <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-xs text-red-400 font-mono whitespace-pre-wrap break-words">
                         {run.error}
                       </div>
@@ -319,10 +319,10 @@ export default function PtyBotPage() {
                   {run.output && (
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-[10px] text-muted uppercase tracking-widest">실행 결과</p>
+                        <p className="text-[13px] text-muted uppercase tracking-widest">실행 결과</p>
                         <button
                           onClick={() => navigator.clipboard.writeText(run.output ?? '')}
-                          className="flex items-center gap-1 text-[10px] text-muted hover:text-primary transition-colors"
+                          className="flex items-center gap-1 text-[13px] text-muted hover:text-primary transition-colors"
                           title="결과 복사"
                         >
                           <Copy size={10} /> 복사
