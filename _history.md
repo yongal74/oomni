@@ -8,13 +8,59 @@
 
 | 항목 | 내용 |
 |------|------|
-| **최신 버전** | v5.13.0 |
-| **다음 버전** | v5.14.0 (OPS 노드 가이드 추가, n8n CORS 안내, 번들 최적화) |
-| **tsc --noEmit** | ✅ 0 errors (백엔드 + 프론트엔드) |
-| **GitHub Release** | ✅ v5.13.0 `OOMNI.Setup.5.13.0.exe` 업로드 완료 |
-| **랜딩페이지** | ✅ v5.13.0 다운로드 URL 업데이트 완료 |
+| **최신 버전** | v5.14.0 |
+| **다음 버전** | v5.15.0 (번들 code-split, n8n CORS 안내 개선, PTY 터미널 자동 높이) |
+| **tsc --noEmit** | ✅ 0 errors |
+| **GitHub Release** | ✅ v5.14.0 `OOMNI.Setup.5.14.0.exe` 업로드 완료 |
+| **랜딩페이지** | ✅ v5.14.0 다운로드 URL 업데이트 완료 |
 | **IDE** | VS Code + Claude Code 익스텐션 |
-| **마지막 작업일** | 2026-05-10 |
+| **마지막 작업일** | 2026-05-11 |
+
+---
+
+## 2026-05-11 — v5.14.0 n8n 가이드 · Growth 9탭 · 폰트+2 · Open Design 수정
+
+### 변경 파일
+| 파일 | 변경 내용 |
+|---|---|
+| `frontend/src/pages/OpsCenter.tsx` | center panel 빈 상태 → n8n 가이드 4탭 (노드역할/연결방식/케이스9/TOP7실수) + 폰트+2 |
+| `frontend/src/pages/GrowthStudio.tsx` | 6탭 → 9탭 (직무 6 + 에셋허브/리드/CDP), JobRoleTab 컴포넌트 신규 |
+| `frontend/src/pages/StudioBotPage.tsx` | Open Design iframe 제거 → 외부 브라우저 열기 버튼 + 폰트+2 |
+| `frontend/src/components/layout/AppLayout.tsx` | 폰트+2 |
+| `package.json` / `frontend/package.json` / `backend/package.json` | 5.13.0 → 5.14.0 |
+| `docs/index.html` | v5.14.0 다운로드 URL 업데이트 |
+
+### 주요 변경사항
+
+**OPS 봇 center panel**
+- 빈 상태 (카드 미선택 시): n8n 가이드 4탭으로 전환
+  - 탭1 노드 역할: Trigger/Transform/Action 3가지 역할 카드
+  - 탭2 연결 방식: Webhook/HTTP Request/Schedule/Credential/Community Node 5가지
+  - 탭3 케이스 가이드: 9개 케이스 아코디언 (Webhook→Sheets, 이메일→Slack 등)
+  - 탭4 TOP 7 실수: 초보자가 겪는 7가지 실수와 해결법
+
+**Growth Studio 9탭 재설계**
+- 직무 6탭: 퍼포먼스/콘텐츠/CRM/브랜드/Growth/1인
+- 각 탭: 역할 설명 카드 + 핵심 도구 4개 그리드 + AI 프롬프트 템플릿 5개 (복사 가능)
+- 콘텐츠 탭: GenerateTab + VideoProductionTab 서브탭
+- 공통 3탭: 에셋허브(프롬프트+콘텐츠목록) / 리드 / CDP
+
+**Open Design fix**
+- iframe이 CSP/X-Frame-Options로 로드 불가 → 서버 실행 후 외부 브라우저 열기 버튼
+- `window.electronAPI?.openExternal?.('http://localhost:7456')` 사용
+
+**전체 폰트 +2px**
+- `text-[10px]`→12, `text-[11px]`→13, `text-[12px]`→14, `text-[13px]`→15
+- icon `size={10}`→12, `size={11}`→13, `size={12}`→14, `size={13}`→15
+
+### 커밋
+- `1296cf6` — feat: v5.14.0 — n8n 가이드, Growth 9탭, 폰트+2, Open Design 외부브라우저
+
+### 다음 할 일
+- index.js 번들 code-split (618kB → 목표 300kB 이하)
+- n8n CORS Allow 활성화 안내 UI 개선
+- PTY 터미널 자동 높이 조정 (현재 고정)
+- Open Design 서버 상태 자동 감지 개선
 
 ---
 
