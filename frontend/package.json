@@ -1,6 +1,6 @@
 {
   "name": "oomni-frontend",
-  "version": "5.13.0",
+  "version": "5.14.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

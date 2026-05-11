@@ -95,7 +95,7 @@ function IconBtn({
     <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 -translate-y-1/2 z-50 whitespace-nowrap rounded-lg bg-[#18181b] border border-[#27272a] px-2.5 py-1.5 text-xs font-medium text-[#e4e4e7] shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-100">
       {label}
       {showDot && (
-        <span className="ml-1.5 bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full">
+        <span className="ml-1.5 bg-primary text-white text-[12px] px-1.5 py-0.5 rounded-full">
           {badgeCount}
         </span>
       )}
@@ -105,7 +105,7 @@ function IconBtn({
   if (to) {
     return (
       <NavLink to={to} end={end} className={({ isActive }) => baseClass(isActive)}>
-        <Icon size={15} className={iconClass} />
+        <Icon size={17} className={iconClass} />
         {showDot && (
           <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-primary pointer-events-none" />
         )}
@@ -116,7 +116,7 @@ function IconBtn({
 
   return (
     <button onClick={onClick} className={baseClass(false)}>
-      <Icon size={15} className={iconClass} />
+      <Icon size={17} className={iconClass} />
       <Tooltip />
     </button>
   )
@@ -138,18 +138,18 @@ function BotSubPanel({
     <div className="flex flex-col h-full w-52 bg-[#111113] border-r border-[#1c1c20] shrink-0">
       {/* 헤더 */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#1c1c20] shrink-0">
-        <span className="text-[10px] font-semibold text-[#52525b] uppercase tracking-widest">봇</span>
+        <span className="text-[12px] font-semibold text-[#52525b] uppercase tracking-widest">봇</span>
         <button
           onClick={onClose}
           className="text-[#52525b] hover:text-[#a1a1aa] transition-colors p-0.5 rounded"
         >
-          <ChevronLeft size={13} />
+          <ChevronLeft size={15} />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
         {agents.filter(a => !['ceo', 'design', 'build'].includes(a.role)).length > 0 && (
-          <p className="text-[10px] text-[#52525b] uppercase tracking-widest px-2 pt-1 pb-0.5">팀 봇</p>
+          <p className="text-[12px] text-[#52525b] uppercase tracking-widest px-2 pt-1 pb-0.5">팀 봇</p>
         )}
         {agents.filter(a => !['ceo', 'design', 'build'].includes(a.role)).map(agent => {
           const Icon  = BOT_ICON[agent.role]  ?? Settings2
@@ -160,14 +160,14 @@ function BotSubPanel({
               to={`/dashboard/bots/${agent.id}`}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12px] transition-colors',
+                  'flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[14px] transition-colors',
                   isActive
                     ? 'bg-[#1e1e22] text-[#e4e4e7]'
                     : 'text-[#71717a] hover:text-[#e4e4e7] hover:bg-[#18181b]'
                 )
               }
             >
-              <Icon size={12} className={cn('shrink-0', color)} />
+              <Icon size={14} className={cn('shrink-0', color)} />
               <span className="truncate">{agent.name}</span>
               <div className={cn('ml-auto w-1.5 h-1.5 rounded-full shrink-0', agent.is_active ? 'bg-green-500' : 'bg-[#333]')} />
             </NavLink>
@@ -176,9 +176,9 @@ function BotSubPanel({
 
         <button
           onClick={() => { navigate('/dashboard?addBot=true'); onClose() }}
-          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] text-[#52525b] hover:text-[#e4e4e7] w-full mt-0.5 transition-colors"
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] text-[#52525b] hover:text-[#e4e4e7] w-full mt-0.5 transition-colors"
         >
-          <Plus size={11} />
+          <Plus size={13} />
           봇 추가
         </button>
       </div>
@@ -188,9 +188,9 @@ function BotSubPanel({
         <div className="border-t border-[#1c1c20] px-3 py-2 shrink-0">
           <NavLink
             to="/dashboard/approvals"
-            className="flex items-center gap-2 text-[11px] text-primary hover:text-primary/80 transition-colors"
+            className="flex items-center gap-2 text-[13px] text-primary hover:text-primary/80 transition-colors"
           >
-            <Bell size={11} />
+            <Bell size={13} />
             승인 대기 {pendingApprovals}건
           </NavLink>
         </div>
@@ -233,7 +233,7 @@ export function AppLayout() {
           className="mb-2 w-7 h-7 rounded-lg bg-primary/90 flex items-center justify-center hover:bg-primary transition-colors"
           title={currentMission ? `OOMNI — ${currentMission.name}` : 'OOMNI'}
         >
-          <span className="text-[10px] font-black text-white tracking-tight select-none">O</span>
+          <span className="text-[12px] font-black text-white tracking-tight select-none">O</span>
         </button>
 
         <div className="w-5 h-px bg-[#27272a] mb-1" />

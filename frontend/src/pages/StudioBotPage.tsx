@@ -112,7 +112,7 @@ function VsCodeViewer({ text, isRunning }: { text: string; isRunning: boolean })
   if (!text && !isRunning) return null
 
   return (
-    <div className="h-full flex flex-col font-mono text-[12px]" style={{ background: theme.bg }}>
+    <div className="h-full flex flex-col font-mono text-[14px]" style={{ background: theme.bg }}>
       {/* 파일 탭 바 + 테마 선택 */}
       <div className="flex items-center border-b shrink-0 overflow-x-auto" style={{ borderColor: theme.line, background: theme.bg }}>
         {files.map(f => {
@@ -128,9 +128,9 @@ function VsCodeViewer({ text, isRunning }: { text: string; isRunning: boolean })
                 background: activeFile === f.path ? theme.bg : 'transparent',
                 borderTop: activeFile === f.path ? '2px solid #f97316' : '2px solid transparent',
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] border-r whitespace-nowrap transition-colors shrink-0 hover:opacity-80"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] border-r whitespace-nowrap transition-colors shrink-0 hover:opacity-80"
             >
-              <FileCode2 size={11} className="shrink-0 text-orange-400/70" />
+              <FileCode2 size={13} className="shrink-0 text-orange-400/70" />
               {name}
             </button>
           )
@@ -155,12 +155,12 @@ function VsCodeViewer({ text, isRunning }: { text: string; isRunning: boolean })
 
       {/* 파일 경로 + 액션 */}
       {current && (
-        <div className="flex items-center gap-2 px-3 py-1 border-b text-[10px] shrink-0"
+        <div className="flex items-center gap-2 px-3 py-1 border-b text-[12px] shrink-0"
           style={{ borderColor: theme.line, color: '#666' }}>
           <span className="flex-1 truncate">{current.path}</span>
           <button onClick={() => navigator.clipboard.writeText(current.code)}
             className="flex items-center gap-1 hover:opacity-80 transition-opacity">
-            <Copy size={10} />복사
+            <Copy size={12} />복사
           </button>
           <button onClick={() => {
             const blob = new Blob([current.code], { type: 'text/plain' })
@@ -169,7 +169,7 @@ function VsCodeViewer({ text, isRunning }: { text: string; isRunning: boolean })
             a.download = current.path.split('/').pop() ?? 'file.ts'
             a.click()
           }} className="flex items-center gap-1 hover:opacity-80 transition-opacity">
-            <Download size={10} />저장
+            <Download size={12} />저장
           </button>
         </div>
       )}
@@ -189,7 +189,7 @@ function VsCodeViewer({ text, isRunning }: { text: string; isRunning: boolean })
           </table>
         ) : isRunning ? (
           <div className="p-4" style={{ color: '#555' }}>
-            <pre className="whitespace-pre-wrap text-[11px] leading-relaxed">{text}</pre>
+            <pre className="whitespace-pre-wrap text-[13px] leading-relaxed">{text}</pre>
           </div>
         ) : null}
       </div>
@@ -204,7 +204,7 @@ function ChatBubble({ msg }: { msg: Msg }) {
   return (
     <div className={cn('flex gap-2 mb-3', msg.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
       <div className={cn(
-        'max-w-[85%] px-3 py-2 rounded-xl text-[12px] leading-relaxed whitespace-pre-wrap',
+        'max-w-[85%] px-3 py-2 rounded-xl text-[14px] leading-relaxed whitespace-pre-wrap',
         msg.role === 'user'
           ? 'bg-primary/20 border border-primary/30 text-text'
           : 'bg-surface border border-border text-dim'
@@ -456,7 +456,7 @@ export default function StudioBotPage() {
       <div className="w-64 shrink-0 flex flex-col border-r border-border bg-surface overflow-y-auto">
         {/* 모드 탭 */}
         <div className="p-3 border-b border-border">
-          <p className="text-[10px] text-muted uppercase tracking-widest mb-2 px-1">모드</p>
+          <p className="text-[12px] text-muted uppercase tracking-widest mb-2 px-1">모드</p>
           <div className="space-y-1">
             {MODES.map(m => {
               const Icon = m.icon
@@ -465,13 +465,13 @@ export default function StudioBotPage() {
                   key={m.key}
                   onClick={() => setMode(m.key)}
                   className={cn(
-                    'flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-[13px] transition-colors',
+                    'flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-[15px] transition-colors',
                     mode === m.key
                       ? 'bg-primary/15 text-primary border border-primary/30'
                       : 'text-muted hover:text-text hover:bg-border/40'
                   )}
                 >
-                  <Icon size={14} className="shrink-0" />
+                  <Icon size={16} className="shrink-0" />
                   {m.label}
                 </button>
               )
@@ -482,14 +482,14 @@ export default function StudioBotPage() {
         {/* 카테고리 버튼들 */}
         <div className="p-3 flex-1">
           {mode !== 'open-design' && (
-          <p className="text-[10px] text-muted uppercase tracking-widest mb-2 px-1">
+          <p className="text-[12px] text-muted uppercase tracking-widest mb-2 px-1">
             {mode === 'build' ? '빌드 카테고리' : mode === 'graphic' ? '그래픽 카테고리' : 'UI 카테고리'}
           </p>
           )}
           {mode === 'open-design' && (
             <div className="space-y-2">
-              <p className="text-[10px] text-muted uppercase tracking-widest mb-2 px-1">에디터 정보</p>
-              <div className="px-2 py-2 text-[10px] text-muted/70 space-y-1.5 bg-surface/50 rounded-lg border border-border">
+              <p className="text-[12px] text-muted uppercase tracking-widest mb-2 px-1">에디터 정보</p>
+              <div className="px-2 py-2 text-[12px] text-muted/70 space-y-1.5 bg-surface/50 rounded-lg border border-border">
                 <div>포트: <span className="text-primary font-mono">{OPEN_DESIGN_PORT}</span></div>
                 <div>엔진: <span className="text-text">nexu-io/open-design</span></div>
                 <div>AI: <span className="text-text">Claude Code 연동</span></div>
@@ -499,9 +499,9 @@ export default function StudioBotPage() {
                 href={`http://localhost:${OPEN_DESIGN_PORT}`}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1.5 w-full px-3 py-2 rounded-lg text-[11px] text-muted hover:text-text hover:bg-border/40 transition-colors"
+                className="flex items-center gap-1.5 w-full px-3 py-2 rounded-lg text-[13px] text-muted hover:text-text hover:bg-border/40 transition-colors"
               >
-                <ExternalLink size={11} />새 창으로 열기
+                <ExternalLink size={13} />새 창으로 열기
               </a>
             </div>
           )}
@@ -513,13 +513,13 @@ export default function StudioBotPage() {
                   key={cat.label}
                   onClick={() => handleCatClick(cat.prompt, cat.channel)}
                   className={cn(
-                    'flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-[12px] transition-colors text-left',
+                    'flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-[14px] transition-colors text-left',
                     catPrompt === cat.prompt && cat.prompt
                       ? 'bg-primary/10 text-primary'
                       : 'text-muted hover:text-text hover:bg-border/40'
                   )}
                 >
-                  <Icon size={13} className="shrink-0" />
+                  <Icon size={15} className="shrink-0" />
                   {cat.label}
                 </button>
               )
@@ -531,14 +531,14 @@ export default function StudioBotPage() {
         <div className="p-3 border-t border-border space-y-3">
           {/* 폰트 크기 */}
           <div>
-            <p className="text-[10px] text-muted uppercase tracking-widest mb-1.5 px-1">폰트 크기</p>
+            <p className="text-[12px] text-muted uppercase tracking-widest mb-1.5 px-1">폰트 크기</p>
             <div className="flex items-center gap-1">
               {([11, 13, 15, 17] as const).map(sz => (
                 <button
                   key={sz}
                   onClick={() => setFontSize(sz)}
                   className={cn(
-                    'flex-1 py-1 rounded text-[10px] border transition-colors',
+                    'flex-1 py-1 rounded text-[12px] border transition-colors',
                     fontSize === sz
                       ? 'bg-primary/20 border-primary/40 text-primary'
                       : 'bg-surface border-border text-muted hover:text-text',
@@ -552,7 +552,7 @@ export default function StudioBotPage() {
 
           {/* 배경색 */}
           <div>
-            <p className="text-[10px] text-muted uppercase tracking-widest mb-1.5 px-1">배경색</p>
+            <p className="text-[12px] text-muted uppercase tracking-widest mb-1.5 px-1">배경색</p>
             <div className="flex items-center gap-1.5">
               {[
                 { id: '',        color: '#0d0d0f', label: 'Dark'    },
@@ -579,7 +579,7 @@ export default function StudioBotPage() {
 
           {/* 엔진 상태 */}
           <div className="px-2 py-1.5 bg-green-900/10 border border-green-800/20 rounded-lg">
-            <p className="text-[11px] text-green-400/80">
+            <p className="text-[13px] text-green-400/80">
               {mode === 'ui-proto' ? (v0KeySet ? 'v0 API' : 'Claude HTML') :
                mode === 'graphic' ? (ideogramKeySet ? 'Ideogram AI' : 'Ideogram 키 필요') :
                'Claude Sonnet 4.6'}
@@ -593,16 +593,16 @@ export default function StudioBotPage() {
         {/* 헤더 */}
         <div className="flex items-center gap-3 px-5 py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
-            {mode === 'ui-proto' && <Monitor size={15} className="text-purple-400" />}
-            {mode === 'graphic' && <Image size={15} className="text-pink-400" />}
-            {mode === 'build' && <Code2 size={15} className="text-orange-400" />}
-            <span className="text-[13px] font-semibold text-text">
+            {mode === 'ui-proto' && <Monitor size={17} className="text-purple-400" />}
+            {mode === 'graphic' && <Image size={17} className="text-pink-400" />}
+            {mode === 'build' && <Code2 size={17} className="text-orange-400" />}
+            <span className="text-[15px] font-semibold text-text">
               {MODES.find(m => m.key === mode)?.label}
             </span>
           </div>
           {mode === 'ui-proto' && (
             <span className={cn(
-              'text-[10px] px-2 py-0.5 rounded-full border',
+              'text-[12px] px-2 py-0.5 rounded-full border',
               v0KeySet
                 ? 'text-purple-300 bg-purple-500/20 border-purple-500/40'
                 : 'text-purple-400/60 bg-purple-500/10 border-purple-500/20'
@@ -612,7 +612,7 @@ export default function StudioBotPage() {
           )}
           {mode === 'graphic' && (
             <span className={cn(
-              'text-[10px] px-2 py-0.5 rounded-full border',
+              'text-[12px] px-2 py-0.5 rounded-full border',
               ideogramKeySet
                 ? 'text-pink-300 bg-pink-500/20 border-pink-500/40'
                 : 'text-pink-400/60 bg-pink-500/10 border-pink-500/20'
@@ -621,14 +621,14 @@ export default function StudioBotPage() {
             </span>
           )}
           {mode === 'build' && (
-            <span className="text-[10px] text-orange-300 bg-orange-500/20 border border-orange-500/40 px-2 py-0.5 rounded-full">
+            <span className="text-[12px] text-orange-300 bg-orange-500/20 border border-orange-500/40 px-2 py-0.5 rounded-full">
               Claude Sonnet 4.6 ✓
             </span>
           )}
           {mode === 'open-design' && (
             <div className="flex items-center gap-2 ml-auto">
               <span className={cn(
-                'text-[10px] px-2 py-0.5 rounded-full border',
+                'text-[12px] px-2 py-0.5 rounded-full border',
                 odStatus === 'running'
                   ? 'text-emerald-300 bg-emerald-500/20 border-emerald-500/40'
                   : odStatus === 'starting' || odStatus === 'checking'
@@ -642,40 +642,40 @@ export default function StudioBotPage() {
               </span>
               {odStatus === 'running' ? (
                 <button onClick={stopOd}
-                  className="flex items-center gap-1 px-2 py-1 text-[10px] text-red-400 border border-red-800/40 rounded-lg hover:bg-red-900/20 transition-colors">
+                  className="flex items-center gap-1 px-2 py-1 text-[12px] text-red-400 border border-red-800/40 rounded-lg hover:bg-red-900/20 transition-colors">
                   <Square size={9} fill="currentColor" />중지
                 </button>
               ) : odStatus === 'idle' || odStatus === 'error' ? (
                 <button onClick={startOd}
-                  className="flex items-center gap-1 px-2.5 py-1 text-[10px] bg-emerald-600/20 text-emerald-400 border border-emerald-600/40 rounded-lg hover:bg-emerald-600/30 transition-colors">
+                  className="flex items-center gap-1 px-2.5 py-1 text-[12px] bg-emerald-600/20 text-emerald-400 border border-emerald-600/40 rounded-lg hover:bg-emerald-600/30 transition-colors">
                   <Play size={9} fill="currentColor" />시작
                 </button>
               ) : null}
               <button onClick={checkOdStatus}
                 className="p-1 text-muted hover:text-text transition-colors">
-                <RefreshCw size={11} className={odStatus === 'checking' ? 'animate-spin' : ''} />
+                <RefreshCw size={13} className={odStatus === 'checking' ? 'animate-spin' : ''} />
               </button>
             </div>
           )}
           {isRunning && (
-            <div className="ml-auto flex items-center gap-1.5 text-[11px] text-primary">
-              <Loader2 size={11} className="animate-spin" />
+            <div className="ml-auto flex items-center gap-1.5 text-[13px] text-primary">
+              <Loader2 size={13} className="animate-spin" />
               생성 중...
             </div>
           )}
           {streamOutput && !isRunning && (
             <div className="ml-auto flex items-center gap-2">
               <button onClick={() => navigator.clipboard.writeText(streamOutput)}
-                className="flex items-center gap-1 px-2 py-1 text-[11px] text-muted hover:text-text border border-border rounded-lg transition-colors">
-                <Copy size={11} />복사
+                className="flex items-center gap-1 px-2 py-1 text-[13px] text-muted hover:text-text border border-border rounded-lg transition-colors">
+                <Copy size={13} />복사
               </button>
               <button onClick={() => {
                 const blob = new Blob([streamOutput], { type: 'text/plain' })
                 const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
                 a.download = `studio-output-${Date.now()}.md`; a.click()
               }}
-                className="flex items-center gap-1 px-2 py-1 text-[11px] text-muted hover:text-text border border-border rounded-lg transition-colors">
-                <Download size={11} />저장
+                className="flex items-center gap-1 px-2 py-1 text-[13px] text-muted hover:text-text border border-border rounded-lg transition-colors">
+                <Download size={13} />저장
               </button>
             </div>
           )}
@@ -685,59 +685,74 @@ export default function StudioBotPage() {
         <div className="flex-1 relative overflow-hidden">
         <div className="absolute inset-0 overflow-y-auto" style={{ fontSize: `${fontSize}px` }}>
           {/* ── Open Design 모드 ── */}
-          {mode === 'open-design' && odStatus === 'running' ? (
-            <iframe
-              src={`http://localhost:${OPEN_DESIGN_PORT}`}
-              className="w-full h-full border-0"
-              title="Open Design Editor"
-              allow="clipboard-read; clipboard-write"
-            />
-          ) : mode === 'open-design' ? (
+          {mode === 'open-design' ? (
             <div className="h-full flex flex-col items-center justify-center gap-4 p-8 text-center">
               <div className="w-16 h-16 rounded-2xl bg-surface border border-border flex items-center justify-center">
                 <PenTool size={28} className="text-muted" />
               </div>
               <div>
-                <p className="text-[15px] font-semibold text-text mb-1">Open Design 에디터</p>
-                <p className="text-[12px] text-muted">
-                  로컬 디자인 에디터를 실행하면 OOMNI 안에서 바로 사용할 수 있습니다
+                <p className="text-[17px] font-semibold text-text mb-1">Open Design 에디터</p>
+                <p className="text-[14px] text-muted">
+                  로컬 디자인 에디터를 외부 브라우저에서 실행합니다
                 </p>
               </div>
+              {odStatus === 'running' && (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-emerald-900/20 border border-emerald-700/40 rounded-xl text-[14px] text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    서버 실행 중 — localhost:{OPEN_DESIGN_PORT}
+                  </div>
+                  <button
+                    onClick={() => window.electronAPI?.openExternal?.(`http://localhost:${OPEN_DESIGN_PORT}`)}
+                    className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary-light text-white rounded-xl text-[15px] font-semibold transition-colors shadow-lg"
+                  >
+                    <ExternalLink size={16} />
+                    브라우저에서 열기
+                  </button>
+                  <button
+                    onClick={stopOd}
+                    className="flex items-center gap-2 px-4 py-2 text-[14px] text-muted hover:text-red-400 transition-colors"
+                  >
+                    서버 종료
+                  </button>
+                </div>
+              )}
               {odStatus === 'error' && (
                 <div className="w-full max-w-sm space-y-2">
-                  <div className="flex items-start gap-2 px-4 py-3 bg-red-900/20 border border-red-800/40 rounded-xl text-[12px] text-red-400">
-                    <AlertCircle size={13} className="shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-2 px-4 py-3 bg-red-900/20 border border-red-800/40 rounded-xl text-[14px] text-red-400">
+                    <AlertCircle size={15} className="shrink-0 mt-0.5" />
                     <span>{odError || '서버 시작 실패 (45초 초과)'}</span>
                   </div>
-                  <div className="px-4 py-3 bg-surface border border-border rounded-xl text-left text-[11px]">
+                  <div className="px-4 py-3 bg-surface border border-border rounded-xl text-left text-[13px]">
                     <p className="text-muted font-semibold mb-1.5">수동 실행 방법 (터미널에서)</p>
-                    <code className="block bg-[#111] rounded p-2 text-primary font-mono text-[10px] mb-1.5">
+                    <code className="block bg-[#111] rounded p-2 text-primary font-mono text-[12px] mb-1.5">
                       npx open-design-ade --port {OPEN_DESIGN_PORT}
                     </code>
-                    <p className="text-muted/60">실행 후 아래 "시작" 버튼 대신 새로고침(↺)을 클릭하세요</p>
+                    <p className="text-muted/60">실행 후 새로고침(↺)을 클릭하세요</p>
                   </div>
                 </div>
               )}
-              {odStatus === 'starting' || odStatus === 'checking' ? (
-                <div className="flex items-center gap-2 px-5 py-3 bg-surface border border-border rounded-xl text-[13px] text-muted">
-                  <Loader2 size={14} className="animate-spin text-primary" />
+              {(odStatus === 'starting' || odStatus === 'checking') && (
+                <div className="flex items-center gap-2 px-5 py-3 bg-surface border border-border rounded-xl text-[15px] text-muted">
+                  <Loader2 size={16} className="animate-spin text-primary" />
                   {odStatus === 'starting' ? 'Open Design 서버 시작 중... (최대 45초 소요)' : '상태 확인 중...'}
                 </div>
-              ) : (
+              )}
+              {(odStatus === 'idle' || odStatus === 'error') && (
                 <div className="flex flex-col items-center gap-3">
                   <button
                     onClick={startOd}
-                    className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary-light text-white rounded-xl text-[13px] font-semibold transition-colors shadow-lg"
+                    className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary-light text-white rounded-xl text-[15px] font-semibold transition-colors shadow-lg"
                   >
-                    <Play size={14} fill="currentColor" />
+                    <Play size={16} fill="currentColor" />
                     Open Design 시작
                   </button>
-                  <p className="text-[10px] text-muted/60">
+                  <p className="text-[12px] text-muted/60">
                     npx open-design-ade 를 포트 {OPEN_DESIGN_PORT}에서 실행합니다
                   </p>
                   <div className="mt-2 px-4 py-3 bg-surface border border-border rounded-xl text-left max-w-sm">
-                    <p className="text-[11px] text-muted font-semibold mb-1.5">사전 요구사항</p>
-                    <div className="space-y-1 text-[11px] text-muted/80">
+                    <p className="text-[13px] text-muted font-semibold mb-1.5">사전 요구사항</p>
+                    <div className="space-y-1 text-[13px] text-muted/80">
                       <div className="flex items-center gap-1.5"><span className="text-primary">→</span> Node.js 18+ 설치됨</div>
                       <div className="flex items-center gap-1.5"><span className="text-primary">→</span> 인터넷 연결 (첫 실행 시 패키지 다운로드)</div>
                       <div className="flex items-center gap-1.5"><span className="text-primary">→</span> Claude API 키 설정됨 (Settings)</div>
@@ -755,17 +770,17 @@ export default function StudioBotPage() {
             />
           ) : mode === 'ui-proto' && streamOutput ? (
             <div className="h-full overflow-y-auto p-5">
-              <pre className="text-[12px] text-dim font-mono leading-relaxed whitespace-pre-wrap">{streamOutput}</pre>
+              <pre className="text-[14px] text-dim font-mono leading-relaxed whitespace-pre-wrap">{streamOutput}</pre>
             </div>
           ) : mode === 'ui-proto' ? (
             <div className="h-full flex flex-col items-center justify-center gap-3 text-center p-8">
               <Monitor size={40} className="text-border" />
-              <p className="text-muted text-[13px]">UI 프로토타입 결과가 여기에 표시됩니다</p>
-              <p className="text-muted/60 text-[11px]">왼쪽에서 카테고리를 선택하거나 아래 채팅에서 직접 입력하세요</p>
+              <p className="text-muted text-[15px]">UI 프로토타입 결과가 여기에 표시됩니다</p>
+              <p className="text-muted/60 text-[13px]">왼쪽에서 카테고리를 선택하거나 아래 채팅에서 직접 입력하세요</p>
               <div className="mt-2 flex flex-wrap gap-2 justify-center">
                 {['SaaS 대시보드', '로그인 페이지', '프라이싱 카드', '히어로 섹션'].map(ex => (
                   <button key={ex} onClick={() => { setInput(`${ex} UI를 만들어줘. React + Tailwind, 다크 테마.`); setChatOpen(true) }}
-                    className="px-3 py-1.5 bg-surface border border-border rounded-lg text-[11px] text-muted hover:text-text hover:border-primary/40 transition-colors">
+                    className="px-3 py-1.5 bg-surface border border-border rounded-lg text-[13px] text-muted hover:text-text hover:border-primary/40 transition-colors">
                     {ex}
                   </button>
                 ))}
@@ -775,8 +790,8 @@ export default function StudioBotPage() {
             <div className="h-full overflow-y-auto p-5">
               {/* 로딩 상태 */}
               {isRunning && graphicStatus && (
-                <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-pink-500/5 border border-pink-500/20 rounded-xl text-[12px] text-pink-300">
-                  <Loader2 size={12} className="animate-spin shrink-0" />
+                <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-pink-500/5 border border-pink-500/20 rounded-xl text-[14px] text-pink-300">
+                  <Loader2 size={14} className="animate-spin shrink-0" />
                   {graphicStatus}
                 </div>
               )}
@@ -788,17 +803,17 @@ export default function StudioBotPage() {
                       <img src={img.url} alt={img.userPrompt} className="w-full object-cover max-h-80" />
                       <div className="p-3 flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <p className="text-[11px] text-text truncate font-medium">{img.userPrompt}</p>
-                          <p className="text-[10px] text-muted mt-0.5 line-clamp-2">{img.prompt}</p>
+                          <p className="text-[13px] text-text truncate font-medium">{img.userPrompt}</p>
+                          <p className="text-[12px] text-muted mt-0.5 line-clamp-2">{img.prompt}</p>
                         </div>
                         <div className="flex gap-1.5 shrink-0">
                           <a href={img.url} download={`oomni-graphic-${i}.jpg`}
-                            className="flex items-center gap-1 px-2 py-1 text-[10px] text-muted hover:text-text border border-border rounded-lg transition-colors">
-                            <Download size={10} />저장
+                            className="flex items-center gap-1 px-2 py-1 text-[12px] text-muted hover:text-text border border-border rounded-lg transition-colors">
+                            <Download size={12} />저장
                           </a>
                           <a href="https://www.canva.com/create" target="_blank" rel="noreferrer"
-                            className="flex items-center gap-1 px-2 py-1 text-[10px] text-pink-400 hover:text-pink-300 border border-pink-500/30 rounded-lg transition-colors">
-                            <ExternalLink size={10} />Canva 편집
+                            className="flex items-center gap-1 px-2 py-1 text-[12px] text-pink-400 hover:text-pink-300 border border-pink-500/30 rounded-lg transition-colors">
+                            <ExternalLink size={12} />Canva 편집
                           </a>
                         </div>
                       </div>
@@ -811,17 +826,17 @@ export default function StudioBotPage() {
                   <div className="mb-5 p-5 bg-[#1a1a2e] border border-purple-500/30 rounded-2xl">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-9 h-9 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0">
-                        <ExternalLink size={16} className="text-purple-400" />
+                        <ExternalLink size={18} className="text-purple-400" />
                       </div>
                       <div>
-                        <p className="text-[14px] font-semibold text-text">Canva로 디자인하기</p>
-                        <p className="text-[11px] text-muted">전문 템플릿으로 빠르게 제작</p>
+                        <p className="text-[16px] font-semibold text-text">Canva로 디자인하기</p>
+                        <p className="text-[13px] text-muted">전문 템플릿으로 빠르게 제작</p>
                       </div>
                       <a
                         href="https://www.canva.com"
                         target="_blank"
                         rel="noreferrer"
-                        className="ml-auto px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-[12px] font-medium transition-colors"
+                        className="ml-auto px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-[14px] font-medium transition-colors"
                       >
                         Canva 열기
                       </a>
@@ -840,9 +855,9 @@ export default function StudioBotPage() {
                           href={item.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-2 bg-purple-500/10 border border-purple-500/20 rounded-xl text-[11px] text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/40 transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-2 bg-purple-500/10 border border-purple-500/20 rounded-xl text-[13px] text-purple-300 hover:bg-purple-500/20 hover:border-purple-500/40 transition-colors"
                         >
-                          <ExternalLink size={10} className="shrink-0" />
+                          <ExternalLink size={12} className="shrink-0" />
                           {item.label}
                         </a>
                       ))}
@@ -851,15 +866,15 @@ export default function StudioBotPage() {
 
                   {/* AI 이미지 생성 (보조) */}
                   <div className="p-4 bg-surface border border-border rounded-xl">
-                    <p className="text-[11px] font-semibold text-muted mb-2">AI 이미지 생성 (Ideogram)</p>
-                    <p className="text-[10px] text-muted/60 mb-3">
+                    <p className="text-[13px] font-semibold text-muted mb-2">AI 이미지 생성 (Ideogram)</p>
+                    <p className="text-[12px] text-muted/60 mb-3">
                       {ideogramKeySet ? '아래 채팅에서 원하는 이미지를 설명하세요' : 'Settings → Ideogram API 키 입력 후 사용 가능'}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {['인스타 제품 광고 배너', 'YouTube 썸네일 — 강의 커버', 'TikTok 세로 영상 커버', '마케팅 이벤트 배너'].map(ex => (
                         <button key={ex}
                           onClick={() => { setInput(ex); setChatOpen(true) }}
-                          className="px-3 py-1.5 bg-surface border border-border rounded-lg text-[11px] text-muted hover:text-text hover:border-pink-500/40 transition-colors">
+                          className="px-3 py-1.5 bg-surface border border-border rounded-lg text-[13px] text-muted hover:text-text hover:border-pink-500/40 transition-colors">
                           {ex}
                         </button>
                       ))}
@@ -873,12 +888,12 @@ export default function StudioBotPage() {
           ) : mode === 'build' ? (
             <div className="h-full flex flex-col items-center justify-center gap-3 text-center p-8">
               <Code2 size={40} className="text-border" />
-              <p className="text-muted text-[13px]">빌드 결과가 여기에 표시됩니다</p>
-              <p className="text-muted/60 text-[11px]">파일을 생성하면 VS Code 스타일 탭 뷰어로 표시됩니다</p>
+              <p className="text-muted text-[15px]">빌드 결과가 여기에 표시됩니다</p>
+              <p className="text-muted/60 text-[13px]">파일을 생성하면 VS Code 스타일 탭 뷰어로 표시됩니다</p>
               <div className="mt-2 flex flex-wrap gap-2 justify-center">
                 {['REST API 엔드포인트', 'React 컴포넌트', '데이터베이스 스키마', '인증 미들웨어'].map(ex => (
                   <button key={ex} onClick={() => { setInput(`${ex}를 TypeScript로 구현해줘.`); setChatOpen(true) }}
-                    className="px-3 py-1.5 bg-surface border border-border rounded-lg text-[11px] text-muted hover:text-text hover:border-orange-500/40 transition-colors">
+                    className="px-3 py-1.5 bg-surface border border-border rounded-lg text-[13px] text-muted hover:text-text hover:border-orange-500/40 transition-colors">
                     {ex}
                   </button>
                 ))}
@@ -898,22 +913,22 @@ export default function StudioBotPage() {
           )}>
             {/* 채팅 헤더 */}
             <div className="flex items-center gap-2 px-4 py-1.5 border-b border-border shrink-0 rounded-t-2xl">
-              <Bot size={12} className="text-primary" />
-              <span className="text-[11px] font-medium text-text flex-1">
+              <Bot size={14} className="text-primary" />
+              <span className="text-[13px] font-medium text-text flex-1">
                 {mode === 'ui-proto' ? 'UI 프로토타입 생성' : mode === 'graphic' ? 'Canva / 그래픽 생성' : '코드 빌드 생성'}
               </span>
-              {isRunning && <Loader2 size={11} className="animate-spin text-primary" />}
+              {isRunning && <Loader2 size={13} className="animate-spin text-primary" />}
               <button onClick={() => { setMsgs([]); setStreamOutput(''); setIframeHtml(''); setGraphicResults([]); setGraphicStatus('') }}
                 className="text-muted hover:text-text transition-colors p-1" title="초기화">
-                <RotateCcw size={11} />
+                <RotateCcw size={13} />
               </button>
               <button onClick={() => setChatExpanded(v => !v)}
                 className="text-muted hover:text-text transition-colors p-1" title={chatExpanded ? '축소' : '확장'}>
-                {chatExpanded ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
+                {chatExpanded ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
               </button>
               <button onClick={() => setChatOpen(false)}
                 className="text-muted hover:text-text transition-colors p-1" title="닫기">
-                <ChevronDown size={11} />
+                <ChevronDown size={13} />
               </button>
             </div>
 
@@ -934,11 +949,11 @@ export default function StudioBotPage() {
                   placeholder="원하는 것을 설명하세요... (Enter 전송, Shift+Enter 줄바꿈)"
                   disabled={isRunning}
                   rows={1}
-                  className="flex-1 bg-transparent text-[12px] text-text placeholder:text-muted/50 outline-none resize-none leading-relaxed disabled:opacity-50"
+                  className="flex-1 bg-transparent text-[14px] text-text placeholder:text-muted/50 outline-none resize-none leading-relaxed disabled:opacity-50"
                 />
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button className="text-muted/50 hover:text-muted transition-colors p-0.5" title="파일 첨부">
-                    <Paperclip size={12} />
+                    <Paperclip size={14} />
                   </button>
                   <div className="flex items-center gap-1 px-1.5 py-0.5 bg-surface border border-border rounded text-[9px] text-muted">
                     <span>{currentRole === 'design' ? 'opus-4' : 'sonnet-4'}</span>
@@ -946,13 +961,13 @@ export default function StudioBotPage() {
                   </div>
                   {isRunning ? (
                     <button onClick={() => abortRef.current?.abort()}
-                      className="px-2.5 py-1 bg-red-900/20 border border-red-800/30 text-red-400 rounded-lg text-[10px] hover:bg-red-900/40 transition-colors">
+                      className="px-2.5 py-1 bg-red-900/20 border border-red-800/30 text-red-400 rounded-lg text-[12px] hover:bg-red-900/40 transition-colors">
                       중단
                     </button>
                   ) : (
                     <button onClick={() => sendMessage()} disabled={!input.trim()}
-                      className="flex items-center gap-1 px-2.5 py-1 bg-primary hover:bg-primary-hover text-white rounded-lg text-[10px] font-medium transition-colors disabled:opacity-40">
-                      <Send size={10} />전송
+                      className="flex items-center gap-1 px-2.5 py-1 bg-primary hover:bg-primary-hover text-white rounded-lg text-[12px] font-medium transition-colors disabled:opacity-40">
+                      <Send size={12} />전송
                     </button>
                   )}
                 </div>
@@ -964,10 +979,10 @@ export default function StudioBotPage() {
           mode !== 'open-design' ? (
             <button
               onClick={() => setChatOpen(true)}
-              className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 bg-surface/95 backdrop-blur-sm border border-border rounded-full shadow-lg text-[11px] text-muted hover:text-text hover:border-primary/40 transition-all"
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 bg-surface/95 backdrop-blur-sm border border-border rounded-full shadow-lg text-[13px] text-muted hover:text-text hover:border-primary/40 transition-all"
             >
-              <Bot size={12} className="text-primary" />AI 채팅 열기
-              <Maximize2 size={11} />
+              <Bot size={14} className="text-primary" />AI 채팅 열기
+              <Maximize2 size={13} />
             </button>
           ) : null
         )}
