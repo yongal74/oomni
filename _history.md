@@ -8,13 +8,65 @@
 
 | 항목 | 내용 |
 |------|------|
-| **최신 버전** | v5.14.0 |
-| **다음 버전** | v5.15.0 (번들 code-split, n8n CORS 안내 개선, PTY 터미널 자동 높이) |
+| **최신 버전** | v5.15.0 |
+| **다음 버전** | v5.16.0 (번들 code-split, n8n CORS 안내 개선, PTY 터미널 자동 높이) |
 | **tsc --noEmit** | ✅ 0 errors |
-| **GitHub Release** | ✅ v5.14.0 `OOMNI.Setup.5.14.0.exe` 업로드 완료 |
-| **랜딩페이지** | ✅ v5.14.0 다운로드 URL 업데이트 완료 |
+| **GitHub Release** | ✅ v5.15.0 `OOMNI Setup 5.15.0.exe` 업로드 완료 |
+| **랜딩페이지** | ✅ v5.15.0 다운로드 URL 업데이트 완료 |
 | **IDE** | VS Code + Claude Code 익스텐션 |
 | **마지막 작업일** | 2026-05-11 |
+
+---
+
+## 2026-05-11 — v5.15.0 폰트+1 · OPS 가이드 노드카드 · Growth 반응형+연동링크 · 승인/비용/설정 전체너비 · Open Design 웹뷰
+
+### 변경 파일
+| 파일 | 변경 내용 |
+|---|---|
+| `frontend/src/pages/OpsCenter.tsx` | 상세 구현 가이드 위치 변경(실행순서 다음), 노드별 카드 형태로 파싱하여 표시, parseGuideCards 헬퍼 추가, 폰트+1 |
+| `frontend/src/pages/GrowthStudio.tsx` | JobRoleTab max-w-3xl 제거→전체너비, 도구 그리드 lg:grid-cols-4 반응형, 각 도구에 URL 추가하여 클릭 시 외부 이동, 프롬프트 그리드 lg:grid-cols-2, 폰트+1 |
+| `frontend/src/pages/ApprovalPage.tsx` | max-w-3xl mx-auto → max-w-5xl mx-auto 전체너비 |
+| `frontend/src/pages/CostPage.tsx` | max-w-4xl mx-auto → max-w-6xl mx-auto 전체너비 |
+| `frontend/src/pages/SettingsPage.tsx` | max-w-2xl → max-w-5xl 전체너비 |
+| `frontend/src/pages/StudioBotPage.tsx` | OpenDesignWebview 컴포넌트 추가 (Electron webview 인앱 임베드) |
+| `electron/main.js` | webviewTag: true 추가 |
+| `package.json` | 5.14.0 → 5.15.0 |
+| `docs/index.html` | v5.15.0 다운로드 URL 업데이트 |
+
+### 주요 변경사항
+
+**OPS 봇 상세 가이드 개선**
+- 기존: 가이드가 주의사항 아래 단일 마크다운 블록
+- 신규: 실행순서 바로 다음 위치로 이동, `## ` 헤딩 기준으로 파싱해 노드별 카드로 표시
+- `parseGuideCards(guide)` 헬퍼: `## ` 헤딩 기준 섹션 분리, 헤딩 없는 경우 단일 카드
+
+**Growth 봇 반응형 + 연동 링크**
+- `max-w-3xl` 제거 → `w-full` 전체 너비
+- 도구 그리드: `grid-cols-2 lg:grid-cols-4` 반응형
+- 프롬프트 카드: `grid-cols-1 lg:grid-cols-2` 반응형
+- 각 도구에 URL 필드 추가 (GA4/Google Ads/Meta Ads 등 20개)
+- 도구 카드 클릭 → `electronAPI.openExternal` 또는 `window.open` 외부 열기
+
+**승인인박스/비용추적/설정 전체너비**
+- 각 페이지 최대 너비 확대: 3xl→5xl, 4xl→6xl, 2xl→5xl
+
+**Open Design Electron webview 임베드**
+- `electron/main.js`: `webviewTag: true` 추가
+- `StudioBotPage.tsx`: `OpenDesignWebview` 컴포넌트 (imperative DOM webview)
+- 서버 실행 시 내부 webview로 렌더링, 종료 버튼 표시
+
+**전체 폰트 +1px (v5.14.0 이후 추가)**
+- 모든 페이지 균일한 크기로 통일 (그룹별 +1~+3 적용)
+
+### 커밋
+- `0b7d32e` — feat: v5.15.0 — 폰트+1, OPS 가이드 노드카드, Growth 반응형+연동링크, 승인/비용/설정 전체너비, Open Design 웹뷰
+- `051b67b` — docs: v5.15.0 랜딩페이지 다운로드 링크 업데이트
+
+### 다음 할 일
+- index.js 번들 code-split (618kB → 목표 300kB 이하)
+- n8n CORS Allow 활성화 안내 UI 개선
+- PTY 터미널 자동 높이 조정 (현재 고정)
+- Open Design 서버 상태 자동 감지 개선
 
 ---
 
