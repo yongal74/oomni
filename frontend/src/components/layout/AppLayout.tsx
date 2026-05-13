@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAppStore } from '../../store/app.store'
@@ -88,11 +88,11 @@ function IconBtn({
       'relative group flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-150',
       active
         ? 'bg-primary/15 text-primary'
-        : 'text-[#666] hover:text-[#ccc] hover:bg-white/[0.06]'
+        : 'text-muted hover:text-dim hover:bg-white/[0.06]'
     )
 
   const Tooltip = () => (
-    <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 -translate-y-1/2 z-50 whitespace-nowrap rounded-lg bg-[#18181b] border border-[#27272a] px-2.5 py-1.5 text-xs font-medium text-[#e4e4e7] shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+    <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 -translate-y-1/2 z-50 whitespace-nowrap rounded-lg bg-surface-2 border border-border px-2.5 py-1.5 text-xs font-medium text-text shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-100">
       {label}
       {showDot && (
         <span className="ml-1.5 bg-primary text-white text-[13px] px-1.5 py-0.5 rounded-full">
@@ -135,13 +135,13 @@ function BotSubPanel({
 }) {
   const navigate = useNavigate()
   return (
-    <div className="flex flex-col h-full w-52 bg-[#111113] border-r border-[#1c1c20] shrink-0">
+    <div className="flex flex-col h-full w-52 bg-surface border-r border-border-muted shrink-0">
       {/* 헤더 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#1c1c20] shrink-0">
-        <span className="text-[13px] font-semibold text-[#52525b] uppercase tracking-widest">봇</span>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border-muted shrink-0">
+        <span className="text-[13px] font-semibold text-muted uppercase tracking-widest">봇</span>
         <button
           onClick={onClose}
-          className="text-[#52525b] hover:text-[#a1a1aa] transition-colors p-0.5 rounded"
+          className="text-muted hover:text-dim transition-colors p-0.5 rounded"
         >
           <ChevronLeft size={15} />
         </button>
@@ -149,11 +149,11 @@ function BotSubPanel({
 
       <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
         {agents.filter(a => !['ceo', 'design', 'build'].includes(a.role)).length > 0 && (
-          <p className="text-[13px] text-[#52525b] uppercase tracking-widest px-2 pt-1 pb-0.5">팀 봇</p>
+          <p className="text-[13px] text-muted uppercase tracking-widest px-2 pt-1 pb-0.5">팀 봇</p>
         )}
         {agents.filter(a => !['ceo', 'design', 'build'].includes(a.role)).map(agent => {
           const Icon  = BOT_ICON[agent.role]  ?? Settings2
-          const color = BOT_COLOR[agent.role] ?? 'text-[#71717a]'
+          const color = BOT_COLOR[agent.role] ?? 'text-muted'
           return (
             <NavLink
               key={agent.id}
@@ -162,21 +162,21 @@ function BotSubPanel({
                 cn(
                   'flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[15px] transition-colors',
                   isActive
-                    ? 'bg-[#1e1e22] text-[#e4e4e7]'
-                    : 'text-[#71717a] hover:text-[#e4e4e7] hover:bg-[#18181b]'
+                    ? 'bg-surface-3 text-text'
+                    : 'text-muted hover:text-text hover:bg-surface-2'
                 )
               }
             >
               <Icon size={14} className={cn('shrink-0', color)} />
               <span className="truncate">{agent.name}</span>
-              <div className={cn('ml-auto w-1.5 h-1.5 rounded-full shrink-0', agent.is_active ? 'bg-green-500' : 'bg-[#333]')} />
+              <div className={cn('ml-auto w-1.5 h-1.5 rounded-full shrink-0', agent.is_active ? 'bg-green-500' : 'bg-surface-3')} />
             </NavLink>
           )
         })}
 
         <button
           onClick={() => { navigate('/dashboard?addBot=true'); onClose() }}
-          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[14px] text-[#52525b] hover:text-[#e4e4e7] w-full mt-0.5 transition-colors"
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[14px] text-muted hover:text-text w-full mt-0.5 transition-colors"
         >
           <Plus size={13} />
           봇 추가
@@ -185,7 +185,7 @@ function BotSubPanel({
 
       {/* 하단 승인 링크 */}
       {pendingApprovals > 0 && (
-        <div className="border-t border-[#1c1c20] px-3 py-2 shrink-0">
+        <div className="border-t border-border-muted px-3 py-2 shrink-0">
           <NavLink
             to="/dashboard/approvals"
             className="flex items-center gap-2 text-[14px] text-primary hover:text-primary/80 transition-colors"
@@ -222,10 +222,10 @@ export function AppLayout() {
   const activeCount = agents.filter(a => a.is_active).length
 
   return (
-    <div className="flex h-screen bg-[#0d0d0f] overflow-hidden">
+    <div className="flex h-screen bg-bg overflow-hidden">
 
       {/* ── 좌측 아이콘 바 (w-12 = 48px) ──────────────────────────── */}
-      <aside className="w-12 bg-[#0d0d0f] border-r border-[#1c1c20] flex flex-col items-center py-3 gap-0.5 shrink-0 z-30">
+      <aside className="w-12 bg-bg border-r border-border-muted flex flex-col items-center py-3 gap-0.5 shrink-0 z-30">
 
         {/* 로고 */}
         <button
@@ -236,7 +236,7 @@ export function AppLayout() {
           <span className="text-[13px] font-black text-white tracking-tight select-none">O</span>
         </button>
 
-        <div className="w-5 h-px bg-[#27272a] mb-1" />
+        <div className="w-5 h-px bg-border mb-1" />
 
         {/* 대시보드 + 미션보드 — 최상단 고정 */}
         {TOP_NAV_ITEMS.map(item => (
@@ -249,7 +249,7 @@ export function AppLayout() {
           />
         ))}
 
-        <div className="w-5 h-px bg-[#27272a] my-1" />
+        <div className="w-5 h-px bg-border my-1" />
 
         {/* 봇 패널 토글 */}
         <div className="relative group">
@@ -259,7 +259,7 @@ export function AppLayout() {
               'relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-150',
               botPanelOpen
                 ? 'bg-primary/15 text-primary'
-                : 'text-[#666] hover:text-[#ccc] hover:bg-white/[0.06]'
+                : 'text-muted hover:text-dim hover:bg-white/[0.06]'
             )}
           >
             {/* 5-dot 그리드 아이콘 */}
@@ -274,15 +274,15 @@ export function AppLayout() {
               <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-green-500 pointer-events-none" />
             )}
           </button>
-          <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 -translate-y-1/2 z-50 whitespace-nowrap rounded-lg bg-[#18181b] border border-[#27272a] px-2.5 py-1.5 text-xs font-medium text-[#e4e4e7] shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+          <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 -translate-y-1/2 z-50 whitespace-nowrap rounded-lg bg-surface-2 border border-border px-2.5 py-1.5 text-xs font-medium text-text shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-100">
             봇 목록
           </span>
         </div>
 
-        {/* 동적 봇 아이콘 (DB 봇 — research/content 등, CEO·design·build·ops 제외) */}
+        {/* 동적 봇 아이콘 */}
         {agents.filter(a => !['ceo', 'design', 'build', 'ops'].includes(a.role)).slice(0, 6).map(agent => {
           const Icon  = BOT_ICON[agent.role]  ?? Settings2
-          const color = BOT_COLOR[agent.role] ?? 'text-[#666]'
+          const color = BOT_COLOR[agent.role] ?? 'text-muted'
           return (
             <IconBtn
               key={agent.id}
@@ -302,7 +302,7 @@ export function AppLayout() {
           />
         )}
 
-        <div className="w-5 h-px bg-[#27272a] my-1" />
+        <div className="w-5 h-px bg-border my-1" />
 
         {/* Growth Bot / Studio Bot / Ops Bot */}
         {BOT_NAV_ITEMS.map(item => (
@@ -314,7 +314,7 @@ export function AppLayout() {
           />
         ))}
 
-        <div className="w-5 h-px bg-[#27272a] my-1" />
+        <div className="w-5 h-px bg-border my-1" />
 
         {/* 유틸리티 */}
         {UTIL_NAV_ITEMS.map(item => (
@@ -331,7 +331,7 @@ export function AppLayout() {
         <div className="flex-1" />
 
         {/* 봇 추가 — 하단 고정 */}
-        <div className="w-5 h-px bg-[#27272a] mb-1.5" />
+        <div className="w-5 h-px bg-border mb-1.5" />
         <IconBtn
           icon={Plus}
           label="봇 추가"

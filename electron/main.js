@@ -358,11 +358,34 @@ ipcMain.handle('get-internal-api-key', () => {
 ipcMain.handle('open-external', (_event, url) => {
   // 허용된 도메인만 외부 브라우저로 열기
   const allowed = [
+    // 기존
     'https://console.anthropic.com',
     'https://openrouter.ai',
     'https://n8n.io',
     'https://www.antigravity.dev',
     'http://localhost:3001',
+    // Growth Bot 핵심도구 연동
+    'https://analytics.google.com',
+    'https://ads.google.com',
+    'https://adsmanager.facebook.com',
+    'https://search.google.com',
+    'https://app.hubspot.com',
+    'https://mailchimp.com',
+    'https://notion.so',
+    'http://localhost:5678',
+    'https://figma.com',
+    'https://canva.com',
+    'https://trends.google.com',
+    'https://app.posthog.com',
+    'https://supabase.com',
+    'https://vercel.com',
+    'https://claude.ai',
+    'https://make.com',
+    // 영상 제작 도구
+    'https://remotion.dev',
+    'https://elevenlabs.io',
+    'https://pexels.com',
+    'https://pexels.com/api',
   ]
   if (allowed.some(a => url.startsWith(a))) {
     shell.openExternal(url)

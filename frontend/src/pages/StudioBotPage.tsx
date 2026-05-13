@@ -734,7 +734,7 @@ export default function StudioBotPage() {
                   </div>
                   <div className="px-4 py-3 bg-surface border border-border rounded-xl text-left text-[14px]">
                     <p className="text-muted font-semibold mb-1.5">수동 실행 방법 (터미널에서)</p>
-                    <code className="block bg-[#111] rounded p-2 text-primary font-mono text-[13px] mb-1.5">
+                    <code className="block bg-bg rounded p-2 text-primary font-mono text-[13px] mb-1.5">
                       npx open-design-ade --port {OPEN_DESIGN_PORT}
                     </code>
                     <p className="text-muted/60">실행 후 새로고침(↺)을 클릭하세요</p>
@@ -832,7 +832,7 @@ export default function StudioBotPage() {
               ) : !isRunning ? (
                 <div className="h-full overflow-y-auto p-5">
                   {/* Canva 메인 카드 */}
-                  <div className="mb-5 p-5 bg-[#1a1a2e] border border-purple-500/30 rounded-2xl">
+                  <div className="mb-5 p-5 bg-surface border border-purple-500/30 rounded-2xl">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-9 h-9 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0">
                         <ExternalLink size={18} className="text-purple-400" />

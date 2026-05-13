@@ -155,7 +155,7 @@ export function MissionBoard() {
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <CheckSquare size={48} className="mx-auto mb-4 text-[#333]" />
-          <p className="text-[#52525b] text-sm">미션을 선택하세요</p>
+          <p className="text-muted text-sm">미션을 선택하세요</p>
         </div>
       </div>
     )
@@ -170,10 +170,10 @@ export function MissionBoard() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* 헤더 */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-[#1c1c20] shrink-0">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border-muted shrink-0">
           <CheckSquare size={15} className="text-primary" />
-          <span className="text-[16px] font-semibold text-[#e4e4e7]">Mission Board</span>
-          <span className="text-[14px] text-[#52525b] ml-1">
+          <span className="text-[16px] font-semibold text-text">Mission Board</span>
+          <span className="text-[14px] text-muted ml-1">
             {filteredTasks.length}개 태스크
           </span>
 
@@ -181,15 +181,15 @@ export function MissionBoard() {
 
           {/* 검색 */}
           <div className="relative">
-            <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-[#52525b]" />
+            <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted" />
             <input
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
               placeholder="검색..."
-              className="bg-[#111113] border border-[#27272a] rounded-lg pl-7 pr-3 py-1.5 text-[14px] text-[#e4e4e7] placeholder-[#52525b] outline-none focus:border-primary/40 w-40"
+              className="bg-surface border border-border rounded-lg pl-7 pr-3 py-1.5 text-[14px] text-text placeholder-[#52525b] outline-none focus:border-primary/40 w-40"
             />
             {searchValue && (
-              <button onClick={() => setSearchValue('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#52525b] hover:text-[#a1a1aa]">
+              <button onClick={() => setSearchValue('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-[#a1a1aa]">
                 <X size={10} />
               </button>
             )}
@@ -202,7 +202,7 @@ export function MissionBoard() {
               'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[14px] border transition-colors',
               showFilters || activeFiltersCount > 0
                 ? 'bg-primary/10 text-primary border-primary/30'
-                : 'text-[#52525b] border-[#27272a] hover:text-[#e4e4e7]',
+                : 'text-muted border-border hover:text-text',
             )}
           >
             <Filter size={11} />
@@ -222,7 +222,7 @@ export function MissionBoard() {
           </button>
 
           {/* 뷰 전환 */}
-          <div className="flex border border-[#27272a] rounded-lg overflow-hidden">
+          <div className="flex border border-border rounded-lg overflow-hidden">
             {([['kanban', LayoutGrid], ['list', List], ['calendar', Calendar]] as const).map(([mode, Icon]) => (
               <button
                 key={mode}
@@ -231,7 +231,7 @@ export function MissionBoard() {
                   'p-1.5 transition-colors',
                   localView === mode
                     ? 'bg-primary/20 text-primary'
-                    : 'text-[#52525b] hover:text-[#e4e4e7] hover:bg-[#141416]',
+                    : 'text-muted hover:text-text hover:bg-bg',
                 )}
               >
                 <Icon size={13} />
@@ -242,11 +242,11 @@ export function MissionBoard() {
 
         {/* 필터 바 */}
         {showFilters && (
-          <div className="flex items-center gap-2 px-4 py-2 border-b border-[#1c1c20] bg-[#0d0d0f] shrink-0">
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-border-muted bg-bg shrink-0">
             <select
               value={filters.layer ?? ''}
               onChange={(e) => setFilters({ layer: (e.target.value as TaskLayer) || undefined })}
-              className="bg-[#111113] border border-[#27272a] text-[14px] text-[#e4e4e7] rounded-lg px-2 py-1 outline-none"
+              className="bg-surface border border-border text-[14px] text-text rounded-lg px-2 py-1 outline-none"
             >
               {LAYER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
@@ -254,7 +254,7 @@ export function MissionBoard() {
             <select
               value={filters.engine ?? ''}
               onChange={(e) => setFilters({ engine: (e.target.value as TaskEngine) || undefined })}
-              className="bg-[#111113] border border-[#27272a] text-[14px] text-[#e4e4e7] rounded-lg px-2 py-1 outline-none"
+              className="bg-surface border border-border text-[14px] text-text rounded-lg px-2 py-1 outline-none"
             >
               {ENGINE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
@@ -262,7 +262,7 @@ export function MissionBoard() {
             <select
               value={filters.priority ?? ''}
               onChange={(e) => setFilters({ priority: (e.target.value as TaskPriority) || undefined })}
-              className="bg-[#111113] border border-[#27272a] text-[14px] text-[#e4e4e7] rounded-lg px-2 py-1 outline-none"
+              className="bg-surface border border-border text-[14px] text-text rounded-lg px-2 py-1 outline-none"
             >
               <option value="">모든 우선순위</option>
               <option value="P0">P0 — 긴급</option>
@@ -273,7 +273,7 @@ export function MissionBoard() {
             {activeFiltersCount > 0 && (
               <button
                 onClick={clearFilters}
-                className="text-[14px] text-[#52525b] hover:text-red-400 flex items-center gap-1"
+                className="text-[14px] text-muted hover:text-red-400 flex items-center gap-1"
               >
                 <X size={10} />필터 초기화
               </button>
@@ -285,7 +285,7 @@ export function MissionBoard() {
         <div className="flex-1 overflow-hidden">
           {isLoading ? (
             <div className="flex h-full items-center justify-center">
-              <div className="text-[#52525b] text-sm animate-pulse">태스크 로딩 중...</div>
+              <div className="text-muted text-sm animate-pulse">태스크 로딩 중...</div>
             </div>
           ) : localView === 'kanban' ? (
             <KanbanView
@@ -312,7 +312,7 @@ export function MissionBoard() {
 
       {/* ── Task Detail 슬라이드 패널 ───────────────────────────���─────────────── */}
       <div className={cn(
-        'shrink-0 border-l border-[#1c1c20] transition-[width] duration-200 overflow-hidden',
+        'shrink-0 border-l border-border-muted transition-[width] duration-200 overflow-hidden',
         isDetailOpen ? 'w-[400px]' : 'w-0',
       )}>
         {isDetailOpen && selectedTaskId && (
@@ -352,7 +352,7 @@ function KanbanView({
                 <span className={cn('text-[14px] font-semibold uppercase tracking-widest', color)}>
                   {label}
                 </span>
-                <span className="text-[13px] text-[#52525b] bg-[#111113] px-1.5 py-0.5 rounded-full border border-[#27272a]">
+                <span className="text-[13px] text-muted bg-surface px-1.5 py-0.5 rounded-full border border-border">
                   {colTasks.length}
                 </span>
               </div>

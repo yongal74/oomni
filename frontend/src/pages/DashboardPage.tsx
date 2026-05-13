@@ -426,7 +426,7 @@ export default function DashboardPage() {
                   >
                     <Play size={12} />
                   </button>
-                  <div className={`w-2 h-2 rounded-full ${agent.is_active ? 'bg-green-500' : 'bg-[#444]'}`} />
+                  <div className={`w-2 h-2 rounded-full ${agent.is_active ? 'bg-green-500' : 'bg-surface-3'}`} />
                 </div>
               </Link>
             ))}
@@ -844,18 +844,18 @@ function FirstRunTutorial({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center pb-8 pointer-events-none">
-      <div className="pointer-events-auto w-full max-w-sm mx-4 bg-[#111113] border border-[#2a2a2e] rounded-2xl shadow-2xl p-5 animate-in slide-in-from-bottom-4 duration-300">
+      <div className="pointer-events-auto w-full max-w-sm mx-4 bg-surface border border-border rounded-2xl shadow-2xl p-5 animate-in slide-in-from-bottom-4 duration-300">
         {/* 스텝 인디케이터 */}
         <div className="flex items-center gap-1.5 mb-4">
           {TUTORIAL_STEPS.map((_, i) => (
             <div
               key={i}
               className={`h-1 rounded-full transition-all ${
-                i === step ? 'bg-primary w-6' : i < step ? 'bg-primary/50 w-3' : 'bg-[#27272a] w-3'
+                i === step ? 'bg-primary w-6' : i < step ? 'bg-primary/50 w-3' : 'bg-border w-3'
               }`}
             />
           ))}
-          <span className="ml-auto text-[13px] text-[#52525b]">{step + 1} / {TUTORIAL_STEPS.length}</span>
+          <span className="ml-auto text-[13px] text-muted">{step + 1} / {TUTORIAL_STEPS.length}</span>
         </div>
 
         {/* 아이콘 + 내용 */}
@@ -865,7 +865,7 @@ function FirstRunTutorial({
           </div>
           <div>
             <h3 className="text-[17px] font-semibold text-white mb-1">{current.title}</h3>
-            <p className="text-[15px] text-[#71717a] leading-relaxed">{current.desc}</p>
+            <p className="text-[15px] text-muted leading-relaxed">{current.desc}</p>
             {current.tip && (
               <p className="text-[14px] text-primary/80 mt-2 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1.5 leading-relaxed">
                 {current.tip}
@@ -878,7 +878,7 @@ function FirstRunTutorial({
         <div className="flex items-center gap-2">
           <button
             onClick={onSkip}
-            className="text-[15px] text-[#52525b] hover:text-[#71717a] transition-colors px-2 py-1.5"
+            className="text-[15px] text-muted hover:text-muted transition-colors px-2 py-1.5"
           >
             건너뛰기
           </button>

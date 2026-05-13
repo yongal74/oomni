@@ -316,7 +316,7 @@ function CanvasGraph({ graph, loading, onNodeClick, selectedNodeId }: CanvasGrap
       if (node.type === 'profile' && node.eventCount !== undefined && node.eventCount > 0) {
         const badge = String(node.eventCount)
         ctx.font      = 'bold 9px Inter, sans-serif'
-        ctx.fillStyle = '#0f172a'
+        ctx.fillStyle = '#0d0d0f'
         ctx.textAlign = 'center'
         ctx.fillText(badge, node.x, node.y + 4)
       }
@@ -448,14 +448,14 @@ function CanvasGraph({ graph, loading, onNodeClick, selectedNodeId }: CanvasGrap
   }, [])
 
   return (
-    <div className="relative w-full h-full bg-[#0b1120] rounded-lg overflow-hidden">
+    <div className="relative w-full h-full bg-bg rounded-lg overflow-hidden">
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center z-10">
           <RefreshCw className="w-7 h-7 text-primary animate-spin" />
         </div>
       )}
       {!loading && !graph && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-500">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted">
           <Database className="w-10 h-10" />
           <p className="text-sm">프로필을 선택하면 ID 그래프가 표시됩니다</p>
         </div>
@@ -471,14 +471,14 @@ function CanvasGraph({ graph, loading, onNodeClick, selectedNodeId }: CanvasGrap
         onDoubleClick={onDblClick}
       />
       {/* legend */}
-      <div className="absolute bottom-3 left-3 flex flex-col gap-1 text-[13px] text-slate-400 pointer-events-none">
+      <div className="absolute bottom-3 left-3 flex flex-col gap-1 text-[13px] text-dim pointer-events-none">
         <LegendItem color="#3b82f6" label="이메일" />
         <LegendItem color="#22c55e" label="전화번호" />
         <LegendItem color="#f59e0b" label="사용자 ID / 고LTV" />
         <LegendItem color="#a855f7" label="Anonymous ID" />
         <LegendItem color="#f97316" label="광고 Click ID" />
       </div>
-      <div className="absolute bottom-3 right-3 flex flex-col gap-1 text-[13px] text-slate-400 pointer-events-none">
+      <div className="absolute bottom-3 right-3 flex flex-col gap-1 text-[13px] text-dim pointer-events-none">
         <div className="flex items-center gap-1.5">
           <div className="w-5 border-t-2 border-slate-300" />
           <span>확정 (1.0)</span>
@@ -493,7 +493,7 @@ function CanvasGraph({ graph, loading, onNodeClick, selectedNodeId }: CanvasGrap
         </div>
       </div>
       {/* hint */}
-      <div className="absolute top-3 right-3 text-[13px] text-slate-600 pointer-events-none">
+      <div className="absolute top-3 right-3 text-[13px] text-muted pointer-events-none">
         드래그=이동 • 스크롤=줌 • 더블클릭=초기화
       </div>
     </div>
@@ -516,7 +516,7 @@ function ProfileListItem({
 }: { profile: CdpProfile; selected: boolean; onClick: () => void }) {
   const tier  = getLtvTier(profile)
   const sources = safeParse<string[]>(profile.sources, [])
-  const tierColor = tier === 'high' ? 'text-amber-400' : tier === 'mid' ? 'text-primary' : 'text-slate-500'
+  const tierColor = tier === 'high' ? 'text-amber-400' : tier === 'mid' ? 'text-primary' : 'text-muted'
 
   return (
     <button
@@ -525,7 +525,7 @@ function ProfileListItem({
         'w-full text-left px-3 py-2.5 rounded-lg border transition-all',
         selected
           ? 'bg-primary/15 border-primary/40 text-white'
-          : 'bg-slate-900/40 border-slate-800 text-slate-300 hover:bg-slate-800/60 hover:border-slate-700',
+          : 'bg-surface border-border-muted text-text hover:bg-surface-3/60 hover:border-border',
       )}
     >
       <div className="flex items-center justify-between mb-0.5">
@@ -540,7 +540,7 @@ function ProfileListItem({
           {tier}
         </span>
       </div>
-      <div className="flex items-center gap-2 text-[13px] text-slate-500">
+      <div className="flex items-center gap-2 text-[13px] text-muted">
         <span>{profile.event_count ?? 0} 이벤트</span>
         <span>·</span>
         <span>{sources.length > 0 ? sources.slice(0, 2).join(', ') : '소스 없음'}</span>
@@ -560,7 +560,7 @@ function ProfileDetailPanel({
   const traits  = safeParse<Record<string, unknown>>(profile.traits, {})
   const tierColor = tier === 'high' ? 'text-amber-400 bg-amber-400/10 border-amber-400/20'
     : tier === 'mid' ? 'text-primary bg-primary/10 border-primary/20'
-    : 'text-slate-400 bg-slate-400/10 border-slate-600'
+    : 'text-dim bg-slate-400/10 border-slate-600'
 
   const deterministicCount = graph?.edges.filter(e => e.idClass === 'deterministic').length ?? 0
   const probabilisticCount = graph?.edges.filter(e => e.idClass === 'probabilistic').length ?? 0
@@ -569,35 +569,35 @@ function ProfileDetailPanel({
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {/* header */}
-      <div className="flex items-start justify-between p-4 border-b border-slate-800 shrink-0">
+      <div className="flex items-start justify-between p-4 border-b border-border-muted shrink-0">
         <div>
           <div className="text-sm font-semibold text-white mb-1">프로필 상세</div>
-          <div className="text-[13px] text-slate-500 font-mono">{profile.id}</div>
+          <div className="text-[13px] text-muted font-mono">{profile.id}</div>
         </div>
-        <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors p-1">
+        <button onClick={onClose} className="text-muted hover:text-white transition-colors p-1">
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* tier badge */}
-      <div className="p-4 border-b border-slate-800 shrink-0">
+      <div className="p-4 border-b border-border-muted shrink-0">
         <div className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold', tierColor)}>
           <Zap className="w-3 h-3" />
           {tier.toUpperCase()} LTV
         </div>
-        <div className="mt-2 text-xs text-slate-400">
+        <div className="mt-2 text-xs text-dim">
           이벤트 <span className="text-white font-medium">{profile.event_count ?? 0}</span>회
           &nbsp;·&nbsp;LTV <span className="text-white font-medium">₩{((profile.ltv ?? 0) / 100).toLocaleString()}</span>
         </div>
-        <div className="mt-1 text-[14px] text-slate-500 flex items-center gap-1">
+        <div className="mt-1 text-[14px] text-muted flex items-center gap-1">
           <Clock className="w-3 h-3" />
           마지막 활동: {relativeTime(profile.last_seen_at)}
         </div>
       </div>
 
       {/* identifier breakdown */}
-      <div className="p-4 border-b border-slate-800 shrink-0">
-        <div className="text-[14px] font-medium text-slate-400 mb-2 uppercase tracking-wide">식별자 레이어</div>
+      <div className="p-4 border-b border-border-muted shrink-0">
+        <div className="text-[14px] font-medium text-dim mb-2 uppercase tracking-wide">식별자 레이어</div>
         <div className="space-y-1.5">
           <IdentifierRow
             color="#3b82f6" icon={<Mail className="w-3 h-3" />}
@@ -616,8 +616,8 @@ function ProfileDetailPanel({
 
       {/* identifiers list */}
       {graph && graph.nodes.length > 1 && (
-        <div className="p-4 border-b border-slate-800 shrink-0">
-          <div className="text-[14px] font-medium text-slate-400 mb-2 uppercase tracking-wide">식별자 목록</div>
+        <div className="p-4 border-b border-border-muted shrink-0">
+          <div className="text-[14px] font-medium text-dim mb-2 uppercase tracking-wide">식별자 목록</div>
           <div className="space-y-1">
             {graph.nodes.filter(n => n.type !== 'profile').map(n => (
               <div key={n.id} className="flex items-center justify-between text-[14px]">
@@ -626,12 +626,12 @@ function ProfileDetailPanel({
                     className="w-2 h-2 rounded-full"
                     style={{ background: NODE_COLORS[n.type] ?? NODE_COLORS.default }}
                   />
-                  <span className="text-slate-400">{n.type.replace('_', ' ')}</span>
+                  <span className="text-dim">{n.type.replace('_', ' ')}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-slate-500 font-mono text-[13px]">{n.label}</span>
+                  <span className="text-muted font-mono text-[13px]">{n.label}</span>
                   {n.confidence !== undefined && n.confidence < 1 && (
-                    <span className="text-slate-600 text-[13px]">{Math.round(n.confidence * 100)}%</span>
+                    <span className="text-muted text-[13px]">{Math.round(n.confidence * 100)}%</span>
                   )}
                 </div>
               </div>
@@ -642,12 +642,12 @@ function ProfileDetailPanel({
 
       {/* merge history */}
       {graph && graph.mergedFrom.length > 0 && (
-        <div className="p-4 border-b border-slate-800 shrink-0">
-          <div className="text-[14px] font-medium text-slate-400 mb-2 uppercase tracking-wide">
+        <div className="p-4 border-b border-border-muted shrink-0">
+          <div className="text-[14px] font-medium text-dim mb-2 uppercase tracking-wide">
             병합 히스토리 ({graph.mergedFrom.length})
           </div>
           {graph.mergedFrom.map(id => (
-            <div key={id} className="text-[13px] text-slate-500 font-mono truncate">
+            <div key={id} className="text-[13px] text-muted font-mono truncate">
               ← {id}
             </div>
           ))}
@@ -656,7 +656,7 @@ function ProfileDetailPanel({
 
       {/* raw fields */}
       <div className="p-4 shrink-0">
-        <div className="text-[14px] font-medium text-slate-400 mb-2 uppercase tracking-wide">필드</div>
+        <div className="text-[14px] font-medium text-dim mb-2 uppercase tracking-wide">필드</div>
         <div className="space-y-1">
           <RawField label="email" value={profile.email_hash ? '****' + profile.email_hash.slice(-4) : null} />
           <RawField label="phone" value={profile.phone_hash ? '****' + profile.phone_hash.slice(-4) : null} />
@@ -680,9 +680,9 @@ function IdentifierRow({ color, icon, label, count }: {
     <div className="flex items-center justify-between text-[14px]">
       <div className="flex items-center gap-1.5" style={{ color }}>
         {icon}
-        <span className="text-slate-400">{label}</span>
+        <span className="text-dim">{label}</span>
       </div>
-      <span className="text-slate-300 font-medium">{count}</span>
+      <span className="text-text font-medium">{count}</span>
     </div>
   )
 }
@@ -691,8 +691,8 @@ function RawField({ label, value }: { label: string; value: string | null | unde
   if (!value) return null
   return (
     <div className="flex items-start gap-2 text-[14px]">
-      <span className="text-slate-500 w-20 shrink-0">{label}</span>
-      <span className="text-slate-300 truncate">{value}</span>
+      <span className="text-muted w-20 shrink-0">{label}</span>
+      <span className="text-text truncate">{value}</span>
     </div>
   )
 }
@@ -754,20 +754,20 @@ export default function CDPView() {
 
   if (!currentMissionId) {
     return (
-      <div className="flex items-center justify-center h-full text-slate-500 text-sm">
+      <div className="flex items-center justify-center h-full text-muted text-sm">
         <AlertCircle className="w-5 h-5 mr-2" /> 미션을 먼저 선택해주세요
       </div>
     )
   }
 
   return (
-    <div className="flex h-full bg-[#0a0f1e] text-white overflow-hidden">
+    <div className="flex h-full bg-bg text-text overflow-hidden">
 
       {/* ── Left: profile list ─────────────────────────────────────── */}
-      <div className="w-[280px] shrink-0 border-r border-slate-800 flex flex-col">
+      <div className="w-[280px] shrink-0 border-r border-border-muted flex flex-col">
 
         {/* header */}
-        <div className="p-4 border-b border-slate-800 shrink-0">
+        <div className="p-4 border-b border-border-muted shrink-0">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-sm flex items-center gap-2">
               <Database className="w-4 h-4 text-primary" />
@@ -775,7 +775,7 @@ export default function CDPView() {
             </h2>
             <button
               onClick={() => refetch()}
-              className="text-slate-500 hover:text-white transition-colors"
+              className="text-muted hover:text-white transition-colors"
             >
               <RefreshCw className={cn('w-3.5 h-3.5', profilesLoading && 'animate-spin')} />
             </button>
@@ -790,13 +790,13 @@ export default function CDPView() {
 
           {/* search */}
           <div className="relative mb-2">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="프로필 검색..."
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-800 border border-slate-700 rounded-md text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-primary"
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-surface-3 border border-border rounded-md text-text placeholder:text-muted focus:outline-none focus:border-primary"
             />
           </div>
 
@@ -810,7 +810,7 @@ export default function CDPView() {
                   'flex-1 py-1 text-[13px] rounded transition-all border',
                   tierFilter === t
                     ? 'bg-primary border-primary/80 text-white'
-                    : 'bg-slate-800/60 border-slate-700 text-slate-500 hover:border-slate-600',
+                    : 'bg-surface-3/60 border-border text-muted hover:border-border',
                 )}
               >
                 {t === 'all' ? '전체' : t.toUpperCase()}
@@ -826,7 +826,7 @@ export default function CDPView() {
               <RefreshCw className="w-5 h-5 text-primary animate-spin" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-8 text-slate-600 text-xs">
+            <div className="text-center py-8 text-muted text-xs">
               {profiles.length === 0 ? '아직 프로필이 없습니다' : '검색 결과 없음'}
             </div>
           ) : (
@@ -855,7 +855,7 @@ export default function CDPView() {
       {/* ── Right: detail panel ────────────────────────────────────── */}
       <div
         className={cn(
-          'border-l border-slate-800 transition-all duration-200 overflow-hidden',
+          'border-l border-border-muted transition-all duration-200 overflow-hidden',
           selectedProfile ? 'w-[320px]' : 'w-0',
         )}
       >
@@ -873,9 +873,9 @@ export default function CDPView() {
 
 function StatPill({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className="bg-slate-800/60 rounded-md px-2 py-1.5 text-center border border-slate-700/50">
+    <div className="bg-surface-3/60 rounded-md px-2 py-1.5 text-center border border-border/50">
       <div className={cn('text-sm font-bold', color)}>{value}</div>
-      <div className="text-[9px] text-slate-500 uppercase">{label}</div>
+      <div className="text-[9px] text-muted uppercase">{label}</div>
     </div>
   )
 }

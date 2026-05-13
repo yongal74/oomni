@@ -58,22 +58,22 @@ export default function GrowthStudio() {
   const currentMissionId = currentMission?.id
 
   return (
-    <div className="flex flex-col h-full bg-[#0d0d0f]">
+    <div className="flex flex-col h-full bg-bg">
       <div className="flex flex-col shrink-0">
-        <div className="flex items-center gap-3 px-6 py-3 border-b border-[#1c1c20]">
+        <div className="flex items-center gap-3 px-6 py-3 border-b border-border-muted">
           <Rocket size={18} className="text-pink-400" />
-          <span className="text-[17px] font-semibold text-[#e4e4e7]">Growth Studio</span>
+          <span className="text-[17px] font-semibold text-text">Growth Bot</span>
           <div className="flex items-center gap-1 text-[13px] text-pink-400/70 bg-pink-500/10 border border-pink-500/20 px-2 py-0.5 rounded-full">
             <Zap size={9} />v5.14
           </div>
         </div>
         {/* 탭 바 — 직무별 + 공통 */}
-        <div className="flex items-center gap-1 px-4 py-2 border-b border-[#1c1c20] overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-1 px-4 py-2 border-b border-border-muted overflow-x-auto scrollbar-hide">
           {JOB_TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[14px] transition-colors border whitespace-nowrap shrink-0',
-                tab === t.id ? 'bg-primary/20 text-primary border-primary/30' : 'text-[#52525b] hover:text-[#a1a1aa] border-transparent',
+                tab === t.id ? 'bg-primary/20 text-primary border-primary/30' : 'text-muted hover:text-dim border-transparent',
               )}>
               <t.icon size={12} />{t.label}
             </button>
@@ -83,7 +83,7 @@ export default function GrowthStudio() {
             <button key={t.id} onClick={() => setTab(t.id)}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[14px] transition-colors border whitespace-nowrap shrink-0',
-                tab === t.id ? 'bg-primary/20 text-primary border-primary/30' : 'text-[#52525b] hover:text-[#a1a1aa] border-transparent',
+                tab === t.id ? 'bg-primary/20 text-primary border-primary/30' : 'text-muted hover:text-dim border-transparent',
               )}>
               <t.icon size={12} />{t.label}
             </button>
@@ -93,7 +93,7 @@ export default function GrowthStudio() {
 
       <div className="flex-1 overflow-y-auto p-6">
         {!currentMissionId && (tab === 'content' || tab === 'assets' || tab === 'leads' || tab === 'cdp') ? (
-          <div className="flex items-center justify-center h-40 text-[#52525b] text-sm">
+          <div className="flex items-center justify-center h-40 text-muted text-sm">
             <AlertTriangle size={18} className="mr-2" /> 미션을 먼저 선택해주세요
           </div>
         ) : (
@@ -231,27 +231,27 @@ function JobRoleTab({ role }: { role: 'perf' | 'crm' | 'brand' | 'growth' | 'sol
       {/* 역할 카드 */}
       <div className={cn('rounded-xl border p-4', d.borderColor, d.bgColor)}>
         <p className={cn('text-[16px] font-bold mb-1', d.color)}>{d.title}</p>
-        <p className="text-[14px] text-[#71717a]">{d.desc}</p>
+        <p className="text-[14px] text-muted">{d.desc}</p>
       </div>
 
       {/* 핵심 도구 그리드 */}
       <div>
-        <p className="text-[13px] font-bold text-[#52525b] uppercase tracking-widest mb-3">핵심 도구 / 연동</p>
+        <p className="text-[13px] font-bold text-muted uppercase tracking-widest mb-3">핵심 도구 / 연동</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {d.tools.map(t => (
             <button
               key={t.name}
               onClick={() => openTool(t.url)}
-              className="bg-[#111113] border border-[#1c1c20] hover:border-primary/40 rounded-xl p-3 flex items-start gap-3 text-left transition-colors group"
+              className="bg-surface border border-border-muted hover:border-primary/40 rounded-xl p-3 flex items-start gap-3 text-left transition-colors group"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[15px] font-semibold text-[#e4e4e7]">{t.name}</span>
+                  <span className="text-[15px] font-semibold text-text">{t.name}</span>
                   <span className="text-[13px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded-full">{t.badge}</span>
                 </div>
-                <p className="text-[13px] text-[#52525b]">{t.desc}</p>
+                <p className="text-[13px] text-muted">{t.desc}</p>
               </div>
-              <ExternalLink size={13} className="text-[#3f3f46] group-hover:text-primary shrink-0 mt-0.5 transition-colors" />
+              <ExternalLink size={13} className="text-muted group-hover:text-primary shrink-0 mt-0.5 transition-colors" />
             </button>
           ))}
         </div>
@@ -259,18 +259,18 @@ function JobRoleTab({ role }: { role: 'perf' | 'crm' | 'brand' | 'growth' | 'sol
 
       {/* AI 프롬프트 템플릿 */}
       <div>
-        <p className="text-[13px] font-bold text-[#52525b] uppercase tracking-widest mb-3">AI 프롬프트 템플릿</p>
+        <p className="text-[13px] font-bold text-muted uppercase tracking-widest mb-3">AI 프롬프트 템플릿</p>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
           {d.prompts.map((p, i) => (
-            <div key={i} className="bg-[#111113] border border-[#1c1c20] rounded-xl p-4">
+            <div key={i} className="bg-surface border border-border-muted rounded-xl p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-semibold text-[#e4e4e7] mb-1">{p.title}</p>
-                  <p className="text-[13px] text-[#52525b] leading-relaxed line-clamp-2">{p.text}</p>
+                  <p className="text-[14px] font-semibold text-text mb-1">{p.title}</p>
+                  <p className="text-[13px] text-muted leading-relaxed line-clamp-2">{p.text}</p>
                 </div>
                 <button
                   onClick={() => copy(i, p.text)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-[13px] border border-[#27272a] hover:border-primary/40 rounded-lg text-[#52525b] hover:text-primary transition-colors shrink-0"
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-[13px] border border-border hover:border-primary/40 rounded-lg text-muted hover:text-primary transition-colors shrink-0"
                 >
                   {copied === i ? <CheckCircle size={12} className="text-emerald-400" /> : <Copy size={12} />}
                   {copied === i ? '복사됨' : '복사'}
@@ -298,7 +298,7 @@ function ContentTab({ missionId }: { missionId: string }) {
           <button key={s.id} onClick={() => setSub(s.id)}
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[14px] border transition-colors',
-              sub === s.id ? 'bg-primary/20 text-primary border-primary/30' : 'text-[#52525b] border-transparent hover:text-[#a1a1aa]'
+              sub === s.id ? 'bg-primary/20 text-primary border-primary/30' : 'text-muted border-transparent hover:text-dim'
             )}>
             <s.icon size={12} />{s.label}
           </button>
@@ -324,7 +324,7 @@ function AssetHubTab({ missionId }: { missionId: string }) {
           <button key={s.id} onClick={() => setSub(s.id)}
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[14px] border transition-colors',
-              sub === s.id ? 'bg-primary/20 text-primary border-primary/30' : 'text-[#52525b] border-transparent hover:text-[#a1a1aa]'
+              sub === s.id ? 'bg-primary/20 text-primary border-primary/30' : 'text-muted border-transparent hover:text-dim'
             )}>
             <s.icon size={12} />{s.label}
           </button>
@@ -426,21 +426,21 @@ function GenerateTab({ missionId }: { missionId: string }) {
     <div className="space-y-4 max-w-2xl">
 
       {/* Step 1: 상품 정보 */}
-      <div className="bg-[#111113] border border-[#1c1c20] rounded-xl p-4">
-        <p className="text-[14px] text-[#52525b] uppercase tracking-widest mb-3">
+      <div className="bg-surface border border-border-muted rounded-xl p-4">
+        <p className="text-[14px] text-muted uppercase tracking-widest mb-3">
           <span className="text-primary mr-2">01</span>상품 URL 또는 정보 입력
         </p>
         {!manualMode ? (
           <div className="space-y-2">
             <div className="flex gap-2">
               <div className="flex-1 relative">
-                <Link2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#52525b]" />
+                <Link2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                 <input
                   value={url}
                   onChange={e => setUrl(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleIngest()}
                   placeholder="상품 URL (스마트스토어, 쿠팡 등)"
-                  className="w-full pl-8 pr-3 py-2 bg-[#0d0d0f] border border-[#27272a] rounded-lg text-[16px] text-[#e4e4e7] placeholder:text-[#52525b] focus:outline-none focus:border-primary/50"
+                  className="w-full pl-8 pr-3 py-2 bg-bg border border-border rounded-lg text-[16px] text-text placeholder:text-muted focus:outline-none focus:border-primary/50"
                 />
               </div>
               <button
@@ -452,7 +452,7 @@ function GenerateTab({ missionId }: { missionId: string }) {
                 추출
               </button>
             </div>
-            <button onClick={() => setManualMode(true)} className="text-[14px] text-[#52525b] hover:text-[#a1a1aa]">
+            <button onClick={() => setManualMode(true)} className="text-[14px] text-muted hover:text-dim">
               URL 없이 직접 입력 →
             </button>
             {ingestError && <p className="text-[14px] text-amber-400 flex items-center gap-1"><AlertTriangle size={13} />{ingestError}</p>}
@@ -464,9 +464,9 @@ function GenerateTab({ missionId }: { missionId: string }) {
               onChange={e => setProductInfo(e.target.value)}
               placeholder="상품명, 특징, 가격, 대상 고객 등..."
               rows={4}
-              className="w-full px-3 py-2 bg-[#0d0d0f] border border-[#27272a] rounded-lg text-[16px] text-[#e4e4e7] placeholder:text-[#52525b] focus:outline-none focus:border-primary/50 resize-none"
+              className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-[16px] text-text placeholder:text-muted focus:outline-none focus:border-primary/50 resize-none"
             />
-            <button onClick={() => { setManualMode(false); setProductInfo(''); setUrl('') }} className="text-[14px] text-[#52525b] hover:text-[#a1a1aa]">
+            <button onClick={() => { setManualMode(false); setProductInfo(''); setUrl('') }} className="text-[14px] text-muted hover:text-dim">
               ← URL 입력으로
             </button>
           </div>
@@ -474,18 +474,18 @@ function GenerateTab({ missionId }: { missionId: string }) {
       </div>
 
       {/* Step 2: 채널 / 톤 / 세그먼트 */}
-      <div className="bg-[#111113] border border-[#1c1c20] rounded-xl p-4 space-y-3">
-        <p className="text-[14px] text-[#52525b] uppercase tracking-widest">
+      <div className="bg-surface border border-border-muted rounded-xl p-4 space-y-3">
+        <p className="text-[14px] text-muted uppercase tracking-widest">
           <span className="text-primary mr-2">02</span>채널 · 톤 · 세그먼트
         </p>
 
         <div>
-          <p className="text-[13px] text-[#444] mb-1.5">채널</p>
+          <p className="text-[13px] text-muted mb-1.5">채널</p>
           <div className="flex flex-wrap gap-1.5">
             {CHANNELS.map(c => (
               <button key={c.id} onClick={() => setChannel(c.id)}
                 className={cn('flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[14px] border transition-colors',
-                  channel === c.id ? `${c.bg} ${c.color} ${c.border}` : 'bg-[#0d0d0f] text-[#52525b] border-[#27272a] hover:border-[#444]'
+                  channel === c.id ? `${c.bg} ${c.color} ${c.border}` : 'bg-bg text-muted border-border hover:border-border'
                 )}>
                 <c.icon size={13} />{c.label}
               </button>
@@ -494,12 +494,12 @@ function GenerateTab({ missionId }: { missionId: string }) {
         </div>
 
         <div>
-          <p className="text-[13px] text-[#444] mb-1.5">톤</p>
+          <p className="text-[13px] text-muted mb-1.5">톤</p>
           <div className="flex flex-wrap gap-1.5">
             {TONES.map(t => (
               <button key={t} onClick={() => setTone(t)}
                 className={cn('px-2.5 py-1 rounded-lg text-[14px] border transition-colors',
-                  tone === t ? 'bg-primary/20 text-primary border-primary/30' : 'bg-[#0d0d0f] text-[#52525b] border-[#27272a] hover:border-[#444]'
+                  tone === t ? 'bg-primary/20 text-primary border-primary/30' : 'bg-bg text-muted border-border hover:border-border'
                 )}>
                 {t}
               </button>
@@ -508,12 +508,12 @@ function GenerateTab({ missionId }: { missionId: string }) {
         </div>
 
         <div>
-          <p className="text-[13px] text-[#444] mb-1.5">세그먼트</p>
+          <p className="text-[13px] text-muted mb-1.5">세그먼트</p>
           <div className="flex flex-wrap gap-1.5">
             {SEGMENTS.map(s => (
               <button key={s.id} onClick={() => setSegment(s.id)}
                 className={cn('px-2.5 py-1 rounded-lg text-[14px] border transition-colors',
-                  segment === s.id ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-[#0d0d0f] text-[#52525b] border-[#27272a] hover:border-[#444]'
+                  segment === s.id ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-bg text-muted border-border hover:border-border'
                 )}>
                 {s.label}
               </button>
@@ -523,11 +523,11 @@ function GenerateTab({ missionId }: { missionId: string }) {
 
         {/* 미디어 생성 */}
         <div className="space-y-3">
-          <p className="text-[13px] text-[#444] font-medium uppercase tracking-wider">미디어 생성</p>
+          <p className="text-[13px] text-muted font-medium uppercase tracking-wider">미디어 생성</p>
 
           {/* 이미지 AI */}
           <div>
-            <p className="text-[13px] text-[#555] mb-1.5">이미지 생성 AI (택 1)</p>
+            <p className="text-[13px] text-muted mb-1.5">이미지 생성 AI (택 1)</p>
             <div className="flex flex-wrap gap-2">
               {[
                 { id: 'ideogram',    label: 'Ideogram' },
@@ -541,7 +541,7 @@ function GenerateTab({ missionId }: { missionId: string }) {
                   className={cn('px-2.5 py-1 rounded-lg text-[14px] border transition-colors',
                     imageProvider === p.id
                       ? 'bg-primary/20 text-primary border-primary/40'
-                      : 'bg-[#0d0d0f] text-[#52525b] border-[#27272a] hover:border-[#444]'
+                      : 'bg-bg text-muted border-border hover:border-border'
                   )}>
                   {p.label}
                 </button>
@@ -551,7 +551,7 @@ function GenerateTab({ missionId }: { missionId: string }) {
 
           {/* 영상 AI */}
           <div>
-            <p className="text-[13px] text-[#555] mb-1.5">영상 생성 AI (택 1)</p>
+            <p className="text-[13px] text-muted mb-1.5">영상 생성 AI (택 1)</p>
             <div className="flex flex-wrap gap-2">
               {[
                 { id: 'kling',    label: 'Kling 3.0' },
@@ -565,7 +565,7 @@ function GenerateTab({ missionId }: { missionId: string }) {
                   className={cn('px-2.5 py-1 rounded-lg text-[14px] border transition-colors',
                     videoProvider === p.id
                       ? 'bg-primary/20 text-primary border-primary/40'
-                      : 'bg-[#0d0d0f] text-[#52525b] border-[#27272a] hover:border-[#444]'
+                      : 'bg-bg text-muted border-border hover:border-border'
                   )}>
                   {p.label}
                 </button>
@@ -573,7 +573,7 @@ function GenerateTab({ missionId }: { missionId: string }) {
             </div>
             {withVideo && (
               <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                <span className="text-[13px] text-[#555]">길이:</span>
+                <span className="text-[13px] text-muted">길이:</span>
                 {([
                   { val: '5',  label: '5초' },
                   { val: '10', label: '10초' },
@@ -586,7 +586,7 @@ function GenerateTab({ missionId }: { missionId: string }) {
                       onChange={() => setVideoDuration(d.val)}
                       className="accent-primary"
                     />
-                    <span className="text-[14px] text-[#a1a1aa]">{d.label}</span>
+                    <span className="text-[14px] text-dim">{d.label}</span>
                   </label>
                 ))}
               </div>
@@ -596,15 +596,15 @@ function GenerateTab({ missionId }: { missionId: string }) {
           {/* 음성/스톡 */}
           <div className="flex flex-wrap gap-4">
             <div>
-              <p className="text-[13px] text-[#555] mb-1.5">음성 나레이션</p>
+              <p className="text-[13px] text-muted mb-1.5">음성 나레이션</p>
               <div className="flex gap-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={withAudio} onChange={e => setWithAudio(e.target.checked)} className="w-3.5 h-3.5 accent-primary" />
-                  <span className="text-[15px] text-[#a1a1aa]">AI 음성 추가</span>
+                  <span className="text-[15px] text-dim">AI 음성 추가</span>
                 </label>
                 {withAudio && (
                   <select value={audioProvider} onChange={e => setAudioProvider(e.target.value as 'elevenlabs' | 'openai_tts')}
-                    className="text-[14px] bg-[#0d0d0f] border border-[#27272a] text-[#a1a1aa] rounded px-2 py-0.5">
+                    className="text-[14px] bg-bg border border-border text-dim rounded px-2 py-0.5">
                     <option value="elevenlabs">ElevenLabs</option>
                     <option value="openai_tts">OpenAI TTS</option>
                   </select>
@@ -612,10 +612,10 @@ function GenerateTab({ missionId }: { missionId: string }) {
               </div>
             </div>
             <div>
-              <p className="text-[13px] text-[#555] mb-1.5">스톡 미디어</p>
+              <p className="text-[13px] text-muted mb-1.5">스톡 미디어</p>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={withStock} onChange={e => setWithStock(e.target.checked)} className="w-3.5 h-3.5 accent-primary" />
-                <span className="text-[15px] text-[#a1a1aa]">Pexels B-roll</span>
+                <span className="text-[15px] text-dim">Pexels B-roll</span>
               </label>
             </div>
           </div>
@@ -641,29 +641,29 @@ function GenerateTab({ missionId }: { missionId: string }) {
 
       {/* 결과 */}
       {result && (
-        <div className="bg-[#111113] border border-primary/20 rounded-xl p-4">
+        <div className="bg-surface border border-primary/20 rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <p className="text-[14px] text-primary flex items-center gap-1.5">
               <CheckCircle size={13} />생성 완료
             </p>
-            <div className="flex gap-1 text-[13px] text-[#52525b]">
-              <span className="bg-[#1c1c20] px-2 py-0.5 rounded">{result.channel}</span>
-              {result.segment && <span className="bg-[#1c1c20] px-2 py-0.5 rounded">{result.segment}</span>}
+            <div className="flex gap-1 text-[13px] text-muted">
+              <span className="bg-surface-3 px-2 py-0.5 rounded">{result.channel}</span>
+              {result.segment && <span className="bg-surface-3 px-2 py-0.5 rounded">{result.segment}</span>}
             </div>
           </div>
 
-          <div className="bg-[#0d0d0f] rounded-lg p-3 mb-3">
-            <p className="text-[16px] text-[#e4e4e7] whitespace-pre-wrap leading-relaxed">{result.content}</p>
+          <div className="bg-bg rounded-lg p-3 mb-3">
+            <p className="text-[16px] text-text whitespace-pre-wrap leading-relaxed">{result.content}</p>
           </div>
 
           {/* 미디어 미리보기 */}
           {(result.image_url || result.video_url) && (
             <div className="flex gap-2 mb-3">
               {result.image_url && !result.image_url.startsWith('__STUB') && (
-                <img src={result.image_url} alt="생성된 이미지" className="h-20 w-20 object-cover rounded-lg border border-[#27272a]" />
+                <img src={result.image_url} alt="생성된 이미지" className="h-20 w-20 object-cover rounded-lg border border-border" />
               )}
               {result.image_url?.startsWith('__STUB') && (
-                <div className="h-20 w-20 bg-[#1c1c20] rounded-lg border border-dashed border-[#444] flex items-center justify-center text-[9px] text-[#52525b]">이미지 준비중</div>
+                <div className="h-20 w-20 bg-surface-3 rounded-lg border border-dashed border-[#444] flex items-center justify-center text-[9px] text-muted">이미지 준비중</div>
               )}
               {result.video_url && !result.video_url.startsWith('__STUB') && (
                 <div className="h-20 w-20 bg-purple-500/10 rounded-lg border border-purple-500/20 flex items-center justify-center text-[13px] text-purple-400">영상</div>
@@ -673,14 +673,14 @@ function GenerateTab({ missionId }: { missionId: string }) {
 
           {/* 발행 채널 멀티 선택 */}
           <div className="mb-2">
-            <p className="text-[13px] text-[#444] mb-1.5">발행 채널 선택</p>
+            <p className="text-[13px] text-muted mb-1.5">발행 채널 선택</p>
             <div className="flex flex-wrap gap-2">
               {CHANNELS.map(c => {
                 const checked = publishPlatforms.includes(c.id)
                 return (
                   <label key={c.id} className={cn(
                     'flex items-center gap-1.5 px-2 py-1 rounded-lg border cursor-pointer text-[14px] transition-colors',
-                    checked ? `${c.bg} ${c.color} ${c.border}` : 'text-[#52525b] border-[#27272a] hover:border-[#444]'
+                    checked ? `${c.bg} ${c.color} ${c.border}` : 'text-muted border-border hover:border-border'
                   )}>
                     <input type="checkbox" className="hidden"
                       checked={checked}
@@ -698,7 +698,7 @@ function GenerateTab({ missionId }: { missionId: string }) {
           <div className="flex gap-2">
             <button
               onClick={() => { navigator.clipboard.writeText(result.content); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1c1c20] hover:bg-[#27272a] text-[#a1a1aa] rounded-lg text-[15px] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-3 hover:bg-[#27272a] text-dim rounded-lg text-[15px] transition-colors"
             >
               {copied ? <CheckCircle size={14} className="text-green-400" /> : <Copy size={14} />}
               {copied ? '복사됨' : '복사'}
@@ -758,18 +758,18 @@ function ContentsTab({ missionId }: { missionId: string }) {
     <div className="space-y-4 max-w-3xl">
       <div className="flex items-center gap-2 flex-wrap">
         <button onClick={() => setChannelFilter('all')}
-          className={cn('px-2.5 py-1 rounded-lg text-[14px] border', channelFilter === 'all' ? 'bg-primary/20 text-primary border-primary/30' : 'text-[#52525b] border-[#27272a]')}>
+          className={cn('px-2.5 py-1 rounded-lg text-[14px] border', channelFilter === 'all' ? 'bg-primary/20 text-primary border-primary/30' : 'text-muted border-border')}>
           전체
         </button>
         {CHANNELS.map(c => (
           <button key={c.id} onClick={() => setChannelFilter(c.id)}
             className={cn('flex items-center gap-1 px-2.5 py-1 rounded-lg text-[14px] border transition-colors',
-              channelFilter === c.id ? `${c.bg} ${c.color} ${c.border}` : 'text-[#52525b] border-[#27272a] hover:border-[#444]'
+              channelFilter === c.id ? `${c.bg} ${c.color} ${c.border}` : 'text-muted border-border hover:border-border'
             )}>
             <c.icon size={12} />{c.label}
           </button>
         ))}
-        <button onClick={() => refetch()} className="ml-auto text-[#52525b] hover:text-[#a1a1aa]">
+        <button onClick={() => refetch()} className="ml-auto text-muted hover:text-dim">
           <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
         </button>
       </div>
@@ -777,34 +777,34 @@ function ContentsTab({ missionId }: { missionId: string }) {
       {isLoading ? (
         <div className="flex justify-center py-12"><Loader2 size={20} className="animate-spin text-primary" /></div>
       ) : contents.length === 0 ? (
-        <div className="text-center py-12 text-[#52525b] text-[16px]">아직 생성된 콘텐츠 없음</div>
+        <div className="text-center py-12 text-muted text-[16px]">아직 생성된 콘텐츠 없음</div>
       ) : (
         <div className="space-y-3">
           {contents.map(item => {
             const ch = CHANNELS.find(c => c.id === item.channel)
             return (
-              <div key={item.id} className="bg-[#111113] border border-[#1c1c20] rounded-xl p-4">
+              <div key={item.id} className="bg-surface border border-border-muted rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     {ch && <ch.icon size={14} className={ch.color} />}
-                    <span className={cn('text-[14px] font-medium', ch?.color ?? 'text-[#a1a1aa]')}>{item.channel}</span>
-                    {item.segment && <span className="text-[13px] text-[#52525b] bg-[#1c1c20] px-2 py-0.5 rounded">{item.segment}</span>}
+                    <span className={cn('text-[14px] font-medium', ch?.color ?? 'text-dim')}>{item.channel}</span>
+                    {item.segment && <span className="text-[13px] text-muted bg-surface-3 px-2 py-0.5 rounded">{item.segment}</span>}
                     <span className={cn('text-[9px] px-1.5 py-0.5 rounded border',
                       item.status === 'posted'    ? 'bg-green-500/10 text-green-400 border-green-500/20' :
                       item.status === 'scheduled' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                      'bg-[#1c1c20] text-[#52525b] border-[#27272a]'
+                      'bg-surface-3 text-muted border-border'
                     )}>
                       {item.status === 'posted' ? '발사완료' : item.status === 'scheduled' ? '예약됨' : '대기중'}
                     </span>
                   </div>
-                  <span className="text-[13px] text-[#444]">{new Date(item.created_at).toLocaleDateString('ko-KR')}</span>
+                  <span className="text-[13px] text-muted">{new Date(item.created_at).toLocaleDateString('ko-KR')}</span>
                 </div>
 
-                <p className="text-[15px] text-[#a1a1aa] whitespace-pre-wrap line-clamp-4 mb-3">{item.content}</p>
+                <p className="text-[15px] text-dim whitespace-pre-wrap line-clamp-4 mb-3">{item.content}</p>
 
                 <div className="flex items-center gap-2 flex-wrap">
                   {item.image_url && !item.image_url.startsWith('__STUB') && (
-                    <img src={item.image_url} alt="" className="h-12 w-12 object-cover rounded-md border border-[#27272a]" />
+                    <img src={item.image_url} alt="" className="h-12 w-12 object-cover rounded-md border border-border" />
                   )}
                   {item.video_url && !item.video_url.startsWith('__STUB') && (
                     <div className="h-12 w-12 bg-purple-500/10 rounded-md border border-purple-500/20 flex items-center justify-center text-[9px] text-purple-400">영상</div>
@@ -813,17 +813,17 @@ function ContentsTab({ missionId }: { missionId: string }) {
                     {/* 이미지만 재생성 */}
                     <button onClick={() => handleRegen(item, true, false)} disabled={regenId === item.id}
                       title="이미지만 재생성 (텍스트 재활용)"
-                      className="flex items-center gap-1 px-2 py-1 text-[13px] text-[#52525b] hover:text-pink-400 border border-[#27272a] hover:border-pink-500/30 rounded-lg transition-colors disabled:opacity-40">
+                      className="flex items-center gap-1 px-2 py-1 text-[13px] text-muted hover:text-pink-400 border border-border hover:border-pink-500/30 rounded-lg transition-colors disabled:opacity-40">
                       {regenId === item.id ? <Loader2 size={9} className="animate-spin" /> : <RefreshCw size={9} />}이미지
                     </button>
                     {/* 영상만 재생성 */}
                     <button onClick={() => handleRegen(item, false, true)} disabled={regenId === item.id}
                       title="영상만 재생성 (텍스트 재활용)"
-                      className="flex items-center gap-1 px-2 py-1 text-[13px] text-[#52525b] hover:text-purple-400 border border-[#27272a] hover:border-purple-500/30 rounded-lg transition-colors disabled:opacity-40">
+                      className="flex items-center gap-1 px-2 py-1 text-[13px] text-muted hover:text-purple-400 border border-border hover:border-purple-500/30 rounded-lg transition-colors disabled:opacity-40">
                       {regenId === item.id ? <Loader2 size={9} className="animate-spin" /> : <RefreshCw size={9} />}영상
                     </button>
                     <button onClick={() => navigator.clipboard.writeText(item.content)}
-                      className="flex items-center gap-1 px-2 py-1 text-[13px] text-[#52525b] hover:text-[#a1a1aa] border border-[#27272a] rounded-lg transition-colors">
+                      className="flex items-center gap-1 px-2 py-1 text-[13px] text-muted hover:text-dim border border-border rounded-lg transition-colors">
                       <Copy size={9} />복사
                     </button>
                   </div>
@@ -902,23 +902,23 @@ function LeadsTab({ missionId }: { missionId: string }) {
       {/* 통계 카드 */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: '전체',    value: stats.total,   color: 'text-[#e4e4e7]', bg: 'bg-[#111113]',       border: 'border-[#1c1c20]' },
+          { label: '전체',    value: stats.total,   color: 'text-text', bg: 'bg-surface',       border: 'border-[#1c1c20]' },
           { label: '🔥 Hot',  value: stats.hot,     color: 'text-red-400',   bg: 'bg-red-500/10',      border: 'border-red-500/20' },
           { label: '🌱 Nurture', value: stats.nurture, color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20' },
           { label: '❄️ Cold', value: stats.cold,    color: 'text-slate-400', bg: 'bg-slate-500/10',    border: 'border-slate-500/20' },
         ].map(s => (
           <div key={s.label} className={cn('rounded-xl p-3 border text-center', s.bg, s.border)}>
             <p className={cn('text-[22px] font-bold leading-none', s.color)}>{s.value}</p>
-            <p className="text-[13px] text-[#52525b] mt-1">{s.label}</p>
+            <p className="text-[13px] text-muted mt-1">{s.label}</p>
           </div>
         ))}
       </div>
 
       {/* 평균 점수 + CDP 트리거 + 리타겟 */}
-      <div className="flex items-center justify-between bg-[#111113] border border-[#1c1c20] rounded-xl p-3">
+      <div className="flex items-center justify-between bg-surface border border-border-muted rounded-xl p-3">
         <div className="flex items-center gap-3">
           <BarChart2 size={16} className="text-primary" />
-          <span className="text-[15px] text-[#a1a1aa]">평균 점수</span>
+          <span className="text-[15px] text-dim">평균 점수</span>
           <span className="text-[20px] font-bold text-primary">{stats.avgScore}</span>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -940,11 +940,11 @@ function LeadsTab({ missionId }: { missionId: string }) {
 
       {/* AI Attribution 채널 기여도 */}
       {attribution && attribution.channels.length > 0 && (
-        <div className="bg-[#111113] border border-[#1c1c20] rounded-xl p-3">
+        <div className="bg-surface border border-border-muted rounded-xl p-3">
           <div className="flex items-center gap-2 mb-2">
             <BarChart2 size={14} className="text-purple-400" />
-            <span className="text-[14px] text-[#52525b] uppercase tracking-widest">AI Attribution — 채널 기여도</span>
-            <span className="ml-auto text-[13px] text-[#3f3f46]">Top: {attribution.topChannel}</span>
+            <span className="text-[14px] text-muted uppercase tracking-widest">AI Attribution — 채널 기여도</span>
+            <span className="ml-auto text-[13px] text-muted">Top: {attribution.topChannel}</span>
           </div>
           <div className="space-y-1.5">
             {attribution.channels.slice(0, 5).map(ch => {
@@ -953,19 +953,19 @@ function LeadsTab({ missionId }: { missionId: string }) {
                 <div key={ch.channel} className="flex items-center gap-2">
                   <div className="flex items-center gap-1 w-24 shrink-0">
                     {c && <c.icon size={9} className={c.color} />}
-                    <span className="text-[13px] text-[#a1a1aa] truncate">{ch.channel}</span>
+                    <span className="text-[13px] text-dim truncate">{ch.channel}</span>
                   </div>
-                  <div className="flex-1 h-1.5 bg-[#1c1c20] rounded-full overflow-hidden">
+                  <div className="flex-1 h-1.5 bg-surface-3 rounded-full overflow-hidden">
                     <div className="h-full bg-purple-500/60 rounded-full transition-all"
                       style={{ width: `${ch.attributionPct}%` }} />
                   </div>
-                  <span className="text-[13px] text-[#52525b] w-8 text-right shrink-0">{ch.attributionPct}%</span>
-                  <span className="text-[13px] text-[#3f3f46] w-10 text-right shrink-0">{ch.leadsAttr}건</span>
+                  <span className="text-[13px] text-muted w-8 text-right shrink-0">{ch.attributionPct}%</span>
+                  <span className="text-[13px] text-muted w-10 text-right shrink-0">{ch.leadsAttr}건</span>
                 </div>
               )
             })}
           </div>
-          <div className="mt-2 pt-2 border-t border-[#1c1c20] grid grid-cols-3 gap-2 text-center">
+          <div className="mt-2 pt-2 border-t border-border-muted grid grid-cols-3 gap-2 text-center">
             {[
               { label: '발행', value: attribution.kpis.totalReach },
               { label: '전환율', value: `${attribution.kpis.conversionRate}%` },
@@ -973,7 +973,7 @@ function LeadsTab({ missionId }: { missionId: string }) {
             ].map(k => (
               <div key={k.label}>
                 <p className="text-[17px] font-bold text-purple-400">{k.value}</p>
-                <p className="text-[9px] text-[#52525b]">{k.label}</p>
+                <p className="text-[9px] text-muted">{k.label}</p>
               </div>
             ))}
           </div>
@@ -990,12 +990,12 @@ function LeadsTab({ missionId }: { missionId: string }) {
                 : t === 'nurture' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
                 : t === 'cold'    ? 'bg-slate-500/20 text-slate-400 border-slate-500/30'
                 :                   'bg-primary/20 text-primary border-primary/30'
-                : 'text-[#52525b] border-[#27272a] hover:border-[#444]'
+                : 'text-muted border-border hover:border-border'
             )}>
             {t === undefined ? '전체' : t === 'hot' ? '🔥 Hot' : t === 'nurture' ? '🌱 Nurture' : '❄️ Cold'}
           </button>
         ))}
-        <button onClick={() => refetch()} className="ml-auto text-[#52525b] hover:text-[#a1a1aa]">
+        <button onClick={() => refetch()} className="ml-auto text-muted hover:text-dim">
           <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
         </button>
       </div>
@@ -1014,7 +1014,7 @@ function LeadsTab({ missionId }: { missionId: string }) {
           {leads.map(lead => {
             const sigs = (() => { try { return JSON.parse(lead.signals) as Array<{ type: string }> } catch { return [] } })()
             return (
-              <div key={lead.id} className="bg-[#111113] border border-[#1c1c20] rounded-xl p-3 flex items-center gap-3">
+              <div key={lead.id} className="bg-surface border border-border-muted rounded-xl p-3 flex items-center gap-3">
                 <div className={cn('w-9 h-9 rounded-full flex items-center justify-center text-[14px] font-bold shrink-0',
                   lead.tier === 'hot'     ? 'bg-red-500/20 text-red-400' :
                   lead.tier === 'nurture' ? 'bg-yellow-500/20 text-yellow-400' :
@@ -1023,7 +1023,7 @@ function LeadsTab({ missionId }: { missionId: string }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[15px] text-[#a1a1aa] font-mono truncate">
+                    <span className="text-[15px] text-dim font-mono truncate">
                       {lead.profile_id ? `Profile ${lead.profile_id.slice(0, 8)}` : '미션 집계'}
                     </span>
                     <span className={cn('text-[9px] px-1.5 py-0.5 rounded border shrink-0',
@@ -1033,20 +1033,20 @@ function LeadsTab({ missionId }: { missionId: string }) {
                       {lead.tier.toUpperCase()}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[13px] text-[#52525b]">
+                  <div className="flex items-center gap-1.5 text-[13px] text-muted">
                     {sigs.slice(-3).map((s, i) => (
-                      <span key={i} className="bg-[#1c1c20] px-1.5 py-0.5 rounded">{s.type}</span>
+                      <span key={i} className="bg-surface-3 px-1.5 py-0.5 rounded">{s.type}</span>
                     ))}
                     <span className="ml-auto">{new Date(lead.last_signal_at).toLocaleDateString('ko-KR')}</span>
                   </div>
                 </div>
                 <div className="w-16 shrink-0">
-                  <div className="h-1.5 bg-[#1c1c20] rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-surface-3 rounded-full overflow-hidden">
                     <div className={cn('h-full rounded-full',
                       lead.tier === 'hot' ? 'bg-red-400' : lead.tier === 'nurture' ? 'bg-yellow-400' : 'bg-slate-400')}
                       style={{ width: `${Math.min(100, lead.score)}%` }} />
                   </div>
-                  <p className="text-[9px] text-center text-[#52525b] mt-0.5">{lead.score}pt</p>
+                  <p className="text-[9px] text-center text-muted mt-0.5">{lead.score}pt</p>
                 </div>
               </div>
             )
@@ -1134,8 +1134,8 @@ function CdpIdGraphTab({ missionId: _missionId }: { missionId: string }) {
       {/* 헤더 */}
       <div className="flex items-center gap-3">
         <div>
-          <p className="text-[16px] font-semibold text-[#e4e4e7]">CDP ID Graph</p>
-          <p className="text-[14px] text-[#52525b]">동일 사용자의 여러 식별자를 하나의 통합 프로파일로 연결합니다</p>
+          <p className="text-[16px] font-semibold text-text">CDP ID Graph</p>
+          <p className="text-[14px] text-muted">동일 사용자의 여러 식별자를 하나의 통합 프로파일로 연결합니다</p>
         </div>
         <div className="ml-auto flex items-center gap-2 text-[13px] text-amber-400 bg-amber-500/8 border border-amber-500/20 px-2.5 py-1.5 rounded-lg">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
@@ -1146,14 +1146,14 @@ function CdpIdGraphTab({ missionId: _missionId }: { missionId: string }) {
       {/* 요약 카드 */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: '통합 프로파일', value: '5',  color: 'text-[#e4e4e7]', bg: 'bg-[#111113]', border: 'border-[#1c1c20]' },
+          { label: '통합 프로파일', value: '5',  color: 'text-text', bg: 'bg-surface', border: 'border-[#1c1c20]' },
           { label: '🔥 Hot',        value: '2',  color: 'text-red-400',    bg: 'bg-red-500/10', border: 'border-red-500/20' },
           { label: '🌱 Nurture',    value: '2',  color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20' },
           { label: '식별자 수',     value: '12', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
         ].map(s => (
           <div key={s.label} className={cn('rounded-xl p-3 border text-center', s.bg, s.border)}>
             <p className={cn('text-[22px] font-bold leading-none', s.color)}>{s.value}</p>
-            <p className="text-[13px] text-[#52525b] mt-1">{s.label}</p>
+            <p className="text-[13px] text-muted mt-1">{s.label}</p>
           </div>
         ))}
       </div>
@@ -1170,7 +1170,7 @@ function CdpIdGraphTab({ missionId: _missionId }: { missionId: string }) {
                 'w-full text-left rounded-xl p-3 border transition-all',
                 selected === profile.id
                   ? 'bg-indigo-500/15 border-indigo-500/50'
-                  : 'bg-[#111113] border-[#1c1c20] hover:border-[#27272a]'
+                  : 'bg-surface border-border-muted hover:border-border'
               )}
             >
               <div className="flex items-center gap-2 mb-1.5">
@@ -1183,8 +1183,8 @@ function CdpIdGraphTab({ missionId: _missionId }: { missionId: string }) {
                   {profile.score}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[15px] text-[#e4e4e7] font-medium truncate">{profile.name}</p>
-                  <p className="text-[9px] text-[#52525b]">{profile.identifiers.length}개 식별자</p>
+                  <p className="text-[15px] text-text font-medium truncate">{profile.name}</p>
+                  <p className="text-[9px] text-muted">{profile.identifiers.length}개 식별자</p>
                 </div>
                 <span className={cn(
                   'text-[8px] px-1.5 py-0.5 rounded border shrink-0',
@@ -1198,7 +1198,7 @@ function CdpIdGraphTab({ missionId: _missionId }: { missionId: string }) {
               {/* ID badges */}
               <div className="flex gap-1 flex-wrap">
                 {profile.identifiers.map((id, i) => (
-                  <span key={i} className="text-[9px] bg-[#1c1c20] px-1.5 py-0.5 rounded text-[#71717a]">
+                  <span key={i} className="text-[9px] bg-surface-3 px-1.5 py-0.5 rounded text-muted">
                     {id.icon} {id.type}
                   </span>
                 ))}
@@ -1208,11 +1208,11 @@ function CdpIdGraphTab({ missionId: _missionId }: { missionId: string }) {
         </div>
 
         {/* 프로파일 상세 */}
-        <div className="flex-1 bg-[#111113] border border-[#1c1c20] rounded-xl overflow-hidden">
+        <div className="flex-1 bg-surface border border-border-muted rounded-xl overflow-hidden">
           {selectedProfile ? (
             <div className="p-4 h-full overflow-y-auto">
               {/* 헤더 */}
-              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-[#1c1c20]">
+              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-border-muted">
                 <div className={cn(
                   'w-10 h-10 rounded-full flex items-center justify-center text-[16px] font-bold shrink-0',
                   selectedProfile.tier === 'hot'     ? 'bg-red-500/20 text-red-400' :
@@ -1222,8 +1222,8 @@ function CdpIdGraphTab({ missionId: _missionId }: { missionId: string }) {
                   {selectedProfile.score}
                 </div>
                 <div>
-                  <p className="text-[17px] font-semibold text-[#e4e4e7]">{selectedProfile.name}</p>
-                  <p className="text-[13px] text-[#52525b]">
+                  <p className="text-[17px] font-semibold text-text">{selectedProfile.name}</p>
+                  <p className="text-[13px] text-muted">
                     첫 방문: {selectedProfile.firstSeen} · 최근: {selectedProfile.lastSeen}
                   </p>
                 </div>
@@ -1231,12 +1231,12 @@ function CdpIdGraphTab({ missionId: _missionId }: { missionId: string }) {
 
               {/* 연결된 식별자 (ID Graph) */}
               <div className="mb-4">
-                <p className="text-[13px] font-semibold text-[#52525b] uppercase tracking-widest mb-2">연결된 식별자 (ID Graph)</p>
+                <p className="text-[13px] font-semibold text-muted uppercase tracking-widest mb-2">연결된 식별자 (ID Graph)</p>
                 <div className="space-y-1.5">
                   {selectedProfile.identifiers.map((id, i) => (
-                    <div key={i} className="flex items-center gap-2 px-3 py-2 bg-[#0d0d0f] border border-[#27272a] rounded-lg">
+                    <div key={i} className="flex items-center gap-2 px-3 py-2 bg-bg border border-border rounded-lg">
                       <span className="text-sm shrink-0">{id.icon}</span>
-                      <span className="text-[13px] text-[#52525b] w-16 shrink-0 uppercase">{id.type}</span>
+                      <span className="text-[13px] text-muted w-16 shrink-0 uppercase">{id.type}</span>
                       <code className="text-[14px] text-emerald-400 flex-1 truncate">{id.value}</code>
                       {i > 0 && (
                         <span className="text-[9px] text-indigo-400 shrink-0">→ 동일 사용자</span>
@@ -1248,10 +1248,10 @@ function CdpIdGraphTab({ missionId: _missionId }: { missionId: string }) {
 
               {/* 터치포인트 */}
               <div>
-                <p className="text-[13px] font-semibold text-[#52525b] uppercase tracking-widest mb-2">터치포인트 히스토리</p>
+                <p className="text-[13px] font-semibold text-muted uppercase tracking-widest mb-2">터치포인트 히스토리</p>
                 <div className="space-y-1">
                   {selectedProfile.touchpoints.map((tp, i) => (
-                    <div key={i} className="flex items-center gap-2 text-[14px] text-[#71717a]">
+                    <div key={i} className="flex items-center gap-2 text-[14px] text-muted">
                       <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/60 shrink-0" />
                       {tp}
                     </div>
@@ -1260,9 +1260,9 @@ function CdpIdGraphTab({ missionId: _missionId }: { missionId: string }) {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full gap-3 text-[#3f3f46] p-8">
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-muted p-8">
               <Target size={32} strokeWidth={1.5} />
-              <p className="text-sm text-[#71717a]">왼쪽에서 프로파일을 선택하면<br />연결된 식별자와 터치포인트를 확인할 수 있습니다</p>
+              <p className="text-sm text-muted">왼쪽에서 프로파일을 선택하면<br />연결된 식별자와 터치포인트를 확인할 수 있습니다</p>
             </div>
           )}
         </div>
@@ -1333,8 +1333,8 @@ function VideoProductionTab() {
           <Video size={20} className="text-violet-400" />
         </div>
         <div>
-          <h2 className="text-[18px] font-bold text-[#e4e4e7]">영상 제작 파이프라인</h2>
-          <p className="text-[14px] text-[#52525b]">vibe-video × ElevenLabs × Pexels × Remotion</p>
+          <h2 className="text-[18px] font-bold text-text">영상 제작 파이프라인</h2>
+          <p className="text-[14px] text-muted">vibe-video × ElevenLabs × Pexels × Remotion</p>
         </div>
         <div className="ml-auto flex items-center gap-1.5 text-[13px] text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2.5 py-1 rounded-full">
           <Play size={9} />Claude Code video-use 스킬 필요
@@ -1343,7 +1343,7 @@ function VideoProductionTab() {
 
       {/* 파이프라인 단계 */}
       <div>
-        <p className="text-[14px] font-bold text-[#3f3f46] uppercase tracking-widest mb-3">제작 파이프라인</p>
+        <p className="text-[14px] font-bold text-muted uppercase tracking-widest mb-3">제작 파이프라인</p>
         <div className="space-y-2">
           {VIDEO_PIPELINE_STEPS.map(s => (
             <div key={s.step} className={`flex items-start gap-3 p-3.5 rounded-xl border ${s.bg} ${s.border}`}>
@@ -1353,9 +1353,9 @@ function VideoProductionTab() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className={`text-[9px] font-black ${s.color} opacity-60`}>STEP {s.step}</span>
-                  <span className="text-[15px] font-semibold text-[#e4e4e7]">{s.title}</span>
+                  <span className="text-[15px] font-semibold text-text">{s.title}</span>
                 </div>
-                <p className="text-[14px] text-[#71717a] leading-relaxed">{s.desc}</p>
+                <p className="text-[14px] text-muted leading-relaxed">{s.desc}</p>
               </div>
             </div>
           ))}
@@ -1364,7 +1364,7 @@ function VideoProductionTab() {
 
       {/* 영상 템플릿 선택 */}
       <div>
-        <p className="text-[14px] font-bold text-[#3f3f46] uppercase tracking-widest mb-3">영상 유형 선택</p>
+        <p className="text-[14px] font-bold text-muted uppercase tracking-widest mb-3">영상 유형 선택</p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {VIDEO_TEMPLATES.map(t => (
             <button
@@ -1377,11 +1377,11 @@ function VideoProductionTab() {
                   : 'bg-white/3 border-white/8 hover:bg-white/6 hover:border-white/15',
               )}
             >
-              <p className={cn('text-[15px] font-semibold mb-0.5', selectedTemplate === t.id ? 'text-primary' : 'text-[#d4d4d8]')}>{t.label}</p>
-              <p className="text-[13px] text-[#52525b] mb-1">{t.desc}</p>
+              <p className={cn('text-[15px] font-semibold mb-0.5', selectedTemplate === t.id ? 'text-primary' : 'text-text')}>{t.label}</p>
+              <p className="text-[13px] text-muted mb-1">{t.desc}</p>
               <div className="flex items-center gap-2">
-                <span className="text-[9px] text-[#3f3f46] bg-white/5 px-1.5 py-0.5 rounded">{t.duration}</span>
-                <span className="text-[9px] text-[#3f3f46]">{t.platform}</span>
+                <span className="text-[9px] text-muted bg-white/5 px-1.5 py-0.5 rounded">{t.duration}</span>
+                <span className="text-[9px] text-muted">{t.platform}</span>
               </div>
             </button>
           ))}
@@ -1390,15 +1390,15 @@ function VideoProductionTab() {
 
       {/* Claude Code 명령어 */}
       <div>
-        <p className="text-[14px] font-bold text-[#3f3f46] uppercase tracking-widest mb-3">Claude Code 명령어 (복사 후 터미널에서 실행)</p>
+        <p className="text-[14px] font-bold text-muted uppercase tracking-widest mb-3">Claude Code 명령어 (복사 후 터미널에서 실행)</p>
         <div className="space-y-2">
           {CLAUDE_COMMANDS.map((c, idx) => (
-            <div key={idx} className="flex items-center gap-2 bg-[#111113] border border-[#1c1c20] rounded-lg px-3 py-2.5">
-              <span className="text-[14px] text-[#52525b] shrink-0 w-32">{c.label}</span>
+            <div key={idx} className="flex items-center gap-2 bg-surface border border-border-muted rounded-lg px-3 py-2.5">
+              <span className="text-[14px] text-muted shrink-0 w-32">{c.label}</span>
               <code className="flex-1 text-[14px] text-emerald-400/80 font-mono truncate">{c.cmd}</code>
               <button
                 onClick={() => copyCmd(idx, c.cmd)}
-                className="shrink-0 text-[#3f3f46] hover:text-[#a1a1aa] transition-colors"
+                className="shrink-0 text-muted hover:text-dim transition-colors"
               >
                 {copiedCmd === idx ? <CheckCircle size={15} className="text-emerald-400" /> : <Copy size={15} />}
               </button>
@@ -1409,7 +1409,7 @@ function VideoProductionTab() {
 
       {/* Remotion 컴포지션 */}
       <div>
-        <p className="text-[14px] font-bold text-[#3f3f46] uppercase tracking-widest mb-3">Remotion 모션그래픽 컴포지션</p>
+        <p className="text-[14px] font-bold text-muted uppercase tracking-widest mb-3">Remotion 모션그래픽 컴포지션</p>
         <div className="grid grid-cols-2 gap-2">
           {[
             { id: 'VibeIntro',   label: '인트로 타이틀',  cmd: 'npx remotion render VibeIntro out/intro.mp4' },
@@ -1417,13 +1417,13 @@ function VideoProductionTab() {
             { id: 'VibeOutro',  label: '아웃트로',        cmd: 'npx remotion render VibeOutro out/outro.mp4' },
             { id: 'MotionTitle', label: '모션 타이틀',    cmd: 'npx remotion render MotionTitle out/title.mp4' },
           ].map(comp => (
-            <div key={comp.id} className="bg-[#111113] border border-[#1c1c20] rounded-lg p-3">
-              <p className="text-[15px] font-semibold text-[#d4d4d8] mb-0.5">{comp.label}</p>
+            <div key={comp.id} className="bg-surface border border-border-muted rounded-lg p-3">
+              <p className="text-[15px] font-semibold text-text mb-0.5">{comp.label}</p>
               <code className="text-[13px] text-violet-400/70 font-mono">{comp.id}</code>
               <div className="mt-2 flex gap-1">
                 <button
                   onClick={() => { navigator.clipboard.writeText(comp.cmd) }}
-                  className="flex items-center gap-1 text-[13px] text-[#52525b] hover:text-[#a1a1aa] bg-white/5 px-2 py-1 rounded transition-colors"
+                  className="flex items-center gap-1 text-[13px] text-muted hover:text-dim bg-white/5 px-2 py-1 rounded transition-colors"
                 >
                   <Copy size={12} />명령어 복사
                 </button>
@@ -1434,9 +1434,9 @@ function VideoProductionTab() {
       </div>
 
       {/* 워크스페이스 경로 안내 */}
-      <div className="p-4 bg-[#111113] border border-[#1c1c20] rounded-xl">
-        <p className="text-[14px] font-bold text-[#52525b] uppercase tracking-widest mb-3">워크스페이스 구조</p>
-        <pre className="text-[14px] text-[#71717a] font-mono leading-relaxed">{`C:\\workspace\\vibe-video\\
+      <div className="p-4 bg-surface border border-border-muted rounded-xl">
+        <p className="text-[14px] font-bold text-muted uppercase tracking-widest mb-3">워크스페이스 구조</p>
+        <pre className="text-[14px] text-muted font-mono leading-relaxed">{`C:\\workspace\\vibe-video\\
   footage/     ← 원본 영상 넣는 곳
   edit/        ← 편집된 클립 출력
   out/         ← 최종 MP4 출력
@@ -1451,7 +1451,7 @@ function VideoProductionTab() {
           >
             <ExternalLink size={12} />Remotion 문서
           </a>
-          <span className="text-[#3f3f46]">·</span>
+          <span className="text-muted">·</span>
           <a
             href="https://elevenlabs.io"
             target="_blank"
@@ -1461,7 +1461,7 @@ function VideoProductionTab() {
           >
             <ExternalLink size={12} />ElevenLabs
           </a>
-          <span className="text-[#3f3f46]">·</span>
+          <span className="text-muted">·</span>
           <a
             href="https://pexels.com"
             target="_blank"
@@ -1884,11 +1884,11 @@ function PromptLibraryTab() {
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-[18px] font-semibold text-[#e4e4e7] flex items-center gap-2">
+          <h2 className="text-[18px] font-semibold text-text flex items-center gap-2">
             <BookOpen size={17} className="text-primary" />
             프롬프트 라이브러리
           </h2>
-          <p className="text-[15px] text-[#52525b] mt-0.5">
+          <p className="text-[15px] text-muted mt-0.5">
             {PROMPT_TEMPLATES.length}개 검증된 마케팅 프롬프트 — 복사해서 바로 사용하세요
           </p>
         </div>
@@ -1896,13 +1896,13 @@ function PromptLibraryTab() {
 
       <div className="flex flex-col gap-3">
         <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#52525b]" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="프롬프트 검색..."
-            className="w-full bg-[#111113] border border-[#1c1c20] rounded-lg pl-8 pr-3 py-2 text-[15px] text-[#e4e4e7] placeholder-[#3f3f46] focus:outline-none focus:border-primary/50 transition-colors"
+            className="w-full bg-surface border border-border-muted rounded-lg pl-8 pr-3 py-2 text-[15px] text-text placeholder-[#3f3f46] focus:outline-none focus:border-primary/50 transition-colors"
           />
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -1914,7 +1914,7 @@ function PromptLibraryTab() {
                 'px-2.5 py-1 rounded-full text-[14px] font-medium border transition-all',
                 category === cat
                   ? 'bg-primary/20 text-primary border-primary/40'
-                  : 'bg-[#111113] text-[#52525b] border-[#1c1c20] hover:border-[#27272a] hover:text-[#a1a1aa]',
+                  : 'bg-surface text-muted border-border-muted hover:border-border hover:text-dim',
               )}
             >
               {CATEGORY_LABELS[cat]}
@@ -1929,7 +1929,7 @@ function PromptLibraryTab() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="flex items-center justify-center h-32 text-[#52525b] text-sm">
+        <div className="flex items-center justify-center h-32 text-muted text-sm">
           검색 결과가 없습니다
         </div>
       ) : (
@@ -1940,7 +1940,7 @@ function PromptLibraryTab() {
             return (
               <div
                 key={t.id}
-                className="bg-[#111113] border border-[#1c1c20] rounded-xl p-4 hover:border-[#27272a] transition-colors"
+                className="bg-surface border border-border-muted rounded-xl p-4 hover:border-border transition-colors"
               >
                 <div className="flex items-start gap-2 mb-2">
                   <div>
@@ -1955,14 +1955,14 @@ function PromptLibraryTab() {
                     )}>
                       {CATEGORY_LABELS[t.category]}
                     </span>
-                    <h3 className="text-[16px] font-semibold text-[#e4e4e7] leading-tight">{t.title}</h3>
+                    <h3 className="text-[16px] font-semibold text-text leading-tight">{t.title}</h3>
                   </div>
                 </div>
-                <p className="text-[14px] text-[#52525b] mb-3 leading-relaxed">{t.desc}</p>
+                <p className="text-[14px] text-muted mb-3 leading-relaxed">{t.desc}</p>
 
                 <div
                   className={cn(
-                    'bg-[#0d0d0f] border border-[#1c1c20] rounded-lg p-3 text-[14px] text-[#71717a] font-mono leading-relaxed mb-3 cursor-pointer whitespace-pre-wrap transition-all',
+                    'bg-bg border border-border-muted rounded-lg p-3 text-[14px] text-muted font-mono leading-relaxed mb-3 cursor-pointer whitespace-pre-wrap transition-all',
                     !isExpanded && 'line-clamp-3',
                   )}
                   onClick={() => setExpanded(isExpanded ? null : t.id)}
@@ -1973,7 +1973,7 @@ function PromptLibraryTab() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setExpanded(isExpanded ? null : t.id)}
-                    className="text-[14px] text-[#52525b] hover:text-[#a1a1aa] transition-colors"
+                    className="text-[14px] text-muted hover:text-dim transition-colors"
                   >
                     {isExpanded ? '접기' : '전체 보기'}
                   </button>

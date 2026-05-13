@@ -8,13 +8,56 @@
 
 | 항목 | 내용 |
 |------|------|
-| **최신 버전** | v5.15.0 |
-| **다음 버전** | v5.16.0 (번들 code-split, n8n CORS 안내 개선, PTY 터미널 자동 높이) |
+| **최신 버전** | v5.16.0 |
+| **다음 버전** | v5.17.0 (번들 code-split, n8n CORS 안내 개선, PTY 터미널 자동 높이) |
 | **tsc --noEmit** | ✅ 0 errors |
-| **GitHub Release** | ✅ v5.15.0 `OOMNI Setup 5.15.0.exe` 업로드 완료 |
-| **랜딩페이지** | ✅ v5.15.0 다운로드 URL 업데이트 완료 |
+| **GitHub Release** | ✅ v5.16.0 `OOMNI Setup 5.16.0.exe` 업로드 완료 |
+| **랜딩페이지** | ✅ v5.16.0 다운로드 URL 업데이트 완료 |
 | **IDE** | VS Code + Claude Code 익스텐션 |
-| **마지막 작업일** | 2026-05-11 |
+| **마지막 작업일** | 2026-05-13 |
+
+---
+
+## 2026-05-13 — v5.16.0 전역 VS Code 다크 테마 통일 · Growth Bot 핵심도구 연동 수정 · 내부 제목 수정
+
+### 변경 파일
+| 파일 | 변경 내용 |
+|---|---|
+| `frontend/src/index.css` | CSS 변수 전역 테마 정의 (`--color-bg`, `--color-surface` 등 VS Code 다크 기준) |
+| `frontend/tailwind.config.js` | 모든 색상 토큰을 CSS 변수 참조로 변경 (방안 B) |
+| `frontend/src/components/layout/AppLayout.tsx` | 하드코딩 hex 색상 → 테마 토큰 교체 |
+| `frontend/src/pages/GrowthStudio.tsx` | 하드코딩 색상 토큰 교체, 내부 헤더 "Growth Studio" → "Growth Bot" 수정 |
+| `frontend/src/pages/CDPView.tsx` | 파란 계열 bg 제거, slate-* → 테마 토큰 교체 |
+| `frontend/src/pages/StudioBotPage.tsx` | 하드코딩 색상 토큰 교체 |
+| `frontend/src/pages/OpsCenter.tsx` | 하드코딩 색상 토큰 교체 |
+| `frontend/src/pages/MissionBoard.tsx` | 하드코딩 색상 토큰 교체 |
+| `frontend/src/pages/DashboardPage.tsx` | 하드코딩 색상 토큰 교체 |
+| `frontend/src/pages/UnifiedBotPage.tsx` | 하드코딩 색상 토큰 교체 |
+| `electron/main.js` | open-external 허용 도메인 확장 (Growth Bot 핵심도구 20개 추가) |
+| `package.json` | 5.15.0 → 5.16.0 |
+| `docs/index.html` | v5.16.0 다운로드 URL 업데이트 |
+
+### 주요 변경사항
+
+**전역 VS Code 다크 테마 통일 (방안 B — CSS 변수)**
+- `index.css`에 `:root` CSS 변수 정의: `--color-bg: #0d0d0f`, `--color-surface: #111113`, `--color-surface-2/3`, `--color-border`, `--color-text/muted/dim`
+- `tailwind.config.js` 색상 토큰을 모두 CSS 변수 참조로 변경
+- 기존 갈색 계열 `#1C1812`, `#242018`, `#3D3828` → VS Code 회색 계열로 자동 교체
+- 모든 페이지의 하드코딩 hex 색상(`bg-[#...]`, `text-[#...]`) → 테마 토큰으로 교체
+- CDPView의 파란 계열(`#0a0f1e`, `#0b1120`)과 slate-* 클래스도 테마 토큰으로 통일
+
+**Growth Bot 핵심도구 연동 수정**
+- `electron/main.js` `open-external` 허용 도메인 화이트리스트에 추가:
+  GA4, Google Ads, Meta Ads, Search Console, HubSpot, Mailchimp, Notion, n8n(localhost), Figma, Canva, Google Trends, PostHog, Supabase, Vercel, Claude, Make.com, Remotion, ElevenLabs, Pexels
+- 이전: 클릭해도 아무 반응 없음 (도메인 차단) → 수정 후: 외부 브라우저로 정상 연결
+
+**Growth Bot 내부 제목 수정**
+- `GrowthStudio.tsx` 헤더: `"Growth Studio"` → `"Growth Bot"` (네비게이션 레이블과 일치)
+
+### 다음 할 일
+- 번들 code-split 최적화
+- n8n CORS 안내 개선
+- PTY 터미널 자동 높이
 
 ---
 

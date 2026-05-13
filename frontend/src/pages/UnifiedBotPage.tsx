@@ -88,10 +88,10 @@ function ResizableSplit({
       </div>
       <div
         onMouseDown={onMouseDown}
-        className="h-1.5 bg-[#1a1a1a] hover:bg-primary/40 cursor-row-resize shrink-0 flex items-center justify-center select-none group"
+        className="h-1.5 bg-surface-3 hover:bg-primary/40 cursor-row-resize shrink-0 flex items-center justify-center select-none group"
         title="드래그하여 크기 조절"
       >
-        <div className="w-10 h-0.5 rounded-full bg-[#333] group-hover:bg-primary/60 transition-colors" />
+        <div className="w-10 h-0.5 rounded-full bg-border group-hover:bg-primary/60 transition-colors" />
       </div>
       <div style={{ height: `${100 - topPercent}%` }} className="overflow-hidden min-h-0">
         {bottom}
@@ -141,10 +141,10 @@ function ResizableHSplit({
       </div>
       <div
         onMouseDown={onMouseDown}
-        className="w-1.5 bg-[#1a1a1a] hover:bg-primary/40 cursor-col-resize shrink-0 flex items-center justify-center select-none group h-full"
+        className="w-1.5 bg-surface-3 hover:bg-primary/40 cursor-col-resize shrink-0 flex items-center justify-center select-none group h-full"
         title="드래그하여 크기 조절"
       >
-        <div className="h-10 w-0.5 rounded-full bg-[#333] group-hover:bg-primary/60 transition-colors" />
+        <div className="h-10 w-0.5 rounded-full bg-border group-hover:bg-primary/60 transition-colors" />
       </div>
       <div style={{ width: `${100 - leftPercent}%` }} className="overflow-hidden min-w-0 h-full">
         {right}
