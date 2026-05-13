@@ -13,6 +13,8 @@ export const SUPPORTED_PROVIDERS: Provider[] = [
   'google_sheets', 'n8n', 'hubspot', 'linear', 'figma',
   'perplexity', 'openai', 'telegram', 'discord',
   'posthog', 'ga4', 'polar', 'toss',
+  'google_ads', 'meta_ads', 'search_console', 'mailchimp',
+  'supabase', 'vercel', 'make',
 ];
 
 interface DbClient {
@@ -223,6 +225,149 @@ export class IntegrationService {
           { key: 'client_key', label: 'Client Key', type: 'text', placeholder: 'ck_test_...' },
         ],
       },
+      {
+        id: 'google_ads', name: 'Google Ads', icon: '📢', authType: 'apikey', category: 'ads',
+        description: '스마트 입찰, 반응형 광고, ROAS 목표 설정',
+        fields: [
+          { key: 'developer_token', label: 'Developer Token', type: 'password', placeholder: 'ABcdEFgh...' },
+          { key: 'customer_id', label: 'Customer ID', type: 'text', placeholder: '123-456-7890' },
+        ],
+      },
+      {
+        id: 'meta_ads', name: 'Meta Ads', icon: '📘', authType: 'apikey', category: 'ads',
+        description: '유사 타겟, 리타겟, Advantage+ 캠페인',
+        fields: [
+          { key: 'access_token', label: 'Access Token', type: 'password', placeholder: 'EAAxxxxx...' },
+          { key: 'ad_account_id', label: 'Ad Account ID', type: 'text', placeholder: 'act_123456789' },
+        ],
+      },
+      {
+        id: 'search_console', name: 'Search Console', icon: '🔍', authType: 'apikey', category: 'analytics',
+        description: 'CTR, 노출, 키워드 포지션 추적',
+        fields: [
+          { key: 'site_url', label: 'Site URL', type: 'text', placeholder: 'https://yoursite.com' },
+          { key: 'service_account_json', label: 'Service Account JSON', type: 'password', placeholder: '{"type":"service_account",...}' },
+        ],
+      },
+      {
+        id: 'mailchimp', name: 'Mailchimp', icon: '✉️', authType: 'apikey', category: 'marketing',
+        description: '자동화 플로우, 세그먼트, A/B 테스트',
+        fields: [
+          { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'xxxxxxxxxxxxxxxxxxxxxxxx-us11' },
+          { key: 'serverPrefix', label: 'Server Prefix', type: 'text', placeholder: 'us11' },
+        ],
+      },
+      {
+        id: 'supabase', name: 'Supabase', icon: '⚡', authType: 'apikey', category: 'dev',
+        description: '실험 데이터 저장, 실시간 이벤트 추적',
+        fields: [
+          { key: 'url', label: 'Project URL', type: 'text', placeholder: 'https://xxxx.supabase.co' },
+          { key: 'apiKey', label: 'Anon Key', type: 'password', placeholder: 'eyJhbGciOi...' },
+        ],
+      },
+      {
+        id: 'vercel', name: 'Vercel', icon: '▲', authType: 'apikey', category: 'dev',
+        description: 'A/B 테스트 배포, Edge Functions, 피처 플래그',
+        fields: [{ key: 'token', label: 'Access Token', type: 'password', placeholder: 'xxxxxxxxxxxxxxxxxxxxxxxx' }],
+      },
+      {
+        id: 'make', name: 'Make.com', icon: '🔄', authType: 'apikey', category: 'dev',
+        description: '앱 간 연결, 간단한 워크플로우 자동화',
+        fields: [
+          { key: 'apiKey', label: 'API Token', type: 'password', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' },
+          { key: 'zone', label: 'Zone', type: 'text', placeholder: 'eu1 또는 us1' },
+        ],
+      },
     ];
+  }
+
+  /** 외부 서비스 연결 테스트 + 기본 데이터 조회 */
+  async testConnection(missionId: string, provider: string): Promise<{
+    connected: boolean;
+    message: string;
+    data?: Record<string, unknown>;
+  }> {
+    const creds = await this.getCredential<Record<string, string>>(missionId, provider);
+    if (!creds) return { connected: false, message: '저장된 연동 정보가 없습니다' };
+
+    const timeout = (ms: number) => new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms));
+    const fetchWithTimeout = (url: string, opts: RequestInit) =>
+      Promise.race([fetch(url, opts), timeout(8000)]) as Promise<Response>;
+
+    try {
+      switch (provider) {
+        case 'n8n': {
+          const baseUrl = (creds['baseUrl'] ?? 'http://localhost:5678').replace(/\/$/, '');
+          const apiKey = creds['apiKey'] ?? '';
+          const res = await fetchWithTimeout(`${baseUrl}/api/v1/workflows`, {
+            headers: { 'X-N8N-API-KEY': apiKey },
+          });
+          if (!res.ok) return { connected: false, message: `n8n 응답 오류 (${res.status})` };
+          const body = await res.json() as { data?: Array<{ active: boolean }> };
+          const total = body.data?.length ?? 0;
+          const active = body.data?.filter(w => w.active).length ?? 0;
+          return { connected: true, message: `n8n 연결 완료`, data: { workflowTotal: total, workflowActive: active } };
+        }
+        case 'hubspot': {
+          const res = await fetchWithTimeout('https://api.hubapi.com/crm/v3/objects/contacts?limit=0', {
+            headers: { Authorization: `Bearer ${creds['apiKey'] ?? ''}` },
+          });
+          if (!res.ok) return { connected: false, message: `HubSpot API 키 오류 (${res.status})` };
+          const body = await res.json() as { total?: number };
+          return { connected: true, message: `HubSpot 연결 완료`, data: { contactsTotal: body.total ?? 0 } };
+        }
+        case 'posthog': {
+          const host = (creds['host'] ?? 'https://app.posthog.com').replace(/\/$/, '');
+          const res = await fetchWithTimeout(`${host}/api/users/@me/`, {
+            headers: { Authorization: `Bearer ${creds['api_key'] ?? ''}` },
+          });
+          if (!res.ok) return { connected: false, message: `PostHog API 키 오류 (${res.status})` };
+          const body = await res.json() as { email?: string; team?: { name?: string } };
+          return { connected: true, message: `PostHog 연결 완료`, data: { email: body.email, team: body.team?.name } };
+        }
+        case 'notion': {
+          const res = await fetchWithTimeout('https://api.notion.com/v1/users/me', {
+            headers: {
+              Authorization: `Bearer ${creds['token'] ?? ''}`,
+              'Notion-Version': '2022-06-28',
+            },
+          });
+          if (!res.ok) return { connected: false, message: `Notion 토큰 오류 (${res.status})` };
+          const body = await res.json() as { name?: string; type?: string };
+          return { connected: true, message: `Notion 연결 완료`, data: { name: body.name, type: body.type } };
+        }
+        case 'figma': {
+          const res = await fetchWithTimeout('https://api.figma.com/v1/me', {
+            headers: { 'X-Figma-Token': creds['token'] ?? '' },
+          });
+          if (!res.ok) return { connected: false, message: `Figma 토큰 오류 (${res.status})` };
+          const body = await res.json() as { handle?: string; email?: string };
+          return { connected: true, message: `Figma 연결 완료`, data: { handle: body.handle, email: body.email } };
+        }
+        case 'vercel': {
+          const res = await fetchWithTimeout('https://api.vercel.com/v9/projects?limit=5', {
+            headers: { Authorization: `Bearer ${creds['token'] ?? ''}` },
+          });
+          if (!res.ok) return { connected: false, message: `Vercel 토큰 오류 (${res.status})` };
+          const body = await res.json() as { projects?: Array<{ name: string }> };
+          return { connected: true, message: `Vercel 연결 완료`, data: { projectCount: body.projects?.length ?? 0 } };
+        }
+        case 'supabase': {
+          const url = (creds['url'] ?? '').replace(/\/$/, '');
+          const res = await fetchWithTimeout(`${url}/rest/v1/`, {
+            headers: {
+              apikey: creds['apiKey'] ?? '',
+              Authorization: `Bearer ${creds['apiKey'] ?? ''}`,
+            },
+          });
+          return { connected: res.ok, message: res.ok ? 'Supabase 연결 완료' : `Supabase 연결 오류 (${res.status})` };
+        }
+        default:
+          return { connected: true, message: `${provider} 연동 정보 저장 완료 (API 연결 테스트 미지원)` };
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { connected: false, message: `연결 실패: ${msg === 'timeout' ? '응답 시간 초과 (8초)' : msg}` };
+    }
   }
 }

@@ -98,11 +98,15 @@ export const costApi = {
 // 연동
 export const integrationsApi = {
   list: (missionId: string) =>
-    api.get('/api/integrations', { params: { mission_id: missionId } }).then(r => r.data.data),
+    api.get<{ data: Array<{ id: string; provider: string; label: string; is_active: boolean; created_at: string }> }>(
+      '/api/integrations', { params: { mission_id: missionId } }
+    ).then(r => r.data.data),
   providers: () => api.get('/api/integrations/providers').then(r => r.data.data),
   save: (data: { mission_id: string; provider: string; credentials: Record<string, string>; label?: string }) =>
     api.post('/api/integrations', data).then(r => r.data),
   delete: (id: string) => api.delete(`/api/integrations/${id}`),
+  test: (missionId: string, provider: string): Promise<{ connected: boolean; message: string; data?: Record<string, unknown> }> =>
+    api.post(`/api/integrations/test/${provider}`, {}, { params: { mission_id: missionId } }).then(r => r.data),
 }
 
 // 이슈/티켓

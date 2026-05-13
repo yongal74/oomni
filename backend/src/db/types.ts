@@ -38,7 +38,15 @@ export type Provider =
   | 'posthog'
   | 'ga4'
   | 'polar'
-  | 'toss';
+  | 'toss'
+  // Growth Bot 확장 providers
+  | 'google_ads'
+  | 'meta_ads'
+  | 'search_console'
+  | 'mailchimp'
+  | 'supabase'
+  | 'vercel'
+  | 'make';
 
 export interface Mission {
   id: string;

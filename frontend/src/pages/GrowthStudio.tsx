@@ -2,7 +2,7 @@
  * GrowthStudio.tsx — AI Lead Generation 스튜디오
  * v5.2.0 — URL 인제스트 → 콘텐츠 생성 → SNS 발사 → 리드 추적
  */
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Rocket, Link2, Sparkles, Send, BarChart2,
   Loader2, CheckCircle, AlertTriangle,
@@ -10,11 +10,11 @@ import {
   Linkedin, FileText, Music2, Zap, Package, Users,
   Target, Video, Play, ExternalLink, Film, Mic, Image,
   BookOpen, Search, TrendingUp, Bot,
-  Megaphone,
+  Megaphone, ChevronDown, ChevronUp, Wifi, WifiOff, Eye, EyeOff,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '../store/app.store'
-import { growthApi, type GrowthContent, type LeadStats, type LeadRow, type AttributionReport } from '../lib/api'
+import { growthApi, integrationsApi, type GrowthContent, type LeadStats, type LeadRow, type AttributionReport } from '../lib/api'
 import { cn } from '../lib/utils'
 
 type TabId = 'perf' | 'content' | 'crm' | 'brand' | 'growth' | 'solo' | 'assets' | 'leads' | 'cdp'
@@ -35,6 +35,240 @@ const SEGMENTS = [
   { id: 'churn_risk',  label: '이탈 위험' },
   { id: 'vip',         label: 'VIP' },
 ] as const
+
+// ── 도구별 상세 가이드 데이터 ────────────────────────────────────────────────
+
+interface ToolGuide {
+  provider: string | null  // null = API 연동 없음
+  steps: Array<{ title: string; detail: string }>
+  fields: Array<{ key: string; label: string; type: 'text' | 'password'; placeholder: string }>
+  incomingData: string[]
+  n8nTip?: string
+  apiKeyUrl?: string
+}
+
+const TOOL_GUIDES: Record<string, ToolGuide> = {
+  'GA4': {
+    provider: 'ga4',
+    apiKeyUrl: 'https://analytics.google.com',
+    steps: [
+      { title: 'Google Analytics 접속', detail: 'analytics.google.com → 왼쪽 하단 관리(⚙️) → 속성 열 → 데이터 스트림 클릭' },
+      { title: 'Measurement ID 복사', detail: '웹 스트림 클릭 → 상단 G-XXXXXXXXXX 형태의 측정 ID 복사' },
+      { title: 'API 비밀키 생성', detail: '같은 화면 스크롤 → "Measurement Protocol API 비밀키" → 만들기 → 비밀 값 복사' },
+    ],
+    fields: [
+      { key: 'measurement_id', label: 'Measurement ID', type: 'text', placeholder: 'G-XXXXXXXXXX' },
+      { key: 'api_secret', label: 'API Secret', type: 'password', placeholder: 'abcDEF123...' },
+    ],
+    incomingData: ['세션수 & 신규 사용자 (일/주/월)', '채널별 트래픽 (유기, 유료, SNS, 직접)', '전환 이벤트 & 목표 달성률', '페이지별 이탈율 & 평균 세션 시간', '기기/지역/연령대별 분포'],
+    n8nTip: 'n8n HTTP Request 노드 → GA4 Data API → 매일 23:00 자동 수집 → OOMNI 주간 리포트 생성',
+  },
+  'Google Ads': {
+    provider: 'google_ads',
+    apiKeyUrl: 'https://ads.google.com',
+    steps: [
+      { title: 'Google Ads 관리자 접속', detail: 'ads.google.com → 도구 및 설정 → API 센터 → 개발자 토큰 신청 (기본 액세스)' },
+      { title: 'Customer ID 확인', detail: '화면 우측 상단 계정 번호 (XXX-XXX-XXXX 형태) 복사. 하이픈 제외 숫자만 입력' },
+      { title: 'OAuth 설정 (선택)', detail: 'Google Cloud Console → OAuth 2.0 클라이언트 ID 생성 → n8n Google Ads 노드에서 인증' },
+    ],
+    fields: [
+      { key: 'developer_token', label: 'Developer Token', type: 'password', placeholder: 'ABcdEF...' },
+      { key: 'customer_id', label: 'Customer ID (하이픈 없이)', type: 'text', placeholder: '1234567890' },
+    ],
+    incomingData: ['캠페인별 ROAS & CPA', '키워드별 클릭수 & 노출수', '예산 소진율 & 추천 조정', '반응형 광고 조합별 성과', '스마트 입찰 실적 변화'],
+    n8nTip: 'n8n Google Ads 노드 → 주간 캠페인 리포트 자동 수집 → OOMNI 퍼포먼스 대시보드 업데이트',
+  },
+  'Meta Ads': {
+    provider: 'meta_ads',
+    apiKeyUrl: 'https://developers.facebook.com',
+    steps: [
+      { title: 'Meta for Developers 접속', detail: 'developers.facebook.com → 내 앱 → "앱 만들기" → Business 선택 → 앱 이름 입력' },
+      { title: 'Access Token 발급', detail: '앱 → 도구 → Graph API Explorer → 사용자 액세스 토큰 → ads_management, ads_read 권한 선택 → 생성' },
+      { title: 'Ad Account ID 확인', detail: 'adsmanager.facebook.com → 계정 정보 → 계정 ID (act_XXXXXXXXXX) 복사' },
+    ],
+    fields: [
+      { key: 'access_token', label: 'Access Token', type: 'password', placeholder: 'EAAxxxxx...' },
+      { key: 'ad_account_id', label: 'Ad Account ID', type: 'text', placeholder: 'act_123456789' },
+    ],
+    incomingData: ['캠페인별 CPM, CTR, ROAS', '유사 타겟(Lookalike) 성과', 'Advantage+ 캠페인 결과', '리타겟 광고 전환율', '광고 소재별 성과 분석'],
+    n8nTip: 'n8n HTTP Request → Meta Marketing API → 매일 자동 수집 → 광고 예산 최적화 자동 트리거',
+  },
+  'Search Console': {
+    provider: 'search_console',
+    apiKeyUrl: 'https://search.google.com/search-console',
+    steps: [
+      { title: 'Search Console 속성 확인', detail: 'search.google.com/search-console → 소유하는 사이트 선택 → 설정 → 사용자 및 권한' },
+      { title: 'Google Cloud 서비스 계정', detail: 'console.cloud.google.com → API 및 서비스 → 사용자 인증 정보 → 서비스 계정 만들기 → JSON 키 다운로드' },
+      { title: '서비스 계정에 권한 부여', detail: 'Search Console → 설정 → 사용자 및 권한 → 추가 → 서비스 계정 이메일 입력 → 제한됨 사용자 권한' },
+    ],
+    fields: [
+      { key: 'site_url', label: 'Site URL', type: 'text', placeholder: 'https://yoursite.com' },
+      { key: 'service_account_json', label: 'Service Account JSON', type: 'password', placeholder: '{"type":"service_account",...}' },
+    ],
+    incomingData: ['키워드별 CTR, 노출, 클릭, 평균 순위', '페이지별 검색 성과', '검색 유형별 실적 (웹/이미지/뉴스)', '국가별 검색 노출', '최근 크롤링 오류 & 색인 상태'],
+    n8nTip: 'n8n Google Search Console 노드 → 주간 키워드 리포트 → SEO 기회 자동 분석',
+  },
+  'HubSpot': {
+    provider: 'hubspot',
+    apiKeyUrl: 'https://app.hubspot.com',
+    steps: [
+      { title: 'HubSpot 설정 접속', detail: 'app.hubspot.com → 설정(⚙️) → 통합 → 비공개 앱 → "비공개 앱 만들기" 클릭' },
+      { title: '권한(스코프) 선택', detail: 'CRM 탭 → contacts (read), companies (read), deals (read) 스코프 체크' },
+      { title: 'API 키 복사', detail: '"앱 만들기" 클릭 → 액세스 토큰 탭 → 토큰 복사 (pat-na1-... 형태)' },
+    ],
+    fields: [{ key: 'apiKey', label: 'Private App Access Token', type: 'password', placeholder: 'pat-na1-xxxxxxxx-...' }],
+    incomingData: ['총 연락처(리드) 수 & 신규 (30일)', '파이프라인 단계별 딜 수 & 금액', '리드 소스별 전환율', '이메일 시퀀스 오픈율/클릭율', 'HubSpot 활동 이벤트 → OOMNI 리드 점수 반영'],
+    n8nTip: 'n8n HubSpot 노드 → 신규 리드 감지 → OOMNI 리드 시그널 자동 전송 → 점수 실시간 반영',
+  },
+  'Mailchimp': {
+    provider: 'mailchimp',
+    apiKeyUrl: 'https://mailchimp.com',
+    steps: [
+      { title: 'Mailchimp 계정 설정', detail: 'mailchimp.com → 계정 → 보안 → API 키 → "API 키 추가" 클릭' },
+      { title: 'API 키 생성', detail: '이름 입력 (예: OOMNI) → "API 키 생성" → 전체 키 복사 (xxxxxxxx-usXX 형태)' },
+      { title: 'Server Prefix 확인', detail: 'API 키 끝의 -usXX 부분이 서버 프리픽스 (예: us11, us7)' },
+    ],
+    fields: [
+      { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx-us11' },
+      { key: 'serverPrefix', label: 'Server Prefix', type: 'text', placeholder: 'us11' },
+    ],
+    incomingData: ['구독자 수 & 성장 추이', '오픈율, 클릭율, 이탈율', '자동화 플로우 실행 현황', '세그먼트별 참여도', 'A/B 테스트 결과 자동 분석'],
+    n8nTip: 'n8n Mailchimp 노드 → 이탈 구독자 감지 → OOMNI 리타겟 리드 자동 등록',
+  },
+  'Notion': {
+    provider: 'notion',
+    apiKeyUrl: 'https://www.notion.so/my-integrations',
+    steps: [
+      { title: 'Notion 통합 만들기', detail: 'notion.so/my-integrations → "새 API 통합 만들기" → 이름 입력 (예: OOMNI) → 워크스페이스 선택 → "저장"' },
+      { title: '통합 토큰 복사', detail: '"내부 통합 시크릿" 옆 "복사" 클릭 → secret_로 시작하는 토큰 복사' },
+      { title: 'DB/페이지에 연결 추가', detail: '연결할 Notion 페이지/DB → 오른쪽 상단 "..." → "연결 추가" → 방금 만든 통합 선택' },
+    ],
+    fields: [{ key: 'token', label: 'Integration Token', type: 'password', placeholder: 'secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' }],
+    incomingData: ['마케팅 캘린더 & 할 일 항목', '리드 데이터베이스 행 수', '최근 수정된 문서 목록', '브랜드 가이드라인 페이지', 'CRM DB 항목 (연동 설정 시)'],
+    n8nTip: 'n8n Notion 노드 → 신규 리드 DB 항목 감지 → OOMNI 자동 처리 → 결과 Notion에 업데이트',
+  },
+  'n8n': {
+    provider: 'n8n',
+    apiKeyUrl: 'http://localhost:5678',
+    steps: [
+      { title: 'n8n 실행', detail: '터미널 → npx n8n start 또는 설치 후 n8n start → http://localhost:5678 접속' },
+      { title: '계정 생성 & 로그인', detail: '첫 실행 시 계정 생성 (이메일+비밀번호) → 로그인' },
+      { title: 'API 키 생성', detail: 'n8n 설정 (우측 하단 ⚙️) → n8n API → "API 키 만들기" → 이름 입력 → 키 복사' },
+      { title: 'OOMNI에 입력', detail: '아래 폼에 URL (http://localhost:5678)과 API 키 입력 → "연결 테스트" 클릭' },
+    ],
+    fields: [
+      { key: 'baseUrl', label: 'n8n URL', type: 'text', placeholder: 'http://localhost:5678' },
+      { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'n8n_api_...' },
+    ],
+    incomingData: ['활성 워크플로우 수 & 전체 목록', '최근 24시간 실행 결과 & 오류', '자동화 성공/실패 통계', 'OOMNI Growth Bot 자동 실행 트리거', '채널별 콘텐츠 발행 자동화 상태'],
+    n8nTip: '연결 후 OOMNI의 모든 자동화가 활성화: 일일 콘텐츠 발행, 리드 알림, 성과 리포트 자동 생성',
+  },
+  'Figma': {
+    provider: 'figma',
+    apiKeyUrl: 'https://www.figma.com/settings',
+    steps: [
+      { title: 'Figma 설정 접속', detail: 'figma.com → 좌측 상단 프로필 → 설정 → 보안 탭' },
+      { title: 'Personal Access Token 생성', detail: '"Personal Access Tokens" 섹션 → "새 토큰 생성" → 이름 입력 → 만료 기간 선택 → 생성' },
+      { title: '토큰 복사', detail: '표시된 figd_로 시작하는 토큰 복사 (한 번만 표시됨, 안전하게 보관)' },
+    ],
+    fields: [{ key: 'token', label: 'Personal Access Token', type: 'password', placeholder: '발급받은 Personal Access Token 붙여넣기' }],
+    incomingData: ['연결된 파일 & 프로젝트 목록', '최근 수정된 디자인 파일', '공유된 컴포넌트 라이브러리', '팀 멤버 & 협업 현황', '디자인 에셋 버전 이력'],
+    n8nTip: 'n8n HTTP → Figma API → 디자인 변경 감지 → OOMNI 브랜드 에셋 자동 업데이트',
+  },
+  'Canva': {
+    provider: null,
+    apiKeyUrl: 'https://canva.com',
+    steps: [
+      { title: 'Canva 계정 로그인', detail: 'canva.com → 로그인 → 브랜드 허브 → 브랜드 키트 설정 (색상, 폰트, 로고)' },
+      { title: '템플릿 라이브러리 구성', detail: '팀 → 브랜드 허브 → 템플릿 탭 → 소셜 미디어 템플릿 세트 생성' },
+      { title: 'OOMNI 콘텐츠 활용', detail: 'Growth Bot이 생성한 텍스트 → Canva 템플릿에 붙여넣기 → 브랜드 일관성 유지하며 빠른 제작' },
+    ],
+    fields: [],
+    incomingData: ['Canva는 직접 API 연동 없음 (공식 API 제한)', 'OOMNI 생성 콘텐츠 → 수동 Canva 붙여넣기 워크플로우', '브랜드 가이드라인 기반 템플릿 관리'],
+    n8nTip: 'Canva API는 제한적이므로, n8n → Canva 연동은 Zapier/Make.com 경유 권장',
+  },
+  'Google Trends': {
+    provider: null,
+    apiKeyUrl: 'https://trends.google.com',
+    steps: [
+      { title: 'Google Trends 접속', detail: 'trends.google.com → 검색어 입력 → 지역/기간/카테고리 설정' },
+      { title: '비교 분석 활용', detail: '"비교" 버튼 → 경쟁 키워드 추가 → 관심도 변화 시각적 비교' },
+      { title: 'n8n SerpAPI 자동화 (권장)', detail: 'SerpAPI 가입 → API 키 발급 → n8n HTTP 노드로 매주 트렌드 데이터 자동 수집' },
+    ],
+    fields: [],
+    incomingData: ['Google Trends는 공식 API 미제공 (SerpAPI 경유 필요)', '트렌드 키워드 관심도 변화 (SerpAPI 연동 시)', '지역별/시간대별 검색 트렌드', '관련 검색어 & 급상승 키워드'],
+    n8nTip: 'SerpAPI (serpapi.com) → n8n → 주간 트렌드 데이터 → OOMNI 브랜드 키워드 전략 자동 업데이트',
+  },
+  'PostHog': {
+    provider: 'posthog',
+    apiKeyUrl: 'https://app.posthog.com',
+    steps: [
+      { title: 'PostHog 프로젝트 설정', detail: 'app.posthog.com → 프로젝트 설정 (⚙️) → Project API Key 복사 (phc_로 시작)' },
+      { title: 'Personal API Key (선택)', detail: '계정 설정 → Personal API Keys → "Create personal API key" → 이름 입력 → 복사' },
+      { title: 'Self-hosted 설정 (선택)', detail: 'Self-hosted PostHog인 경우 Host 필드에 자체 도메인 입력 (예: https://posthog.myapp.com)' },
+    ],
+    fields: [
+      { key: 'api_key', label: 'Project API Key', type: 'password', placeholder: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' },
+      { key: 'host', label: 'Host (기본: app.posthog.com)', type: 'text', placeholder: 'https://app.posthog.com' },
+    ],
+    incomingData: ['DAU/WAU/MAU 활성 사용자', '이벤트 수 & 퍼널 전환율', '세션 리플레이 수', 'Feature Flag 노출/전환', 'A/B 실험 결과 통계'],
+    n8nTip: 'n8n HTTP → PostHog API → 퍼널 이탈 감지 → OOMNI 리타겟 리드 자동 등록',
+  },
+  'Supabase': {
+    provider: 'supabase',
+    apiKeyUrl: 'https://supabase.com/dashboard',
+    steps: [
+      { title: 'Supabase 프로젝트 접속', detail: 'supabase.com → 프로젝트 선택 → 좌측 Settings → API 탭' },
+      { title: 'Project URL 복사', detail: '"Project URL" 섹션 → https://xxxx.supabase.co 형태 URL 복사' },
+      { title: 'Anon Key 복사', detail: '"Project API Keys" → anon/public 키 복사 (서버측 사용 시 service_role 키 사용)' },
+    ],
+    fields: [
+      { key: 'url', label: 'Project URL', type: 'text', placeholder: 'https://xxxx.supabase.co' },
+      { key: 'apiKey', label: 'Anon Key', type: 'password', placeholder: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+    ],
+    incomingData: ['DB 테이블별 행 수 & 변화', '실시간 구독 이벤트', '사용자 인증 통계 (로그인/가입)', 'Storage 파일 수 & 사용량', 'Edge Functions 호출 로그'],
+    n8nTip: 'Supabase Realtime → n8n Webhook → 신규 가입자 감지 → OOMNI CDP 프로파일 자동 생성',
+  },
+  'Vercel': {
+    provider: 'vercel',
+    apiKeyUrl: 'https://vercel.com/account/tokens',
+    steps: [
+      { title: 'Vercel 계정 토큰 생성', detail: 'vercel.com → 계정 설정 → Tokens → "Create" 버튼 클릭' },
+      { title: '토큰 설정', detail: '이름 입력 (예: OOMNI) → 스코프: Full Account → 만료: Never (또는 원하는 기간) → "Create Token" 클릭' },
+      { title: '토큰 복사', detail: '생성된 토큰 복사 (한 번만 표시됨)' },
+    ],
+    fields: [{ key: 'token', label: 'Access Token', type: 'password', placeholder: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' }],
+    incomingData: ['프로젝트별 배포 상태 & 최근 배포 시간', '빌드 시간 & 성공/실패율', 'Edge Functions 호출 수', '도메인 연결 상태', 'A/B 배포 현황 (Vercel Flags)'],
+    n8nTip: 'n8n → Vercel API → 배포 완료 감지 → OOMNI Growth 실험 자동 기록',
+  },
+  'Claude': {
+    provider: 'openai',
+    apiKeyUrl: 'https://console.anthropic.com',
+    steps: [
+      { title: 'Anthropic Console 접속', detail: 'console.anthropic.com → API Keys → "Create Key" 버튼 클릭' },
+      { title: 'API 키 생성', detail: '이름 입력 (예: OOMNI) → "Create Key" → sk-ant-로 시작하는 키 복사' },
+      { title: 'OOMNI Settings 등록', detail: 'OOMNI → Settings → AI API → Claude API Key 입력 (이미 설정된 경우 재입력 불필요)' },
+    ],
+    fields: [{ key: 'api_key', label: 'Anthropic API Key', type: 'password', placeholder: 'sk-ant-api03-...' }],
+    incomingData: ['AI 에이전트 실행 기록 & 결과', '토큰 사용량 (입력/출력)', '비용 추적 (USD)', '채널별 콘텐츠 생성 이력', 'Growth Bot 자동화 실행 로그'],
+    n8nTip: 'Claude API가 이미 OOMNI에 통합되어 있음. Settings에서 설정 후 모든 봇에서 자동 사용',
+  },
+  'Make.com': {
+    provider: 'make',
+    apiKeyUrl: 'https://make.com',
+    steps: [
+      { title: 'Make.com 계정 접속', detail: 'make.com → 우측 상단 계정 아이콘 → 프로필 → API 액세스 토큰' },
+      { title: 'API 토큰 생성', detail: '"새 토큰 추가" → 이름 입력 (예: OOMNI) → "추가" 클릭 → 토큰 복사' },
+      { title: 'Zone 확인', detail: 'make.com URL에서 확인 (예: eu1.make.com → eu1, us1.make.com → us1)' },
+    ],
+    fields: [
+      { key: 'apiKey', label: 'API Token', type: 'password', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' },
+      { key: 'zone', label: 'Zone', type: 'text', placeholder: 'eu1 또는 us1' },
+    ],
+    incomingData: ['시나리오 실행 횟수 & 최근 결과', '성공/오류 시나리오 현황', '작업(Operations) 사용량', '스케줄 실행 현황', '앱 연결 상태 목록'],
+    n8nTip: 'Make.com과 n8n 중 하나를 주력 자동화로 선택 권장. n8n은 로컬/오픈소스, Make.com은 클라우드 기반',
+  },
+}
 
 // ── 메인 ─────────────────────────────────────────────────────────────────────
 
@@ -64,7 +298,7 @@ export default function GrowthStudio() {
           <Rocket size={18} className="text-pink-400" />
           <span className="text-[17px] font-semibold text-text">Growth Bot</span>
           <div className="flex items-center gap-1 text-[13px] text-pink-400/70 bg-pink-500/10 border border-pink-500/20 px-2 py-0.5 rounded-full">
-            <Zap size={9} />v5.14
+            <Zap size={9} />v5.17
           </div>
         </div>
         {/* 탭 바 — 직무별 + 공통 */}
@@ -208,9 +442,203 @@ const JOB_ROLE_DATA: Record<string, {
   },
 }
 
+// ── 도구 가이드 패널 컴포넌트 ─────────────────────────────────────────────────
+
+interface ToolGuidePanelProps {
+  toolName: string
+  guide: ToolGuide
+  isConnected: boolean
+  credentials: Record<string, string>
+  onCredentialChange: (key: string, value: string) => void
+  showPass: Record<string, boolean>
+  onToggleShowPass: (key: string) => void
+  onSave: () => void
+  onTest: () => void
+  saving: boolean
+  testing: boolean
+  testResult: { connected: boolean; message: string; data?: Record<string, unknown> } | null
+  saveSuccess: boolean
+  openExternal: (url: string) => void
+}
+
+function ToolGuidePanel({
+  toolName, guide, isConnected,
+  credentials, onCredentialChange,
+  showPass, onToggleShowPass,
+  onSave, onTest, saving, testing, testResult, saveSuccess, openExternal,
+}: ToolGuidePanelProps) {
+  const hasFields = guide.fields.length > 0
+  const hasProvider = guide.provider !== null
+
+  return (
+    <div className="mt-3 border border-primary/30 rounded-xl overflow-hidden bg-surface">
+      {/* 헤더 */}
+      <div className="flex items-center justify-between px-5 py-3 bg-primary/5 border-b border-primary/20">
+        <div className="flex items-center gap-2">
+          <span className="text-[15px] font-bold text-text">{toolName}</span>
+          {isConnected ? (
+            <span className="flex items-center gap-1 text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+              <Wifi size={9} />연결됨
+            </span>
+          ) : hasProvider ? (
+            <span className="flex items-center gap-1 text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+              <WifiOff size={9} />미연결 — 아래에서 설정하세요
+            </span>
+          ) : (
+            <span className="text-[11px] text-muted bg-surface-2 border border-border px-2 py-0.5 rounded-full">가이드 전용</span>
+          )}
+        </div>
+        {guide.apiKeyUrl && (
+          <button
+            onClick={() => openExternal(guide.apiKeyUrl!)}
+            className="flex items-center gap-1.5 text-[13px] text-muted hover:text-primary border border-border hover:border-primary/40 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <ExternalLink size={12} />사이트 열기
+          </button>
+        )}
+      </div>
+
+      <div className="p-5 space-y-6">
+        {/* 설정 가이드 단계 */}
+        <div>
+          <p className="text-[12px] font-bold text-muted uppercase tracking-wider mb-3">📋 단계별 설정 가이드</p>
+          <div className="space-y-3">
+            {guide.steps.map((step, i) => (
+              <div key={i} className="flex gap-3">
+                <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[12px] font-bold shrink-0 mt-0.5">
+                  {i + 1}
+                </div>
+                <div className="flex-1">
+                  <p className="text-[14px] font-semibold text-text">{step.title}</p>
+                  <p className="text-[13px] text-muted leading-relaxed mt-0.5">{step.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* API 키 입력 폼 */}
+        {hasFields && hasProvider && (
+          <div>
+            <p className="text-[12px] font-bold text-muted uppercase tracking-wider mb-3">🔑 연결 정보 입력</p>
+            <div className="space-y-3">
+              {guide.fields.map(field => (
+                <div key={field.key}>
+                  <label className="text-[13px] font-medium text-dim mb-1.5 block">{field.label}</label>
+                  <div className="relative">
+                    <input
+                      type={field.type === 'password' && !showPass[field.key] ? 'password' : 'text'}
+                      value={credentials[field.key] ?? ''}
+                      onChange={e => onCredentialChange(field.key, e.target.value)}
+                      placeholder={field.placeholder}
+                      className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-[14px] text-text placeholder:text-muted focus:outline-none focus:border-primary/50 transition-colors"
+                    />
+                    {field.type === 'password' && (
+                      <button
+                        type="button"
+                        onClick={() => onToggleShowPass(field.key)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-dim transition-colors"
+                      >
+                        {showPass[field.key] ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* 버튼 */}
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={onSave}
+                  disabled={saving || testing}
+                  className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {saving ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle size={13} />}
+                  {saving ? '저장 중...' : saveSuccess ? '저장 완료!' : '저장'}
+                </button>
+                <button
+                  onClick={onTest}
+                  disabled={testing || saving}
+                  className="flex items-center gap-1.5 px-4 py-2 text-[13px] border border-border hover:border-primary/40 text-dim hover:text-primary rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {testing ? <Loader2 size={13} className="animate-spin" /> : <Wifi size={13} />}
+                  {testing ? '테스트 중...' : '연결 테스트'}
+                </button>
+              </div>
+
+              {/* 테스트 결과 */}
+              {testResult && (
+                <div className={cn(
+                  'rounded-lg p-3 text-[13px] border',
+                  testResult.connected
+                    ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25'
+                    : 'bg-red-500/10 text-red-300 border-red-500/25',
+                )}>
+                  <p className="font-semibold">{testResult.connected ? '✅' : '❌'} {testResult.message}</p>
+                  {testResult.data && Object.entries(testResult.data).map(([k, v]) => (
+                    <p key={k} className="mt-1 text-[12px] opacity-80">• {k}: {String(v)}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* OOMNI로 들어오는 데이터 */}
+        <div>
+          <p className="text-[12px] font-bold text-muted uppercase tracking-wider mb-3">📥 OOMNI로 들어오는 데이터</p>
+          <ul className="space-y-1.5">
+            {guide.incomingData.map((item, i) => (
+              <li key={i} className="text-[13px] text-dim flex items-start gap-2">
+                <span className="text-primary mt-0.5 shrink-0">→</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* n8n 자동화 팁 */}
+        {guide.n8nTip && (
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg px-4 py-3">
+            <p className="text-[12px] font-bold text-amber-400 mb-1">⚡ n8n 자동화 연동 팁</p>
+            <p className="text-[13px] text-muted leading-relaxed">{guide.n8nTip}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── 직무 역할 탭 본체 ──────────────────────────────────────────────────────────
+
 function JobRoleTab({ role }: { role: 'perf' | 'crm' | 'brand' | 'growth' | 'solo' }) {
   const d = JOB_ROLE_DATA[role]
-  const [copied, setCopied] = useState<number | null>(null)
+  const { currentMission } = useAppStore()
+  const missionId = currentMission?.id
+
+  const [selectedTool, setSelectedTool]   = useState<string | null>(null)
+  const [copied, setCopied]               = useState<number | null>(null)
+  const [connectedProviders, setConn]     = useState<string[]>([])
+  const [credentials, setCreds]           = useState<Record<string, string>>({})
+  const [showPass, setShowPass]           = useState<Record<string, boolean>>({})
+  const [saving, setSaving]               = useState(false)
+  const [saveSuccess, setSaveSuccess]     = useState(false)
+  const [testing, setTesting]             = useState(false)
+  const [testResult, setTestResult]       = useState<{ connected: boolean; message: string; data?: Record<string, unknown> } | null>(null)
+
+  useEffect(() => {
+    if (!missionId) return
+    integrationsApi.list(missionId)
+      .then(list => setConn(list.map(i => i.provider)))
+      .catch(() => {})
+  }, [missionId])
+
+  useEffect(() => {
+    setCreds({})
+    setShowPass({})
+    setTestResult(null)
+    setSaveSuccess(false)
+  }, [selectedTool])
 
   const copy = (i: number, text: string) => {
     navigator.clipboard.writeText(text)
@@ -218,11 +646,45 @@ function JobRoleTab({ role }: { role: 'perf' | 'crm' | 'brand' | 'growth' | 'sol
     setTimeout(() => setCopied(null), 2000)
   }
 
-  const openTool = (url: string) => {
+  const openExternal = useCallback((url: string) => {
     if ((window as any).electronAPI?.openExternal) {
       (window as any).electronAPI.openExternal(url)
     } else {
       window.open(url, '_blank', 'noopener,noreferrer')
+    }
+  }, [])
+
+  const handleSave = async () => {
+    if (!missionId || !selectedTool) return
+    const guide = TOOL_GUIDES[selectedTool]
+    if (!guide?.provider) return
+    setSaving(true)
+    try {
+      await integrationsApi.save({ mission_id: missionId, provider: guide.provider, credentials })
+      setSaveSuccess(true)
+      setConn(prev => prev.includes(guide.provider!) ? prev : [...prev, guide.provider!])
+      setTimeout(() => setSaveSuccess(false), 3000)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleTest = async () => {
+    if (!missionId || !selectedTool) return
+    const guide = TOOL_GUIDES[selectedTool]
+    if (!guide?.provider) return
+    setTesting(true)
+    setTestResult(null)
+    try {
+      const result = await integrationsApi.test(missionId, guide.provider)
+      setTestResult(result)
+      if (result.connected) {
+        setConn(prev => prev.includes(guide.provider!) ? prev : [...prev, guide.provider!])
+      }
+    } catch {
+      setTestResult({ connected: false, message: '연결 테스트 실패 — 네트워크 또는 API 키를 확인하세요' })
+    } finally {
+      setTesting(false)
     }
   }
 
@@ -234,27 +696,76 @@ function JobRoleTab({ role }: { role: 'perf' | 'crm' | 'brand' | 'growth' | 'sol
         <p className="text-[14px] text-muted">{d.desc}</p>
       </div>
 
-      {/* 핵심 도구 그리드 */}
+      {/* 핵심 도구 그리드 + 가이드 패널 */}
       <div>
         <p className="text-[13px] font-bold text-muted uppercase tracking-widest mb-3">핵심 도구 / 연동</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {d.tools.map(t => (
-            <button
-              key={t.name}
-              onClick={() => openTool(t.url)}
-              className="bg-surface border border-border-muted hover:border-primary/40 rounded-xl p-3 flex items-start gap-3 text-left transition-colors group"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[15px] font-semibold text-text">{t.name}</span>
-                  <span className="text-[13px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded-full">{t.badge}</span>
+          {d.tools.map(t => {
+            const guide = TOOL_GUIDES[t.name]
+            const provider = guide?.provider ?? null
+            const isConn = provider ? connectedProviders.includes(provider) : false
+            const isSel = selectedTool === t.name
+            return (
+              <button
+                key={t.name}
+                onClick={() => setSelectedTool(isSel ? null : t.name)}
+                className={cn(
+                  'bg-surface border rounded-xl p-3 flex items-start gap-3 text-left transition-colors',
+                  isSel ? 'border-primary/50 ring-1 ring-primary/20' : 'border-border-muted hover:border-primary/40',
+                )}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                    <span className="text-[14px] font-semibold text-text">{t.name}</span>
+                    <span className="text-[11px] bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded-full shrink-0">{t.badge}</span>
+                    {isConn ? (
+                      <span className="flex items-center gap-0.5 text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full shrink-0">
+                        <Wifi size={8} />연결됨
+                      </span>
+                    ) : provider ? (
+                      <span className="flex items-center gap-0.5 text-[10px] text-muted bg-surface-2 border border-border-muted px-1.5 py-0.5 rounded-full shrink-0">
+                        <WifiOff size={8} />미연결
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="text-[12px] text-muted leading-snug">{t.desc}</p>
                 </div>
-                <p className="text-[13px] text-muted">{t.desc}</p>
-              </div>
-              <ExternalLink size={13} className="text-muted group-hover:text-primary shrink-0 mt-0.5 transition-colors" />
-            </button>
-          ))}
+                <div className="shrink-0 flex flex-col items-end gap-1.5 mt-0.5">
+                  {isSel
+                    ? <ChevronUp size={13} className="text-primary" />
+                    : <ChevronDown size={13} className="text-muted" />}
+                  <span
+                    role="button"
+                    onClick={e => { e.stopPropagation(); openExternal(t.url) }}
+                    className="text-muted hover:text-primary transition-colors"
+                  >
+                    <ExternalLink size={11} />
+                  </span>
+                </div>
+              </button>
+            )
+          })}
         </div>
+
+        {/* 선택된 도구 상세 가이드 패널 */}
+        {selectedTool && TOOL_GUIDES[selectedTool] && (
+          <ToolGuidePanel
+            toolName={selectedTool}
+            guide={TOOL_GUIDES[selectedTool]}
+            isConnected={TOOL_GUIDES[selectedTool].provider ? connectedProviders.includes(TOOL_GUIDES[selectedTool].provider!) : false}
+            credentials={credentials}
+            onCredentialChange={(key, val) => setCreds(prev => ({ ...prev, [key]: val }))}
+            showPass={showPass}
+            onToggleShowPass={key => setShowPass(prev => ({ ...prev, [key]: !prev[key] }))}
+            onSave={handleSave}
+            onTest={handleTest}
+            saving={saving}
+            testing={testing}
+            testResult={testResult}
+            saveSuccess={saveSuccess}
+            openExternal={openExternal}
+          />
+        )}
       </div>
 
       {/* AI 프롬프트 템플릿 */}
@@ -423,7 +934,7 @@ function GenerateTab({ missionId }: { missionId: string }) {
   const canGenerate = true
 
   return (
-    <div className="space-y-4 max-w-2xl">
+    <div className="space-y-4 w-full">
 
       {/* Step 1: 상품 정보 */}
       <div className="bg-surface border border-border-muted rounded-xl p-4">
@@ -755,7 +1266,7 @@ function ContentsTab({ missionId }: { missionId: string }) {
   }
 
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-4 w-full">
       <div className="flex items-center gap-2 flex-wrap">
         <button onClick={() => setChannelFilter('all')}
           className={cn('px-2.5 py-1 rounded-lg text-[14px] border', channelFilter === 'all' ? 'bg-primary/20 text-primary border-primary/30' : 'text-muted border-border')}>
@@ -898,7 +1409,7 @@ function LeadsTab({ missionId }: { missionId: string }) {
   }
 
   return (
-    <div className="space-y-4 max-w-2xl">
+    <div className="space-y-4 w-full">
       {/* 통계 카드 */}
       <div className="grid grid-cols-4 gap-3">
         {[
@@ -1130,7 +1641,7 @@ function CdpIdGraphTab({ missionId: _missionId }: { missionId: string }) {
   const selectedProfile = CDP_DUMMY_PROFILES.find(p => p.id === selected)
 
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-4 w-full">
       {/* 헤더 */}
       <div className="flex items-center gap-3">
         <div>
@@ -1159,9 +1670,9 @@ function CdpIdGraphTab({ missionId: _missionId }: { missionId: string }) {
       </div>
 
       {/* 2-panel: profile list + detail */}
-      <div className="flex gap-3 min-h-[320px]">
+      <div className="flex flex-col lg:flex-row gap-3 min-h-[320px]">
         {/* 프로파일 목록 */}
-        <div className="w-[260px] shrink-0 space-y-1.5">
+        <div className="w-full lg:w-[260px] lg:shrink-0 space-y-1.5">
           {CDP_DUMMY_PROFILES.map(profile => (
             <button
               key={profile.id}

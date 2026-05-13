@@ -55,5 +55,18 @@ export function integrationsRouter(db: DbClient): Router {
     res.status(204).send();
   });
 
+  // POST /api/integrations/test/:provider?mission_id=xxx
+  router.post('/test/:provider', async (req: Request, res: Response) => {
+    const { mission_id } = req.query;
+    const { provider } = req.params;
+    if (!mission_id || typeof mission_id !== 'string') {
+      res.status(400).json({ error: 'mission_id가 필요합니다' });
+      return;
+    }
+    const service = getService();
+    const result = await service.testConnection(mission_id, provider as string);
+    res.json(result);
+  });
+
   return router;
 }
